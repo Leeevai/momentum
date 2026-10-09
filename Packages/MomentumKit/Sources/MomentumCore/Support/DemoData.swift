@@ -122,6 +122,40 @@ extension AppData {
             }
         }
         data.entries.sort { $0.date < $1.date }
+
+        // Habit stack: Spanish right after meditating.
+        data.goals[3].stackAfter = meditate.id
+
+        // Journal: most evenings rated, with better moods on better days; plans on most mornings.
+        let engine = ProgressEngine(data: data, calendar: calendar)
+        let wins = ["Finished the chapter", "Shipped the widget fix", "Ran 5 km without stopping", "A whole Spanish podcast, understood",
+                    "Inbox zero before lunch", "Wrote 1,200 words", "Deep work before the meetings"]
+        let intentions = ["Protect the morning for deep work", "Small steps, every goal", "Finish what I started", "Be present, one thing at a time"]
+        for offset in stride(from: -45, through: -1, by: 1) where random.chance(0.8) {
+            let date = day(offset)
+            let summary = engine.daySummary(date, now: now)
+            let base = 2 + Int(((summary.completion ?? 0.5) * 3).rounded())
+            let mood = Mood(rawValue: min(5, max(1, base + random.next(upTo: 2) - (random.chance(0.3) ? 1 : 0))))
+            data.updateJournal(for: DayID(date, calendar: calendar), at: at(offset, hour: 21, minute: 40)) { entry in
+                entry.mood = mood
+                entry.energy = Energy(rawValue: min(5, max(1, base - 1 + random.next(upTo: 3))))
+                if random.chance(0.6) { entry.win = wins[random.next(upTo: wins.count)] }
+                if random.chance(0.5) {
+                    entry.intention = intentions[random.next(upTo: intentions.count)]
+                    entry.priorities = [deepWork.id, spanish.id, reading.id].prefix(1 + random.next(upTo: 3)).map { $0 }
+                }
+            }
+        }
+        data.updateJournal(for: DayID(now, calendar: calendar), at: at(0, hour: 8, minute: 5)) { entry in
+            entry.intention = "Ship the Pomodoro release, then read in the sun"
+            entry.priorities = [deepWork.id, spanish.id, reading.id]
+        }
+
+        // Achievements earned along the way, dated over the past months.
+        let earned = data.recordAchievements(now: now, calendar: calendar)
+        for (index, achievement) in earned.enumerated() {
+            data.achievements[achievement.id] = at(-(index * 9 % 140) - 1, hour: 18 + index % 4)
+        }
         return data
     }
 }
