@@ -8,6 +8,21 @@ extension KeyedDecodingContainer {
     func decode<T: Decodable>(_ key: Key, default defaultValue: @autoclosure () -> T) throws -> T {
         try decodeIfPresent(T.self, forKey: key) ?? defaultValue()
     }
+
+    /// Decodes an array, skipping elements that fail to decode (written by a newer version, or
+    /// damaged) instead of failing the whole file. A missing key is an empty array.
+    func decodeLossy<T: Decodable>(_ key: Key) throws -> [T] {
+        guard contains(key) else { return [] }
+        return try decode([Lossy<T>].self, forKey: key).compactMap(\.value)
+    }
+}
+
+private struct Lossy<T: Decodable>: Decodable {
+    let value: T?
+
+    init(from decoder: Decoder) throws {
+        value = try? T(from: decoder)
+    }
 }
 
 extension DateInterval {

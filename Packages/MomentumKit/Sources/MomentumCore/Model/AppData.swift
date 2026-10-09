@@ -53,13 +53,16 @@ public struct FocusSession: Codable, Hashable, Sendable {
     /// Start of the stretch in progress; nil while paused.
     public var runningSince: Date?
     public var note: String
+    /// Which block of a Pomodoro cycle this is, counting from 1.
+    public var block: Int
 
-    public init(goalID: UUID, plannedDuration: TimeInterval? = nil, start: Date) {
+    public init(goalID: UUID, plannedDuration: TimeInterval? = nil, start: Date, block: Int = 1) {
         self.goalID = goalID
         self.plannedDuration = plannedDuration
         self.segments = []
         self.runningSince = start
         self.note = ""
+        self.block = block
     }
 
     public var isRunning: Bool { runningSince != nil }
@@ -99,7 +102,7 @@ public struct FocusSession: Codable, Hashable, Sendable {
         return reference.addingTimeInterval(plannedDuration)
     }
 
-    private enum CodingKeys: String, CodingKey { case goalID, plannedDuration, segments, runningSince, note }
+    private enum CodingKeys: String, CodingKey { case goalID, plannedDuration, segments, runningSince, note, block }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -108,7 +111,72 @@ public struct FocusSession: Codable, Hashable, Sendable {
         segments = try c.decode(.segments, default: [])
         runningSince = try c.decodeIfPresent(Date.self, forKey: .runningSince)
         note = try c.decode(.note, default: "")
+        block = max(1, try c.decode(.block, default: 1))
     }
+}
+
+/// The Pomodoro rhythm: planned focus blocks chained with short breaks, and a long one after
+/// every few blocks.
+public struct PomodoroSettings: Codable, Hashable, Sendable {
+    /// When on, a planned session that reaches its length is saved and a break begins.
+    public var isEnabled: Bool
+    public var shortBreakMinutes: Int
+    public var longBreakMinutes: Int
+    /// Blocks before a long break.
+    public var blocksPerCycle: Int
+    /// Starts the next block by itself when a break ends.
+    public var autoStartsNextBlock: Bool
+
+    public init(isEnabled: Bool = false, shortBreakMinutes: Int = 5, longBreakMinutes: Int = 15, blocksPerCycle: Int = 4,
+                autoStartsNextBlock: Bool = false) {
+        self.isEnabled = isEnabled
+        self.shortBreakMinutes = shortBreakMinutes
+        self.longBreakMinutes = longBreakMinutes
+        self.blocksPerCycle = blocksPerCycle
+        self.autoStartsNextBlock = autoStartsNextBlock
+    }
+
+    private enum CodingKeys: String, CodingKey { case isEnabled, shortBreakMinutes, longBreakMinutes, blocksPerCycle, autoStartsNextBlock }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        isEnabled = try c.decode(.isEnabled, default: false)
+        shortBreakMinutes = max(1, try c.decode(.shortBreakMinutes, default: 5))
+        longBreakMinutes = max(1, try c.decode(.longBreakMinutes, default: 15))
+        blocksPerCycle = max(1, try c.decode(.blocksPerCycle, default: 4))
+        autoStartsNextBlock = try c.decode(.autoStartsNextBlock, default: false)
+    }
+}
+
+/// A break between Pomodoro blocks.
+public struct RestPeriod: Codable, Hashable, Sendable {
+    /// The goal of the block just finished, which the next block continues.
+    public var goalID: UUID
+    public var start: Date
+    public var duration: TimeInterval
+    /// Blocks finished so far in this cycle, including the one before this break.
+    public var completedBlocks: Int
+    /// The length of the next block.
+    public var blockDuration: TimeInterval
+    public var isLong: Bool
+
+    public init(goalID: UUID, start: Date, duration: TimeInterval, completedBlocks: Int, blockDuration: TimeInterval, isLong: Bool) {
+        self.goalID = goalID
+        self.start = start
+        self.duration = duration
+        self.completedBlocks = completedBlocks
+        self.blockDuration = blockDuration
+        self.isLong = isLong
+    }
+
+    public var end: Date { start.addingTimeInterval(duration) }
+
+    public func remaining(at now: Date) -> TimeInterval { max(0, end.timeIntervalSince(now)) }
+
+    public func isOver(at now: Date) -> Bool { now >= end }
+
+    /// The block number the next session will be.
+    public var nextBlock: Int { isLong ? 1 : completedBlocks + 1 }
 }
 
 /// Background noise played during a focus session.
@@ -155,10 +223,14 @@ public struct Preferences: Codable, Hashable, Sendable {
     public var focusSound: FocusSound
     /// From 0 to 1.
     public var focusSoundVolume: Double
+    public var pomodoro: PomodoroSettings
+    /// A morning prompt to plan the day, and an evening one to reflect on it.
+    public var journalPromptsEnabled: Bool
 
     public init(defaultFocusMinutes: Int = 25, celebratesCompletion: Bool = true, playsSounds: Bool = true, remindersEnabled: Bool = true,
                 showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60,
-                weeklyRecapEnabled: Bool = true, focusSound: FocusSound = .off, focusSoundVolume: Double = 0.4) {
+                weeklyRecapEnabled: Bool = true, focusSound: FocusSound = .off, focusSoundVolume: Double = 0.4,
+                pomodoro: PomodoroSettings = PomodoroSettings(), journalPromptsEnabled: Bool = true) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
@@ -169,11 +241,13 @@ public struct Preferences: Codable, Hashable, Sendable {
         self.weeklyRecapEnabled = weeklyRecapEnabled
         self.focusSound = focusSound
         self.focusSoundVolume = focusSoundVolume
+        self.pomodoro = pomodoro
+        self.journalPromptsEnabled = journalPromptsEnabled
     }
 
     private enum CodingKeys: String, CodingKey {
         case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar, streakNudgesEnabled, streakNudgeMinute
-        case weeklyRecapEnabled, focusSound, focusSoundVolume
+        case weeklyRecapEnabled, focusSound, focusSoundVolume, pomodoro, journalPromptsEnabled
     }
 
     public init(from decoder: Decoder) throws {
@@ -189,6 +263,8 @@ public struct Preferences: Codable, Hashable, Sendable {
         // An unknown sound from a newer version plays nothing rather than failing the file.
         focusSound = (try? c.decode(.focusSound, default: .off)) ?? .off
         focusSoundVolume = min(1, max(0, try c.decode(.focusSoundVolume, default: 0.4)))
+        pomodoro = try c.decode(.pomodoro, default: PomodoroSettings())
+        journalPromptsEnabled = try c.decode(.journalPromptsEnabled, default: true)
     }
 }
 
@@ -200,17 +276,27 @@ public struct AppData: Codable, Equatable, Sendable {
     public var goals: [Goal]
     public var entries: [LogEntry]
     public var session: FocusSession?
+    /// A break between Pomodoro blocks.
+    public var rest: RestPeriod?
     public var preferences: Preferences
+    /// Daily plans and reflections, oldest first.
+    public var journal: [JournalEntry]
+    /// Achievement id -> when it was earned.
+    public var achievements: [String: Date]
 
-    public init(goals: [Goal] = [], entries: [LogEntry] = [], session: FocusSession? = nil, preferences: Preferences = Preferences()) {
+    public init(goals: [Goal] = [], entries: [LogEntry] = [], session: FocusSession? = nil, rest: RestPeriod? = nil,
+                preferences: Preferences = Preferences(), journal: [JournalEntry] = [], achievements: [String: Date] = [:]) {
         self.version = Self.currentVersion
         self.goals = goals
         self.entries = entries
         self.session = session
+        self.rest = rest
         self.preferences = preferences
+        self.journal = journal
+        self.achievements = achievements
     }
 
-    private enum CodingKeys: String, CodingKey { case version, goals, entries, session, preferences }
+    private enum CodingKeys: String, CodingKey { case version, goals, entries, session, rest, preferences, journal, achievements }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -218,6 +304,9 @@ public struct AppData: Codable, Equatable, Sendable {
         goals = try c.decode(.goals, default: [])
         entries = try c.decode(.entries, default: [])
         session = try c.decodeIfPresent(FocusSession.self, forKey: .session)
+        rest = try? c.decodeIfPresent(RestPeriod.self, forKey: .rest)
         preferences = try c.decode(.preferences, default: Preferences())
+        journal = try c.decodeLossy(.journal)
+        achievements = try c.decode(.achievements, default: [:])
     }
 }

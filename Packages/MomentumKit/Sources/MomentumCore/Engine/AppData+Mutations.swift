@@ -26,6 +26,7 @@ extension AppData {
         goals.removeAll { $0.id == id }
         entries.removeAll { $0.goalID == id }
         if session?.goalID == id { session = nil }
+        if rest?.goalID == id { rest = nil }
     }
 
     /// Copies a goal's settings, links, milestones and books (reset to unread), without history.
@@ -125,10 +126,13 @@ extension AppData {
 extension AppData {
     /// Starts a session, first saving any session already running. Only time goals have
     /// sessions: their amounts are seconds, which other kinds would misread as their own unit.
+    /// Starting during a Pomodoro break ends the break; on the same goal it continues the cycle.
     public mutating func startFocus(on goalID: UUID, planned: TimeInterval? = nil, at now: Date = .now, calendar: Calendar = .current) {
         guard goal(goalID)?.kind == .time else { return }
         stopFocus(at: now, calendar: calendar)
-        session = FocusSession(goalID: goalID, plannedDuration: planned, start: now)
+        let block = rest.flatMap { $0.goalID == goalID ? $0.nextBlock : nil } ?? 1
+        rest = nil
+        session = FocusSession(goalID: goalID, plannedDuration: planned, start: now, block: block)
     }
 
     public mutating func pauseFocus(at now: Date = .now) {
@@ -186,9 +190,14 @@ extension AppData {
         if session?.goalID == goalID {
             stopFocus(at: now, calendar: calendar)
         } else {
-            let minutes = goal(goalID)?.focusMinutes
-            startFocus(on: goalID, planned: minutes.map { Double($0) * 60 }, at: now, calendar: calendar)
+            startFocus(on: goalID, planned: defaultFocusLength(for: goalID), at: now, calendar: calendar)
         }
+    }
+
+    /// The length a one-tap start uses: the goal's own, or with Pomodoro on, the default block.
+    public func defaultFocusLength(for goalID: UUID) -> TimeInterval? {
+        if let minutes = goal(goalID)?.focusMinutes { return Double(minutes) * 60 }
+        return preferences.pomodoro.isEnabled ? Double(preferences.defaultFocusMinutes) * 60 : nil
     }
 
     /// The time goal a one-tap "focus" should start: the one timed most recently,

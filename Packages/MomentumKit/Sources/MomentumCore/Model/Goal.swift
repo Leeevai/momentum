@@ -268,6 +268,9 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
     public var milestones: [Milestone]
     public var books: [Book]
     public var reminder: ReminderSchedule?
+    /// Habit stacking: this goal comes right after another one ("after coffee, read"). Today lists
+    /// it after its anchor, and finishing the anchor suggests it.
+    public var stackAfter: UUID?
     /// Breaks protect the streak: days inside one are never required.
     public var breaks: [DateInterval]
     public var createdAt: Date
@@ -294,6 +297,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         milestones: [Milestone] = [],
         books: [Book] = [],
         reminder: ReminderSchedule? = nil,
+        stackAfter: UUID? = nil,
         breaks: [DateInterval] = [],
         createdAt: Date = .now,
         archivedAt: Date? = nil
@@ -318,6 +322,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         self.milestones = milestones
         self.books = books
         self.reminder = reminder
+        self.stackAfter = stackAfter
         self.breaks = breaks
         self.createdAt = createdAt
         self.archivedAt = archivedAt
@@ -344,6 +349,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         quickAddStep = other.quickAddStep
         focusMinutes = other.focusMinutes
         reminder = other.reminder
+        stackAfter = other.stackAfter == id ? nil : other.stackAfter
     }
 
     /// The period progress is measured over; milestone goals are always overall.
@@ -365,7 +371,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, name, icon, symbol, color, category, details, kind, unit, period, target, streakMinimum, weekdays, deadline
-        case quickAddStep, focusMinutes, links, milestones, books, reminder, breaks, createdAt, archivedAt
+        case quickAddStep, focusMinutes, links, milestones, books, reminder, stackAfter, breaks, createdAt, archivedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -394,6 +400,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         milestones = try c.decode(.milestones, default: [])
         books = try c.decode(.books, default: [])
         reminder = try c.decodeIfPresent(ReminderSchedule.self, forKey: .reminder)
+        stackAfter = try c.decodeIfPresent(UUID.self, forKey: .stackAfter)
         breaks = try c.decode(.breaks, default: [])
         createdAt = try c.decode(.createdAt, default: .now)
         archivedAt = try c.decodeIfPresent(Date.self, forKey: .archivedAt)

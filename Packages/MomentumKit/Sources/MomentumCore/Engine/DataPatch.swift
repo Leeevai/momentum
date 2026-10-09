@@ -4,12 +4,16 @@ import Foundation
 /// afterwards (a widget starting a timer, a log from Shortcuts, another edit).
 ///
 /// Undo works at the finest grain the data has: individual goal settings, milestones, books and
-/// links by id, log entries by id, the session, preferences. Only what the action itself changed
-/// is put back; everything else stays as it is now.
+/// links by id, log entries by id, journal days, the session and break, preferences. Only what the
+/// action itself changed is put back; everything else stays as it is now.
+///
+/// Achievements are left out on purpose: once earned, an achievement stays earned.
 public struct DataPatch: Sendable {
     private var goals: [UUID: Change<Goal>] = [:]
     private var entries: [UUID: Change<LogEntry>] = [:]
+    private var journal: [DayID: Change<JournalEntry>] = [:]
     private var session: Change<FocusSession>?
+    private var rest: Change<RestPeriod>?
     private var preferences: Change<Preferences>?
     /// Goal order before and after, when the action reordered or added or removed goals.
     private var order: Change<[UUID]>?
@@ -36,12 +40,18 @@ public struct DataPatch: Sendable {
         for id in Set(oldEntries.keys).union(newEntries.keys) where oldEntries[id] != newEntries[id] {
             entries[id] = Change(before: oldEntries[id], after: newEntries[id])
         }
+        let oldJournal = Self.byID(before.journal)
+        let newJournal = Self.byID(after.journal)
+        for day in Set(oldJournal.keys).union(newJournal.keys) where oldJournal[day] != newJournal[day] {
+            journal[day] = Change(before: oldJournal[day], after: newJournal[day])
+        }
         if before.session != after.session { session = Change(before: before.session, after: after.session) }
+        if before.rest != after.rest { rest = Change(before: before.rest, after: after.rest) }
         if before.preferences != after.preferences { preferences = Change(before: before.preferences, after: after.preferences) }
     }
 
     public var isEmpty: Bool {
-        goals.isEmpty && entries.isEmpty && session == nil && preferences == nil && order == nil
+        goals.isEmpty && entries.isEmpty && journal.isEmpty && session == nil && rest == nil && preferences == nil && order == nil
     }
 
     /// The patch that redoes what this one undoes.
@@ -49,7 +59,9 @@ public struct DataPatch: Sendable {
         var patch = self
         patch.goals = goals.mapValues(\.reversed)
         patch.entries = entries.mapValues(\.reversed)
+        patch.journal = journal.mapValues(\.reversed)
         patch.session = session?.reversed
+        patch.rest = rest?.reversed
         patch.preferences = preferences?.reversed
         patch.order = order?.reversed
         return patch
@@ -95,6 +107,15 @@ public struct DataPatch: Sendable {
             } else {
                 data.entries.removeAll { $0.id == id }
             }
+        }
+        for (day, change) in journal {
+            data.journal.removeAll { $0.day == day }
+            if let previous = change.before { data.journal.append(previous) }
+        }
+        data.journal.sort { $0.day < $1.day }
+        // The break goes back only if it is still the one this action left.
+        if let rest, data.rest == rest.after {
+            data.rest = rest.before
         }
         if let previous = preferences?.before {
             data.preferences = previous
@@ -156,6 +177,7 @@ extension Goal {
         field(\.quickAddStep)
         field(\.focusMinutes)
         field(\.reminder)
+        field(\.stackAfter)
         field(\.breaks)
         field(\.createdAt)
         field(\.archivedAt)

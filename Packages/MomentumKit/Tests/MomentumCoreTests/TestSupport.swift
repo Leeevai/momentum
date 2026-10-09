@@ -32,3 +32,8 @@ func dayOffset(_ offset: Int, hour: Int = 12) -> Date {
     let start = testCalendar.date(byAdding: .day, value: offset, to: testCalendar.startOfDay(for: referenceNow))!
     return testCalendar.date(bySettingHour: hour, minute: 0, second: 0, of: start)!
 }
+
+func timeGoal(minutes: Int? = 25, target: Double = 3600, createdDaysAgo: Int = 30) -> Goal {
+    Goal(name: "Deep work", kind: .time, target: target, focusMinutes: minutes,
+         createdAt: testCalendar.date(byAdding: .day, value: -createdDaysAgo, to: referenceNow)!)
+}
