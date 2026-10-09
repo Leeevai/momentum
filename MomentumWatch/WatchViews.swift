@@ -151,7 +151,8 @@ struct SessionClock: View {
         let now = Date.now
         Group {
             if !session.isRunning {
-                Text(Formatting.clock(session.elapsed(at: now)))
+                // Paused: the time left of a planned session (as the iPhone shows), else the time so far.
+                Text(Formatting.clock(session.remaining(at: now).map { max(0, $0) } ?? session.elapsed(at: now)))
             } else if let end = session.plannedEnd, end > now {
                 Text(timerInterval: now...end, countsDown: true)
             } else {

@@ -175,7 +175,7 @@ private struct ComplicationClock: View {
 
     static func text(session: FocusSession, date: Date) -> Text {
         if !session.isRunning {
-            return Text(Formatting.clock(session.elapsed(at: date)))
+            return Text(Formatting.clock(session.remaining(at: date).map { max(0, $0) } ?? session.elapsed(at: date)))
         }
         if let end = session.plannedEnd, end > date {
             return Text(timerInterval: date...end, countsDown: true)
