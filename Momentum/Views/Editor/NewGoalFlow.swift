@@ -25,6 +25,9 @@ private struct TemplateGallery: View {
     var onPick: (Goal) -> Void
     var onCancel: () -> Void
 
+    /// The kinds people reach for most come first.
+    static let galleryOrder: [GoalKind] = [.time, .books, .count, .amount, .milestones]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
@@ -59,7 +62,7 @@ private struct TemplateGallery: View {
                     }
                     .buttonStyle(.plain)
 
-                    ForEach(GoalKind.allCases) { kind in
+                    ForEach(Self.galleryOrder) { kind in
                         let templates = GoalTemplate.all.filter { $0.prototype.kind == kind }
                         if !templates.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
