@@ -37,6 +37,14 @@ public struct InsightsReport: Sendable {
     public var scores: [GoalScore]
     public var focusByWeekday: [Bucket]
     public var focusByHour: [Bucket]
+    /// The same measures over the equally long range just before this one.
+    public var previousFocusSeconds: Double
+    public var previousActiveDays: Int
+
+    /// Relative change in focus time against the previous range, or nil without a baseline.
+    public var focusChange: Double? {
+        previousFocusSeconds > 0 ? totalFocusSeconds / previousFocusSeconds - 1 : nil
+    }
 
     /// Average focus per day over the range.
     public var averageFocusPerDay: Double { days > 0 ? totalFocusSeconds / Double(days) : 0 }
@@ -87,6 +95,13 @@ extension ProgressEngine {
             .filter { bookGoalIDs.contains($0.goalID) }
             .reduce(0) { $0 + $1.amount }
 
+        let previousRange = DateInterval(start: day(-days, from: start), end: start)
+        var previousFocus = 0.0
+        for goal in timeGoals {
+            previousFocus += amount(for: goal, in: previousRange, now: now)
+        }
+        let previousActive = Set(data.entries.filter { previousRange.contains($0.date) && $0.amount > 0 }.map { dayKey($0.date) }).count
+
         let scores = activeGoals.map { goal in
             let streak = streak(for: goal, now: now)
             return InsightsReport.GoalScore(goalID: goal.id, completion: completionRate(for: goal, now: now), streak: streak.current, bestStreak: streak.best, streakUnit: streak.unit)
@@ -104,7 +119,9 @@ extension ProgressEngine {
             pagesRead: max(0, pages),
             scores: scores,
             focusByWeekday: (1...7).map { .init(index: $0, seconds: weekday[$0] ?? 0) },
-            focusByHour: (0..<24).map { .init(index: $0, seconds: hours[$0] ?? 0) }
+            focusByHour: (0..<24).map { .init(index: $0, seconds: hours[$0] ?? 0) },
+            previousFocusSeconds: previousFocus,
+            previousActiveDays: previousActive
         )
     }
 

@@ -1,7 +1,7 @@
 import Foundation
 
 /// `momentum://` URLs: widgets and notifications use them to open the app on the right screen.
-enum DeepLink: Equatable {
+public enum DeepLink: Equatable, Sendable {
     case today
     case insights
     case goal(UUID)
@@ -9,9 +9,9 @@ enum DeepLink: Equatable {
     case openLink(goal: UUID, link: UUID)
     case newGoal
 
-    static let scheme = "momentum"
+    public static let scheme = "momentum"
 
-    var url: URL {
+    public var url: URL {
         var components = URLComponents()
         components.scheme = Self.scheme
         switch self {
@@ -24,7 +24,7 @@ enum DeepLink: Equatable {
         return components.url ?? URL(string: "\(Self.scheme)://today")!
     }
 
-    init?(url: URL) {
+    public init?(url: URL) {
         guard url.scheme == Self.scheme else { return nil }
         let parts = url.pathComponents.filter { $0 != "/" }.compactMap(UUID.init(uuidString:))
         switch url.host() {
