@@ -17,6 +17,22 @@ struct SymbolCatalogTests {
             #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "\(name) is not an SF Symbol")
         }
     }
+
+    @Test("Achievement, journal and coach symbols exist")
+    func featureSymbolsExist() {
+        let goal = Goal(name: "Read", kind: .books, target: 1, books: [Book(title: "Dune", totalPages: 100, currentPage: 90, status: .reading)])
+        var data = AppData(goals: [goal])
+        data.log(1, for: goal.id, at: .now)
+        let tips = ProgressEngine(data: data).coachTips(now: .now, limit: 20)
+        let names = Achievement.all.map(\.symbol) + Achievement.Family.allCases.map(\.symbolName) + Mood.allCases.map(\.symbolName)
+            + Energy.allCases.map(\.symbolName) + tips.map(\.symbol)
+            + ["flame.fill", "square.stack.3d.up.fill", "gauge.with.dots.needle.33percent", "clock.fill", "arrow.up.forward.circle.fill",
+               "arrow.down.forward.circle.fill", "hourglass.bottomhalf.filled", "book.fill", "exclamationmark.circle.fill", "flag.fill",
+               "sun.horizon.fill", "moon.stars.fill"]
+        for name in Set(names) {
+            #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "\(name) is not an SF Symbol")
+        }
+    }
     #endif
 
     @Test("No symbol appears twice in the picker")
