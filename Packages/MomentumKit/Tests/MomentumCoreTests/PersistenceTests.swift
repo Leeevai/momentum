@@ -92,8 +92,19 @@ struct PersistenceTests {
 
         let store = FileStore(fileURL: file)
         #expect(store.load().goals.isEmpty)
+        #expect(store.isUnreadable)
+        // Changes aren't saved over it, and reading it again keeps just the one copy.
+        let result = store.transform { $0.upsert(Goal(name: "New", target: 1)) }
+        #expect(result.after.goals.isEmpty)
+        #expect(try Data(contentsOf: file) == Data("not json".utf8))
+        _ = store.load()
         let backups = try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.contains("unreadable") }
         #expect(backups.count == 1)
+
+        // A restored copy or an import still replaces it.
+        store.replace(with: AppData(goals: [Goal(name: "Restored", target: 1)]))
+        #expect(!store.isUnreadable)
+        #expect(FileStore(fileURL: file).load().goals.map(\.name) == ["Restored"])
     }
 
     @Test("CSV quotes fields that need it")

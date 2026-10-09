@@ -48,9 +48,15 @@ public final class FileStore: Sendable {
     public func loadSnapshot() -> Snapshot {
         var snapshot = Snapshot(data: AppData(), modification: nil)
         coordinate(writing: false) { url in
-            snapshot = Snapshot(data: self.read(url), modification: self.modificationDate())
+            snapshot = Snapshot(data: self.read(url).data, modification: self.modificationDate())
         }
         return snapshot
+    }
+
+    /// Whether the data file exists but couldn't be read (damaged, or written by a newer
+    /// version). Nothing is saved over it then, except an import or a restored copy.
+    public var isUnreadable: Bool {
+        cache.isUnreadable(modification: modificationDate())
     }
 
     /// Applies `change` to the latest data on disk and saves it.
@@ -68,7 +74,14 @@ public final class FileStore: Sendable {
     public func transform(stamping: Bool = true, _ change: (inout AppData) -> Void) -> Transform {
         var result = Transform(before: AppData(), after: AppData(), modification: nil)
         coordinate(writing: true) { url in
-            let before = self.read(url)
+            let (before, readable) = self.read(url)
+            guard readable else {
+                // Saving the change would replace history this version can't read with almost
+                // nothing: refuse, and leave the file as it is.
+                self.logger.error("Not saving: \(url.path, privacy: .public) can't be read")
+                result = Transform(before: before, after: before, modification: self.modificationDate())
+                return
+            }
             var after = before
             change(&after)
             if after != before {
@@ -90,7 +103,7 @@ public final class FileStore: Sendable {
             // It keeps this device's record of changes and deletions rather than the backup's
             // older one: that is how a restored entry is known to have been deleted since, and is
             // stamped so the deletion doesn't win again at the next sync.
-            let current = self.read(url)
+            let current = self.read(url).data
             var stamped = newData
             stamped.sync = current.sync
             SyncStamper.stamp(&stamped, from: current, at: .now)
@@ -213,21 +226,23 @@ public final class FileStore: Sendable {
         }
     }
 
-    private func read(_ url: URL) -> AppData {
-        guard FileManager.default.fileExists(atPath: url.path) else { return AppData() }
+    /// The data in the file, and whether it could be read: a missing file is empty data, read
+    /// fine; a file that fails to decode is empty data that mustn't be saved over it.
+    private func read(_ url: URL) -> (data: AppData, isReadable: Bool) {
+        guard FileManager.default.fileExists(atPath: url.path) else { return (AppData(), true) }
         let modification = modificationDate()
-        if let cached = cache.data(for: modification) { return cached }
+        if let cached = cache.data(for: modification) { return (cached, true) }
         do {
             let bytes = try Data(contentsOf: url)
             if Self.isLegacy(bytes) { keepLegacyCopy(of: url) }
             let data = try Self.decode(bytes)
             cache.store(data, modification: modification)
-            return data
+            return (data, true)
         } catch {
-            // Keep the unreadable file so the next save cannot destroy the history in it.
+            // Keep a copy of the unreadable file, once per version of it.
             logger.error("Could not read \(url.path, privacy: .public): \(String(describing: error), privacy: .public)")
-            backUp(url, reason: "unreadable")
-            return AppData()
+            if cache.markUnreadable(modification: modification) { backUp(url, reason: "unreadable") }
+            return (AppData(), false)
         }
     }
 
@@ -253,11 +268,28 @@ public final class FileStore: Sendable {
     }
 }
 
-/// The last data a `FileStore` read or wrote, keyed by the file's modification date.
+/// The last data a `FileStore` read or wrote, keyed by the file's modification date, and the
+/// date of a version that couldn't be read.
 private final class ReadCache: @unchecked Sendable {
     private let lock = NSLock()
     private var modification: Date?
     private var data: AppData?
+    private var unreadable: Date?
+
+    /// Records that the file at `modification` couldn't be read; false if that was known.
+    func markUnreadable(modification: Date?) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard modification == nil || unreadable != modification else { return false }
+        unreadable = modification
+        return true
+    }
+
+    func isUnreadable(modification: Date?) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return modification != nil && unreadable == modification
+    }
 
     func data(for modification: Date?) -> AppData? {
         lock.lock()

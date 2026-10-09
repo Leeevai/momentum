@@ -10,6 +10,8 @@ protocol DataPersistence: AnyObject {
     /// for merges, which carry their own change stamps.
     func update(stamping: Bool, _ change: (inout AppData) -> Void) -> FileStore.Transform
     func replace(with data: AppData) -> FileStore.Snapshot
+    /// Whether the stored data exists but can't be read, so nothing is saved over it.
+    var isUnreadable: Bool { get }
     /// The folder to watch for changes made by other processes (the widgets), if any.
     var watchedDirectory: URL? { get }
     /// Keeps a dated copy of the data, at most once a day.
@@ -35,6 +37,8 @@ final class SharedFilePersistence: DataPersistence {
 
     var watchedDirectory: URL? { SharedStore.directoryURL }
 
+    var isUnreadable: Bool { SharedStore.fileStore.isUnreadable }
+
     func backUpDaily() { SharedStore.fileStore.backUpDaily() }
 
     func dailyBackups() -> [URL] { (try? SharedStore.fileStore.dailyBackups()) ?? [] }
@@ -44,6 +48,7 @@ final class SharedFilePersistence: DataPersistence {
 
 final class InMemoryPersistence: DataPersistence {
     private var data: AppData
+    var isUnreadable: Bool { false }
 
     init(_ data: AppData) { self.data = data }
 

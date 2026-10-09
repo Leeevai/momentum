@@ -113,6 +113,7 @@ final class GoalStore {
     @ObservationIgnored private var dayTimer: Timer?
     @ObservationIgnored private var pomodoroTimer: Timer?
     @ObservationIgnored private var toastQueue: [Toast] = []
+    @ObservationIgnored private var lastUnreadableWarning = Date.distantPast
     @ObservationIgnored private var isHandingOffToast = false
     /// The day the store last saw, to notice midnight. Kept apart from `now`, which every change
     /// refreshes and so can't tell that the day turned.
@@ -148,6 +149,7 @@ final class GoalStore {
             #endif
         }
         persistence.backUpDaily()
+        warnIfUnreadable()
         #if os(macOS)
         let becameActive = NSApplication.didBecomeActiveNotification
         #else
@@ -175,6 +177,7 @@ final class GoalStore {
     func perform(_ undoName: String? = nil, _ change: (inout AppData) -> Void) {
         let result = persistence.update(change)
         knownModification = result.modification
+        warnIfUnreadable()
         if let event = HapticEvent(from: result.before, to: result.after) { haptic = event }
         askHowItWent(from: result.before, to: result.after)
         if let undoName {
@@ -196,6 +199,17 @@ final class GoalStore {
         let snapshot = persistence.load()
         knownModification = snapshot.modification
         apply(snapshot.data, userInitiated: false)
+        warnIfUnreadable()
+    }
+
+    /// Says so when the data file can't be read: the app then shows nothing and saves nothing,
+    /// which would otherwise look like lost history or taps that do nothing. At most once a minute.
+    private func warnIfUnreadable() {
+        guard persistence.isUnreadable, Date().timeIntervalSince(lastUnreadableWarning) > 60 else { return }
+        lastUnreadableWarning = Date()
+        show(Toast(kind: .message(title: "Momentum can't read your data",
+                                  detail: "Nothing is saved over it. Update Momentum, or restore a daily copy in Settings.",
+                                  symbol: "exclamationmark.triangle.fill")))
     }
 
     /// Merges copies of the data from other devices. Not undoable: it brings in what happened
