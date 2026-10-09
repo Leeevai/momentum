@@ -20,6 +20,22 @@ All notable changes to Momentum are recorded here. The format follows
   the app no longer re-reads its own saves.
 
 ### Fixed
+- Undo no longer reverts changes made after the action (a session started from a widget, a log
+  from Shortcuts): it reverses only what the action itself changed.
+- Siri and Shortcuts could start a focus timer on a count or books goal, logging seconds as its unit.
+- A break now protects the whole day it starts; "Until Tomorrow" protected nothing.
+- Editing a time entry could round it, or turn a correction positive.
+- Turning on a deadline without changing the date saved no deadline.
+- Reading a finished book again does nothing silently anymore: it starts a new copy and keeps the
+  original finish.
+- Widget rings froze after 55 minutes of a running session.
+- Editing a goal or book while a widget changed it could revert the widget's change.
+- Retyping a file link's path kept opening the old file.
+- Turning off goal reminders also turned off streak nudges and the weekly recap.
+- A correction logged on a different day didn't reduce weekly and monthly totals.
+- Pace for a goal less than two weeks old was understated.
+- Finishing a time goal with the timer didn't celebrate.
+- Quick actions did nothing for a project with every milestone done; it now opens the goal.
 - Once today's goal was done, tomorrow's first reminder could be skipped too.
 - A book finished exactly at midnight on New Year's Day counted toward both years.
 - Reminders and nudges could fire an hour off on daylight-saving days.
