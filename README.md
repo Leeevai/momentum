@@ -83,7 +83,8 @@ right from the desktop** without opening the app.
 - **Control Center** (macOS 26): a focus toggle for Control Center and the menu bar.
 - **Editable history**: fix the time, amount or note of anything you logged.
 - **Templates** for common goals, **categories** for grouping, **archive**, **duplicate**, and full **undo**.
-- **Export** a JSON backup or a CSV of every entry; **import** a backup.
+- **Export** a JSON backup or a CSV of every entry; **import** a backup. Momentum also keeps a
+  daily copy of your data for the last 14 days.
 - **Private by design**: everything stays on your Mac. No account, no analytics. The only network
   request is the book search you type, sent to [Open Library](https://openlibrary.org).
 

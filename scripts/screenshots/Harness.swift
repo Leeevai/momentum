@@ -8,6 +8,8 @@ import WidgetKit
 nonisolated(unsafe) var output = URL(fileURLWithPath: CommandLine.arguments[1])
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
+// Screenshots show a returning user: no first-run tip. Registered defaults stay in memory.
+UserDefaults.standard.register(defaults: ["dismissedWidgetTip": true])
 
 /// Demo history is generated relative to now, so "today" always has data.
 let demoNow = Date()
