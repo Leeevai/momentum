@@ -4,11 +4,10 @@
 <dict>
 	<key>MomentumAppGroupID</key>
 	<string>$(IOS_APP_GROUP_ID)</string>
-	<key>WKApplication</key>
-	<true/>
-	<key>WKCompanionAppBundleIdentifier</key>
-	<string>$(BUNDLE_ID_PREFIX).Momentum</string>
-	<key>WKRunsIndependentlyOfCompanionApp</key>
-	<false/>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
 </dict>
 </plist>

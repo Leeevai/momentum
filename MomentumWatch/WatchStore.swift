@@ -2,6 +2,7 @@ import Foundation
 import MomentumCore
 import Observation
 import WatchConnectivity
+import WidgetKit
 
 /// The watch's side of the link to the iPhone: the latest snapshot of today, kept for when the
 /// phone is out of reach, and the actions tapped here, sent back to be carried out.
@@ -16,11 +17,10 @@ final class WatchStore: NSObject {
     private(set) var isReachable = false
 
     @ObservationIgnored private let session: WCSession? = WCSession.isSupported() ? .default : nil
-    private static let storageKey = "snapshot"
     private typealias Key = WatchMessageKey
 
     override init() {
-        snapshot = UserDefaults.standard.data(forKey: Self.storageKey).flatMap { try? WatchSnapshot(encoded: $0) } ?? WatchSnapshot()
+        snapshot = WatchSnapshotStore.load() ?? WatchSnapshot()
         super.init()
         session?.delegate = self
         session?.activate()
@@ -67,7 +67,8 @@ final class WatchStore: NSObject {
         guard let data = payload[Key.snapshot] as? Data, let snapshot = try? WatchSnapshot(encoded: data),
               snapshot.generatedAt >= self.snapshot.generatedAt else { return }
         self.snapshot = snapshot
-        UserDefaults.standard.set(data, forKey: Self.storageKey)
+        WatchSnapshotStore.save(data)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     fileprivate func update(reachable: Bool, pending: Int) {
