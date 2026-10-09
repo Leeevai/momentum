@@ -107,11 +107,13 @@ private struct RestRow: View {
             Label(rest.isLong ? "Long break" : "Break", systemImage: rest.isLong ? "cup.and.saucer.fill" : "leaf.fill")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.mint)
-            if rest.isOver(at: .now) {
+            // One reading of the clock for the check and the range: the end can pass between two.
+            let now = Date.now
+            if rest.isOver(at: now) {
                 Text("Break's over")
                     .font(.title3.weight(.semibold))
             } else {
-                Text(timerInterval: Date.now...rest.end, countsDown: true)
+                Text(timerInterval: now...max(rest.end, now), countsDown: true)
                     .font(.system(size: 30, weight: .semibold, design: .rounded))
                     .monospacedDigit()
             }
@@ -126,13 +128,14 @@ struct SessionClock: View {
     let session: FocusSession
 
     var body: some View {
+        let now = Date.now
         Group {
             if !session.isRunning {
-                Text(Formatting.clock(session.elapsed(at: .now)))
-            } else if let end = session.plannedEnd, end > .now {
-                Text(timerInterval: Date.now...end, countsDown: true)
+                Text(Formatting.clock(session.elapsed(at: now)))
+            } else if let end = session.plannedEnd, end > now {
+                Text(timerInterval: now...end, countsDown: true)
             } else {
-                Text(timerInterval: session.clockStart()...Date.distantFuture, countsDown: false)
+                Text(timerInterval: session.clockStart(at: now)...Date.distantFuture, countsDown: false)
             }
         }
         .monospacedDigit()

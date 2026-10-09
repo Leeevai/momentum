@@ -87,9 +87,10 @@ struct WidgetSessionClock: View {
     let session: FocusSession
 
     var body: some View {
+        let now = Date.now
         if let reference = session.counterReferenceDate {
-            if let end = session.plannedEnd, end > .now {
-                Text(timerInterval: Date.now...end, countsDown: true)
+            if let end = session.plannedEnd, end > now {
+                Text(timerInterval: now...end, countsDown: true)
             } else {
                 Text(reference, style: .timer)
             }
