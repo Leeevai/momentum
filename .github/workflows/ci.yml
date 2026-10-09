@@ -24,7 +24,7 @@ jobs:
         run: swift test --package-path Packages/MomentumKit
 
   build:
-    name: Build app and widgets
+    name: Build Mac app and widgets
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
@@ -37,5 +37,22 @@ jobs:
             -scheme Momentum \
             -configuration Debug \
             -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY=""
+
+  build-ios:
+    name: Build iPhone app
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select the newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+      - name: Build
+        run: |
+          xcodebuild build -quiet \
+            -project Momentum.xcodeproj \
+            -scheme MomentumMobile \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY=""
