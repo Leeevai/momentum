@@ -75,6 +75,7 @@ private struct GeneralSettings: View {
 
 private struct FocusSettings: View {
     @Environment(GoalStore.self) private var store
+    @State private var volume: Double?
 
     var body: some View {
         let preferences = store.data.preferences
@@ -105,8 +106,13 @@ private struct FocusSettings: View {
                 Picker("Focus sound", selection: binding(\.focusSound, preferences)) {
                     ForEach(FocusSound.allCases) { Label($0.title, systemImage: $0.symbolName).tag($0) }
                 }
-                Slider(value: binding(\.focusSoundVolume, preferences), in: 0.05...1) {
+                // Saved when the slider is let go, not on every step of the drag.
+                Slider(value: Binding(get: { volume ?? preferences.focusSoundVolume }, set: { volume = $0 }), in: 0.05...1) {
                     Text("Volume")
+                } onEditingChanged: { editing in
+                    guard !editing, let volume else { return }
+                    store.updatePreferences { $0.focusSoundVolume = volume }
+                    self.volume = nil
                 }
                 .disabled(preferences.focusSound == .off)
             }

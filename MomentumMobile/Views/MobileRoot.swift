@@ -53,10 +53,22 @@ struct MobileRoot: View {
         .onChange(of: store.route) { _, route in follow(route) }
         .onChange(of: tab) { _, tab in
             // Keep the store's idea of where we are in step, so routes set elsewhere still fire.
-            if tab != .today || todayPath.isEmpty { store.route = tab.route }
+            store.route = tab == .today ? todayPath.last.map(Route.goal) ?? .today : tab.route
         }
         .onChange(of: todayPath) { _, path in
-            if path.isEmpty, case .goal = store.route { store.route = .today }
+            guard tab == .today else { return }
+            store.route = path.last.map(Route.goal) ?? .today
+        }
+        .confirmationDialog(
+            "Delete \(store.confirmingDelete?.name ?? "goal")?",
+            isPresented: Binding(get: { store.confirmingDelete != nil }, set: { if !$0 { store.confirmingDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: store.confirmingDelete
+        ) { goal in
+            Button("Delete Goal", role: .destructive) { store.delete(goal) }
+            Button("Archive Instead") { store.archive(goal) }
+        } message: { _ in
+            Text("This removes the goal and all of its history. Archive it instead to keep its history.")
         }
     }
 
@@ -76,6 +88,7 @@ struct MobileRoot: View {
         case .awards: tab = .awards
         case .today:
             tab = .today
+            if !todayPath.isEmpty { todayPath = [] }
         case nil:
             break
         }

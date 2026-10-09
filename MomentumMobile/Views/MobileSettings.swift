@@ -7,6 +7,8 @@ struct MobileSettings: View {
     @Environment(GoalStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var picksFolder = false
+    /// The volume while the slider is dragged; saved when it's let go, not on every step.
+    @State private var volume: Double?
 
     var body: some View {
         let preferences = store.data.preferences
@@ -21,7 +23,13 @@ struct MobileSettings: View {
                         ForEach(FocusSound.allCases) { Label($0.title, systemImage: $0.symbolName).tag($0) }
                     }
                     if preferences.focusSound != .off {
-                        Slider(value: binding(\.focusSoundVolume, preferences), in: 0.05...1) { Text("Volume") }
+                        Slider(value: Binding(get: { volume ?? preferences.focusSoundVolume }, set: { volume = $0 }), in: 0.05...1) {
+                            Text("Volume")
+                        } onEditingChanged: { editing in
+                            guard !editing, let volume else { return }
+                            store.updatePreferences { $0.focusSoundVolume = volume }
+                            self.volume = nil
+                        }
                     }
                 }
                 Section {
