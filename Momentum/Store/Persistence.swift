@@ -8,6 +8,10 @@ protocol DataPersistence: AnyObject {
     func replace(with data: AppData)
     /// The folder to watch for changes made by other processes (the widgets), if any.
     var watchedDirectory: URL? { get }
+    /// Keeps a dated copy of the data, at most once a day.
+    func backUpDaily()
+    /// Daily backups, newest first.
+    func dailyBackups() -> [URL]
 }
 
 final class SharedFilePersistence: DataPersistence {
@@ -21,6 +25,10 @@ final class SharedFilePersistence: DataPersistence {
     }
 
     var watchedDirectory: URL? { SharedStore.directoryURL }
+
+    func backUpDaily() { SharedStore.fileStore.backUpDaily() }
+
+    func dailyBackups() -> [URL] { (try? SharedStore.fileStore.dailyBackups()) ?? [] }
 }
 
 final class InMemoryPersistence: DataPersistence {
@@ -38,4 +46,8 @@ final class InMemoryPersistence: DataPersistence {
     func replace(with data: AppData) { self.data = data }
 
     var watchedDirectory: URL? { nil }
+
+    func backUpDaily() {}
+
+    func dailyBackups() -> [URL] { [] }
 }

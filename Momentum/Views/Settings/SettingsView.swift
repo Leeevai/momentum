@@ -175,6 +175,14 @@ private struct DataSettings: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section("Automatic backups") {
+                let backups = store.dailyBackups
+                LabeledContent("Daily copies kept", value: "\(backups.count) of 14")
+                LabeledContent("Restore a daily copy") {
+                    Button("Choose…") { chooseBackup(in: backups) }
+                        .disabled(backups.isEmpty)
+                }
+            }
             Section("Storage") {
                 LabeledContent("Goals", value: "\(store.data.goals.count)")
                 LabeledContent("Entries", value: "\(store.data.entries.count)")
@@ -187,7 +195,7 @@ private struct DataSettings: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 380)
+        .frame(height: 480)
         .fileExporter(isPresented: $exportingJSON, document: ExportDocument(data: (try? FileStore.encode(store.data)) ?? Data(), type: .json),
                       contentType: .json, defaultFilename: "Momentum Backup \(Date.now.formatted(.iso8601.year().month().day()))") { result in
             report(result, what: "Backup")
@@ -217,6 +225,21 @@ private struct DataSettings: View {
             }
         } message: { _ in
             Text("Your current goals and history will be replaced. A backup of them is saved first.")
+        }
+    }
+
+    /// Picks one of the daily copies; restoring goes through the same confirmation as an import.
+    private func chooseBackup(in backups: [URL]) {
+        let panel = NSOpenPanel()
+        panel.directoryURL = backups.first?.deletingLastPathComponent()
+        panel.allowedContentTypes = [.json]
+        panel.prompt = "Restore"
+        panel.message = "Choose a daily copy to restore."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            pendingImport = try FileStore.decode(Data(contentsOf: url))
+        } catch {
+            message = "That copy can't be read: \(error.localizedDescription)"
         }
     }
 

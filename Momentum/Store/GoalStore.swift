@@ -75,6 +75,7 @@ final class GoalStore {
         self.effects.start(with: initial, engine: engine)
         watchForExternalChanges()
         startDayTimer()
+        persistence.backUpDaily()
         observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.reload() }
         })
@@ -104,6 +105,9 @@ final class GoalStore {
         persistence.replace(with: newData)
         apply(persistence.load(), userInitiated: false)
     }
+
+    /// Daily backups, newest first.
+    var dailyBackups: [URL] { persistence.dailyBackups() }
 
     private func apply(_ newData: AppData, userInitiated: Bool) {
         now = .now
@@ -171,6 +175,7 @@ final class GoalStore {
                 if !self.engine.calendar.isDate(current, inSameDayAs: self.now) {
                     self.now = current
                     self.effects.dayDidChange(engine: self.engine)
+                    self.persistence.backUpDaily()
                 }
             }
         }
