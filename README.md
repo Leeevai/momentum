@@ -11,6 +11,7 @@ widgets, a Live Activity and Liquid Glass throughout.
 [![CI](https://github.com/Leeevai/momentum/actions/workflows/ci.yml/badge.svg)](https://github.com/Leeevai/momentum/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111?logo=apple)
 ![iOS 17+](https://img.shields.io/badge/iOS-17%2B-111?logo=apple)
+![watchOS 10+](https://img.shields.io/badge/watchOS-10%2B-111?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -123,7 +124,8 @@ server, and nothing to resolve by hand.
 
 ### On your wrist
 An Apple Watch app shows today's goals with their rings, starts, pauses and stops the timer, and
-logs a check-in with one tap (or a double tap of your fingers). The iPhone does the work and
+logs a check-in with one tap (or a double tap of your fingers). Complications put today's count,
+the next goal or the running timer on your watch face. The iPhone does the work and
 keeps the watch up to date; taps made out of its reach are delivered when it's back.
 
 ### Widgets everywhere

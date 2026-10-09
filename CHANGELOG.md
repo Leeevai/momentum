@@ -12,7 +12,8 @@ All notable changes to Momentum are recorded here. The format follows
   and Settings. Lock Screen widgets, the Home Screen widgets, a Control Center focus toggle, and
   Siri and Shortcuts come with it.
 - **An Apple Watch app**: today's goals with their rings, a page per goal with Start, Pause and
-  Stop or its one-tap action, the timer and Pomodoro breaks, kept up to date by the iPhone.
+  Stop or its one-tap action, the timer and Pomodoro breaks, kept up to date by the iPhone, and
+  complications for the watch face.
 - **A Live Activity** for the focus timer and Pomodoro breaks, on the Lock Screen and in the
   Dynamic Island, with pause, stop, start-next-block and skip-break buttons.
 - **Sync** through a folder in iCloud Drive or any shared folder. Each device writes its own file

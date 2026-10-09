@@ -17,10 +17,11 @@ Momentum for iPhone, iPad and Mac.
 
 ## In the Apple Developer account
 
-1. Register the bundle IDs `<prefix>.Momentum`, `<prefix>.Momentum.Widget` (both platforms) and
-   `<prefix>.Momentum.watchkitapp` (the watch app, embedded in the iPhone app).
-2. Register the app groups: `<team>.<prefix>.momentum` (macOS) and `group.<prefix>.momentum` (iOS),
-   and enable them on both bundle IDs.
+1. Register the bundle IDs `<prefix>.Momentum`, `<prefix>.Momentum.Widget` (both platforms),
+   `<prefix>.Momentum.watchkitapp` (the watch app, embedded in the iPhone app) and
+   `<prefix>.Momentum.watchkitapp.Widget` (its complications).
+2. Register the app groups: `<team>.<prefix>.momentum` (macOS) and `group.<prefix>.momentum` (iOS
+   and watchOS), and enable them on the bundle IDs of each platform.
 3. In `Config/Local.xcconfig`, set `DEVELOPMENT_TEAM` and `BUNDLE_ID_PREFIX`. For distribution,
    switch the Mac targets to `CODE_SIGN_STYLE = Automatic` (or create Mac App Store profiles).
 
