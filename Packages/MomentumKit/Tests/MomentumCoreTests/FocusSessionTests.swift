@@ -46,7 +46,7 @@ struct FocusSessionTests {
         data.startFocus(on: goal.id, at: date(2026, 10, 8, 10), calendar: testCalendar)
         data.startFocus(on: other.id, at: date(2026, 10, 8, 10, 30), calendar: testCalendar)
         #expect(data.session?.goalID == other.id)
-        #expect(data.entries.map(\.amount) == [30 * 60])
+        #expect(data.entries.map(\.amount) == [1800.0])
     }
 
     @Test("Planned sessions report their end and remaining time, accounting for pauses")
