@@ -9,6 +9,7 @@ struct InsightsView: View {
     var body: some View {
         let engine = store.engine
         let report = engine.insights(days: days, now: store.now)
+        let quality = engine.focusQualityReport(in: report.range)
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 ViewThatFits(in: .horizontal) {
@@ -28,11 +29,21 @@ struct InsightsView: View {
                              caption: focusCaption(report))
                     StatTile(title: "Active days", value: "\(report.activeDays) of \(days)", systemImage: "calendar.badge.checkmark", tint: .green,
                              caption: Formatting.percent(Double(report.activeDays) / Double(days)) + " of days")
-                    StatTile(title: "Best streak now", value: "\(engine.longestCurrentStreak(now: store.now))", systemImage: "flame.fill", tint: .orange)
+                    let streaks = engine.activeGoals.map { ($0, engine.streak(for: $0, now: store.now)) }
+                    let longest = streaks.max { $0.1.current < $1.1.current }
+                    StatTile(title: "Best streak now", value: "\(longest?.1.current ?? 0)", systemImage: "flame.fill", tint: .orange,
+                             caption: longest.flatMap { $0.1.current > 0 ? $0.0.name : nil })
                     StatTile(title: "Books finished", value: "\(report.booksFinished)", systemImage: "books.vertical.fill", tint: .brown,
                              caption: "\(Formatting.number(report.pagesRead)) pages read")
                     StatTile(title: "Milestones", value: "\(report.milestonesCompleted)", systemImage: "flag.checkered", tint: .pink,
                              caption: "\(report.loggedEntries) entries logged")
+                    if let flow = quality.flowShare {
+                        StatTile(title: "In the flow", value: Formatting.percent(flow), systemImage: "water.waves", tint: .indigo,
+                                 caption: "of rated focus")
+                    } else {
+                        StatTile(title: "Daily focus", value: Formatting.duration(report.averageFocusPerDay), systemImage: "sun.max.fill", tint: .yellow,
+                                 caption: "on average")
+                    }
                 }
 
                 if report.totalFocusSeconds > 0 {
@@ -43,6 +54,9 @@ struct InsightsView: View {
                     }
                     if report.focusByCategory.count > 1 {
                         CategoryChart(report: report)
+                    }
+                    if quality.ratedSessions > 0 {
+                        FocusQualityCard(report: quality)
                     }
                 }
                 let mood = engine.moodReport(in: report.range, now: store.now)
@@ -83,14 +97,13 @@ struct InsightsView: View {
         .labelsHidden()
     }
 
-    /// "▲ 12% vs the 30 days before", or the daily average without a baseline.
+    /// "▲ 12% vs before" (the same number of days before), or the daily average without a baseline.
     private func focusCaption(_ report: InsightsReport) -> String {
         guard let change = report.focusChange else {
             return "\(Formatting.duration(report.averageFocusPerDay)) a day on average"
         }
         let arrow = change > 0.005 ? "▲" : (change < -0.005 ? "▼" : "=")
-        let span = days == 365 ? "year" : "\(days) days"
-        return "\(arrow) \(Formatting.percent(abs(change))) vs the \(span) before"
+        return "\(arrow) \(Formatting.percent(abs(change))) vs before"
     }
 }
 
@@ -199,6 +212,62 @@ private struct HourChart: View {
             .frame(height: 160)
         }
         .glassCard(tint: .pink)
+    }
+}
+
+/// How rated sessions went: a bar split by rating, and the hour they go best.
+private struct FocusQualityCard: View {
+    let report: FocusQualityReport
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Focus quality", systemImage: "water.waves")
+                .font(.headline)
+            Text(summary)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            GeometryReader { proxy in
+                HStack(spacing: 3) {
+                    ForEach(FocusQuality.allCases.reversed()) { quality in
+                        let share = (report.seconds[quality] ?? 0) / max(report.ratedSeconds, 1)
+                        if share > 0 {
+                            Capsule()
+                                .fill(quality.tint.gradient)
+                                .frame(width: max(6, (proxy.size.width - 6) * share))
+                        }
+                    }
+                }
+            }
+            .frame(height: 14)
+            HStack(spacing: 18) {
+                ForEach(FocusQuality.allCases.reversed()) { quality in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Label(quality.title, systemImage: quality.symbolName)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(quality.tint)
+                        Text(Formatting.duration(report.seconds[quality] ?? 0))
+                            .font(.callout.weight(.semibold))
+                            .monospacedDigit()
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(tint: .indigo)
+    }
+
+    private var summary: String {
+        var parts: [String] = []
+        if let share = report.flowShare {
+            parts.append("In the flow for \(Formatting.percent(share)) of rated focus, over \(report.ratedSessions) \(report.ratedSessions == 1 ? "session" : "sessions").")
+        }
+        if let hour = report.bestHour {
+            let start = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: .now) ?? .now
+            parts.append("Your sessions go best around \(start.formatted(date: .omitted, time: .shortened)).")
+        } else {
+            parts.append("Rate a few more to learn when yours go best.")
+        }
+        return parts.joined(separator: " ")
     }
 }
 
