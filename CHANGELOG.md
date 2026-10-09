@@ -6,6 +6,8 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-09
+
 ### Added
 - A new look after [glasscn](https://glasscn.app): frosted panes with a lit rim, capsule buttons
   that squash a touch when pressed, and an aurora drifting slowly behind every screen.
@@ -23,7 +25,16 @@ All notable changes to Momentum are recorded here. The format follows
   or the Home Screen was tinted; they now keep their symbol, and book covers stay photos.
 - Mac desktop widgets showed only grey placeholders when another build of the app with a
   different version was on record, which every Xcode build leaves behind. `install.sh` now
-  keeps the installed copy as the only one, and opening the app redraws the widgets.
+  keeps the installed copy as the only one, stops the old app and widgets before replacing them,
+  and opening the app redraws the widgets.
+- Watch complications kept showing the old state after a change on the iPhone until the Watch
+  app was opened; the iPhone now updates them as it should.
+- A paused timed session on the watch showed the time elapsed; it now shows the time left, as the
+  iPhone does.
+- Goal names on the watch were cut short by the streak; they get two lines now, and a weekly or
+  monthly goal says it's done for its own period rather than for today.
+- On iPhone, a reading goal's +10 pages and Finished buttons broke mid-word; the page entry moves
+  to its own row when they don't fit.
 
 ## [2.1.1] - 2026-10-09
 
@@ -247,7 +258,8 @@ An unpublished prototype.
 - Today and Goal widgets with start/stop and check-in buttons.
 - Menu bar timer.
 
-[Unreleased]: https://github.com/Leeevai/momentum/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/Leeevai/momentum/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/Leeevai/momentum/releases/tag/v2.2.0
 [2.1.1]: https://github.com/Leeevai/momentum/releases/tag/v2.1.1
 [2.1.0]: https://github.com/Leeevai/momentum/releases/tag/v2.1.0
 [2.0.0]: https://github.com/Leeevai/momentum/releases/tag/v2.0.0
