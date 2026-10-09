@@ -250,6 +250,7 @@ final class GoalStore {
         if userInitiated { celebrateNewCompletions(from: previousData, to: newData) }
         if case .goal(let id) = route, newData.goal(id) == nil { route = .today }
         sync?.localDataDidChange()
+        GoalSpotlight.update(from: newData)
         if previousData.session != newData.session || previousData.rest != newData.rest
             || previousData.preferences.pomodoro != newData.preferences.pomodoro {
             schedulePomodoro()

@@ -3,26 +3,16 @@ import SwiftUI
 import UIKit
 
 /// The Home Screen quick actions (touch and hold the app icon): focus on the goals that still
-/// need it today, plan or reflect on the day, add a goal. Each is a `momentum://` link, handled
-/// like any other.
+/// need it today, plan or reflect on the day, add a goal. Each is a `momentum://` link, opened
+/// through `LinkRouter` like any other.
 @MainActor
 enum QuickActions {
-    /// Opens a link; set by the app once its views are up. A link from an action that launched
-    /// the app waits here until then.
-    static var handler: ((URL) -> Void)? {
-        didSet {
-            guard let handler, let pending else { return }
-            self.pending = nil
-            handler(pending)
-        }
-    }
-
-    private static var pending: URL?
     private static let urlKey = "url"
 
     static func perform(_ item: UIApplicationShortcutItem) {
-        guard let string = item.userInfo?[urlKey] as? String, let url = URL(string: string) else { return }
-        if let handler { handler(url) } else { pending = url }
+        guard let string = item.userInfo?[urlKey] as? String, let url = URL(string: string),
+              let link = DeepLink(url: url) else { return }
+        LinkRouter.open(link)
     }
 
     /// Rebuilds the actions from the current data; the system shows at most four.

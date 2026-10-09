@@ -2,7 +2,7 @@ import AppIntents
 import MomentumCore
 
 /// A goal as Shortcuts, Siri and widget configuration see it.
-struct GoalEntity: AppEntity {
+struct GoalEntity: AppEntity, Equatable {
     static let typeDisplayRepresentation: TypeDisplayRepresentation = "Goal"
     static let defaultQuery = GoalQuery()
 
@@ -10,9 +10,13 @@ struct GoalEntity: AppEntity {
     let name: String
     let symbol: String
     let kind: GoalKind
+    /// What it asks for, as "2h a day" or "12 books a year".
+    let summary: String
+    /// The category and notes, for search.
+    let keywords: [String]
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(name)", subtitle: "\(kind.title)", image: DisplayRepresentation.Image(systemName: symbol))
+        DisplayRepresentation(title: "\(name)", subtitle: "\(summary)", image: DisplayRepresentation.Image(systemName: symbol))
     }
 
     init(goal: Goal) {
@@ -20,6 +24,8 @@ struct GoalEntity: AppEntity {
         name = goal.name
         symbol = goal.symbol
         kind = goal.kind
+        summary = goal.targetDescription
+        keywords = [goal.category, kind.title].filter { !$0.isEmpty }
     }
 }
 

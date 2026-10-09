@@ -11,8 +11,11 @@ struct MomentumMobileApp: App {
         WindowGroup {
             MobileRoot()
                 .environment(store)
-                .onOpenURL { url in handle(url) }
-                .onAppear { QuickActions.handler = { url in handle(url) } }
+                .onOpenURL { url in DeepLink(url: url).map(handle) }
+                .onAppear {
+                    LinkRouter.handler = { link in handle(link) }
+                    GoalSpotlight.update(from: store.data)
+                }
         }
         .onChange(of: scenePhase) { _, phase in
             // The quick actions are refreshed on the way out, so they match the day when next shown.
@@ -63,8 +66,7 @@ struct MomentumMobileApp: App {
         return GoalStore()
     }
 
-    private func handle(_ url: URL) {
-        guard let link = DeepLink(url: url) else { return }
+    private func handle(_ link: DeepLink) {
         switch link {
         case .today: store.route = .today
         case .journal: store.route = .journal

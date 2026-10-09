@@ -12,7 +12,7 @@ struct MomentumApp: App {
             RootView()
                 .environment(store)
                 .frame(minWidth: 880, minHeight: 600)
-                .onOpenURL { url in handle(url) }
+                .onOpenURL { url in DeepLink(url: url).map(handle) }
         }
         .defaultSize(width: 1180, height: 800)
         .windowToolbarStyle(.unified)
@@ -30,13 +30,21 @@ struct MomentumApp: App {
             MenuBarLabel()
                 .environment(store)
                 // The menu bar item exists from launch, so it's where the global shortcut starts.
-                .task { QuickPanelController.shared.attach(store) }
+                .task {
+                    QuickPanelController.shared.attach(store)
+                    // Links from Spotlight and Shortcuts arrive without a URL, so they bring the
+                    // window back themselves.
+                    LinkRouter.handler = { link in
+                        handle(link)
+                        NotificationCenter.default.post(name: .reopenMainWindow, object: nil)
+                    }
+                    GoalSpotlight.update(from: store.data)
+                }
         }
         .menuBarExtraStyle(.window)
     }
 
-    private func handle(_ url: URL) {
-        guard let link = DeepLink(url: url) else { return }
+    private func handle(_ link: DeepLink) {
         switch link {
         case .today: store.route = .today
         case .journal: store.route = .journal
