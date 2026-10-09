@@ -87,8 +87,13 @@ public final class FileStore: Sendable {
         coordinate(writing: true) { url in
             self.backUp(url, reason: "before-import")
             // Stamped against what it replaces, so other devices take the import over their copy.
+            // It keeps this device's record of changes and deletions rather than the backup's
+            // older one: that is how a restored entry is known to have been deleted since, and is
+            // stamped so the deletion doesn't win again at the next sync.
+            let current = self.read(url)
             var stamped = newData
-            SyncStamper.stamp(&stamped, from: self.read(url), at: .now)
+            stamped.sync = current.sync
+            SyncStamper.stamp(&stamped, from: current, at: .now)
             self.write(stamped, to: url)
             snapshot = Snapshot(data: stamped, modification: self.modificationDate())
         }
@@ -108,8 +113,8 @@ public final class FileStore: Sendable {
     public func backUpDaily(keep: Int = 14, now: Date = .now, calendar: Calendar = .current) -> URL? {
         let manager = FileManager.default
         guard manager.fileExists(atPath: fileURL.path) else { return nil }
-        let parts = calendar.dateComponents([.year, .month, .day], from: now)
-        let name = String(format: "data-%04d-%02d-%02d.json", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        // Gregorian whatever the device's calendar, so names sort by date.
+        let name = "data-\(DayID(now, calendar: calendar)).json"
         let target = backupsDirectory.appendingPathComponent(name)
         var written: URL?
         do {
@@ -147,10 +152,7 @@ public final class FileStore: Sendable {
 
     /// Compact by default, since the data file is rewritten on every change; `pretty` for exports.
     public static func encode(_ data: AppData, pretty: Bool = false) throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = pretty ? [.prettyPrinted, .sortedKeys] : []
-        return try encoder.encode(data)
+        try DateCoding.encoder(pretty: pretty).encode(data)
     }
 
     /// When the data file last changed, to tell another process's write from one's own.
@@ -160,8 +162,7 @@ public final class FileStore: Sendable {
 
     /// Decodes any version of the data file, migrating older formats.
     public static func decode(_ bytes: Data) throws -> AppData {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        let decoder = DateCoding.decoder()
         let probe = try decoder.decode(VersionProbe.self, from: bytes)
         if probe.version == nil {
             return try decoder.decode(LegacyDataV1.self, from: bytes).migrated()

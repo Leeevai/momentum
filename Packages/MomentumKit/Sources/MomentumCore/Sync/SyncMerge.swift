@@ -72,10 +72,21 @@ public enum SyncMerge {
         }
 
         // Single values.
-        merged.session = single(local.session, remote.session, key: SyncState.session, local.sync, remote.sync)
-        if let session = merged.session, !goalIDs.contains(session.goalID) { merged.session = nil }
-        merged.rest = single(local.rest, remote.rest, key: SyncState.rest, local.sync, remote.sync)
-        if let rest = merged.rest, !goalIDs.contains(rest.goalID) { merged.rest = nil }
+        // The session and the break are one timer: both come from the side that touched it last,
+        // so a session started on one device can't run alongside a break begun on another.
+        let localTimer = max(local.sync.stamp(SyncState.session), local.sync.stamp(SyncState.rest))
+        let remoteTimer = max(remote.sync.stamp(SyncState.session), remote.sync.stamp(SyncState.rest))
+        let timer: (session: FocusSession?, rest: RestPeriod?)
+        if localTimer > remoteTimer || (local.session == remote.session && local.rest == remote.rest) {
+            timer = (local.session, local.rest)
+        } else if remoteTimer > localTimer {
+            timer = (remote.session, remote.rest)
+        } else {
+            let pick = tieBreak(TimerPair(session: local.session, rest: local.rest), TimerPair(session: remote.session, rest: remote.rest))
+            timer = (pick.session, pick.rest)
+        }
+        merged.session = timer.session.flatMap { goalIDs.contains($0.goalID) ? $0 : nil }
+        merged.rest = timer.rest.flatMap { goalIDs.contains($0.goalID) ? $0 : nil }
         merged.preferences = single(local.preferences, remote.preferences, key: SyncState.preferences, local.sync, remote.sync) ?? local.preferences
 
         // Achievements stay earned, at the earliest date either side earned them.
@@ -91,6 +102,11 @@ public enum SyncMerge {
         return merged
     }
 
+    private struct TimerPair: Codable {
+        var session: FocusSession?
+        var rest: RestPeriod?
+    }
+
     /// The side whose single value changed last; nil values (no session) count as values.
     private static func single<T: Codable & Equatable>(_ a: T?, _ b: T?, key: String, _ stampsA: SyncState, _ stampsB: SyncState) -> T? {
         let first = stampsA.stamp(key)
@@ -102,9 +118,9 @@ public enum SyncMerge {
 
     /// Picks the same one of two different values whichever side asks, by comparing their JSON.
     private static func tieBreak<T: Encodable>(_ a: T, _ b: T) -> T {
-        let encoder = JSONEncoder()
+        // Full-precision dates: two values a fraction of a second apart must still differ here.
+        let encoder = DateCoding.encoder()
         encoder.outputFormatting = .sortedKeys
-        encoder.dateEncodingStrategy = .iso8601
         let first = (try? encoder.encode(a)) ?? Data()
         let second = (try? encoder.encode(b)) ?? Data()
         return first.lexicographicallyPrecedes(second) ? b : a

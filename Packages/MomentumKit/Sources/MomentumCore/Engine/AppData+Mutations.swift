@@ -176,9 +176,40 @@ extension AppData {
         let logged = perDay.values
             .filter { $0.seconds >= 1 }
             .sorted { $0.start < $1.start }
-            .map { LogEntry(goalID: finished.goalID, date: $0.start, amount: $0.seconds.rounded(), source: .timer, note: finished.note) }
+            .map { piece in
+                LogEntry(id: Self.timerEntryID(goal: finished.goalID, sessionStart: finished.startedAt, day: calendar.startOfDay(for: piece.start)),
+                         goalID: finished.goalID, date: piece.start, amount: piece.seconds.rounded(), source: .timer, note: finished.note)
+            }
         entries.append(contentsOf: logged)
         return logged
+    }
+
+    /// The id of the entry a session logs for one day: the same on every device that stops the
+    /// same session, so if two of them do (each finishing the Pomodoro block, say), a sync merge
+    /// keeps one entry instead of counting the time twice.
+    static func timerEntryID(goal: UUID, sessionStart: Date, day: Date) -> UUID {
+        func mix(_ value: UInt64) -> UInt64 {
+            var z = value &+ 0x9E37_79B9_7F4A_7C15
+            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+            return z ^ (z >> 31)
+        }
+        let bytes = goal.uuid
+        let high = withUnsafeBytes(of: bytes) { $0.load(fromByteOffset: 0, as: UInt64.self) }
+        let low = withUnsafeBytes(of: bytes) { $0.load(fromByteOffset: 8, as: UInt64.self) }
+        let start = UInt64(bitPattern: Int64((sessionStart.timeIntervalSince1970 * 1000).rounded()))
+        let dayBits = UInt64(bitPattern: Int64(day.timeIntervalSince1970.rounded()))
+        let first = mix(high ^ mix(start))
+        var second = mix(low ^ mix(dayBits ^ first))
+        // Mark it a version 4, RFC 4122 UUID like any other.
+        var head = first
+        head = (head & ~(0xF000 as UInt64)) | 0x4000
+        second = (second & ~(0xC0 as UInt64)) | 0x80
+        var raw = (head.bigEndian, second.bigEndian)
+        return withUnsafeBytes(of: &raw) { pointer in
+            let b = Array(pointer)
+            return UUID(uuid: (b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]))
+        }
     }
 
     public mutating func discardFocus() {

@@ -22,6 +22,11 @@ public struct SyncState: Codable, Equatable, Sendable {
     /// them; after that, a copy that never heard of one could bring the record back.
     public static let tombstoneLifetime: TimeInterval = 180 * 86_400
 
+    /// A device's file older than this is no longer merged. It's shorter than the life of a
+    /// tombstone, so every file still merged has heard of every deletion it could undo: a device
+    /// retired, or reinstalled under a new id, can't bring deleted records back.
+    public static let peerLifetime: TimeInterval = 150 * 86_400
+
     public static func goal(_ id: UUID) -> String { "goal:\(id.uuidString)" }
     public static func entry(_ id: UUID) -> String { "entry:\(id.uuidString)" }
     public static func journal(_ day: DayID) -> String { "journal:\(day)" }

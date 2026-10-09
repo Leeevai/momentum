@@ -81,9 +81,10 @@ public struct SyncFolder: Sendable {
     }
 
     /// Reads the other devices' copies. Unreadable files are skipped and logged: a half-synced
-    /// file is read again on the next pass.
-    public func readPeers() -> [SyncEnvelope] {
-        peerFiles().compactMap { file in
+    /// file is read again on the next pass. Files not saved for `SyncState.peerLifetime` are left
+    /// out, so a long-gone device can't bring back what was deleted since.
+    public func readPeers(now: Date = .now) -> [SyncEnvelope] {
+        peerFiles().compactMap { file -> SyncEnvelope? in
             var envelope: SyncEnvelope?
             var coordinationError: NSError?
             NSFileCoordinator().coordinate(readingItemAt: file.url, options: [], error: &coordinationError) { source in
@@ -93,19 +94,16 @@ public struct SyncFolder: Sendable {
                     Self.logger.error("Skipping \(file.url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
                 }
             }
+            guard let envelope, now.timeIntervalSince(envelope.savedAt) < SyncState.peerLifetime else { return nil }
             return envelope
         }
     }
 
     public static func encode(_ envelope: SyncEnvelope) throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return try encoder.encode(envelope)
+        try DateCoding.encoder().encode(envelope)
     }
 
     public static func decode(_ bytes: Data) throws -> SyncEnvelope {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(SyncEnvelope.self, from: bytes)
+        try DateCoding.decoder().decode(SyncEnvelope.self, from: bytes)
     }
 }
