@@ -41,6 +41,8 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var notes: String
     /// A store, Goodreads, or ebook link.
     public var link: URL?
+    /// A cover image, when the book came from a catalog search.
+    public var coverURL: URL?
     public var addedAt: Date
     public var startedAt: Date?
     public var finishedAt: Date?
@@ -55,6 +57,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
         rating: Int? = nil,
         notes: String = "",
         link: URL? = nil,
+        coverURL: URL? = nil,
         addedAt: Date = .now,
         startedAt: Date? = nil,
         finishedAt: Date? = nil
@@ -68,6 +71,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
         self.rating = rating
         self.notes = notes
         self.link = link
+        self.coverURL = coverURL
         self.addedAt = addedAt
         self.startedAt = startedAt
         self.finishedAt = finishedAt
@@ -84,7 +88,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, author, totalPages, currentPage, status, rating, notes, link, addedAt, startedAt, finishedAt
+        case id, title, author, totalPages, currentPage, status, rating, notes, link, coverURL, addedAt, startedAt, finishedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -98,6 +102,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
         rating = try c.decodeIfPresent(Int.self, forKey: .rating)
         notes = try c.decode(.notes, default: "")
         link = try c.decodeIfPresent(URL.self, forKey: .link)
+        coverURL = try c.decodeIfPresent(URL.self, forKey: .coverURL)
         addedAt = try c.decode(.addedAt, default: .now)
         startedAt = try c.decodeIfPresent(Date.self, forKey: .startedAt)
         finishedAt = try c.decodeIfPresent(Date.self, forKey: .finishedAt)
