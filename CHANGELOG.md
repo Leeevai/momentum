@@ -18,10 +18,10 @@ The first public release: a full rebuild of the 0.1 prototype.
 - Books goals with a library (reading, up next, finished, set aside), page logging, ratings, and
   Open Library search that fills in the title, author, page count and cover.
 - Milestone checklists with due dates, on any goal.
-- Fair streaks: unscheduled days are skipped, breaks protect a streak, and weekly and monthly goals
-  keep week and month streaks.
-- Smart reminders that skip days a goal is already done, and an evening nudge when a streak would
-  end at midnight.
+- Fair streaks: unscheduled days are skipped, breaks protect a streak, weekly and monthly goals
+  keep week and month streaks, and an optional minimum keeps a streak alive on hard days.
+- Smart reminders that skip days a goal is already done, an evening nudge when a streak would
+  end at midnight, and a weekly recap.
 - Editable history: change the time, amount or note of any entry.
 - A Control Center focus toggle on macOS 26.
 - Insights: focus per day by goal compared with the period before, weekday and time-of-day

@@ -54,9 +54,10 @@ the days you read.
 
 ### Streaks that are fair
 - Days a goal isn't scheduled never break its streak, and **breaks** (a trip, a sick week) protect it entirely.
+- **Hard days count**: set a minimum (say 20 minutes of a 2-hour goal) that keeps the streak alive while the ring still asks for the full target.
 - Weekly and monthly goals keep **week and month streaks**.
 - **Smart reminders** at the time you choose, skipped on days the goal is already done.
-- **Streak protection**: an evening nudge when a streak would end at midnight.
+- **Streak protection**: an evening nudge when a streak would end at midnight, and a **weekly recap** on Sunday evening.
 
 ### Insights
 Focus time per day by goal, compared with the period before, your strongest weekday, the hour you
