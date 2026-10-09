@@ -17,6 +17,7 @@ struct MomentumMobileApp: App {
                     GoalSpotlight.update(from: store.data)
                 }
         }
+        .commands { MobileCommands(store: store) }
         .onChange(of: scenePhase) { _, phase in
             // The quick actions are refreshed on the way out, so they match the day when next shown.
             if phase == .background { QuickActions.update(from: store.engine) }
