@@ -94,7 +94,7 @@ private struct TodaySmall: View {
                     .frame(width: 78, height: 78)
                 }
                 Spacer(minLength: 4)
-                Text(summary.total == 0 ? "Nothing due" : summary.done == summary.total ? "All done 🎉" : "\(summary.total - summary.done) to go")
+                Text(summary.total == 0 ? "Nothing due" : summary.done == summary.total ? "All done" : "\(summary.total - summary.done) to go")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }

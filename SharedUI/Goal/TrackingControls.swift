@@ -96,7 +96,7 @@ private struct AmountControls: View {
         let remaining = max(0, engine.target(for: goal) - engine.currentAmount(for: goal, now: store.now))
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(remaining > 0 ? "\(goal.format(remaining)) to go" : "Target reached 🎉")
+                Text(remaining > 0 ? "\(goal.format(remaining)) to go" : "Target reached")
                     .font(.title3.weight(.semibold))
                     .contentTransition(.numericText())
                 Text(goal.targetDescription)

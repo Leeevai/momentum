@@ -41,7 +41,7 @@ private struct TemplateGallery: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Button {
-                        onPick(Goal(name: "", icon: "🎯", color: .blue, kind: .time, period: .daily, target: 30 * 60))
+                        onPick(Goal(name: "", symbol: "target", color: .blue, kind: .time, period: .daily, target: 30 * 60))
                     } label: {
                         HStack(spacing: 14) {
                             Image(systemName: "plus")

@@ -19,7 +19,7 @@ struct LinksSection: View {
                 .secondaryActionStyle(goal.tint, compact: true)
             ))
             if goal.links.isEmpty {
-                Text("Attach what you need to get started: a doc, a repo, a course, a playlist, or a local project folder. Mark a link with ⚡︎ to open it whenever a focus session starts. You can also drop links and files here.")
+                Text("Attach what you need to get started: a doc, a repo, a course, a playlist, or a local project folder. Mark a link with \(Image(systemName: "bolt.fill")) to open it whenever a focus session starts. You can also drop links and files here.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else {
