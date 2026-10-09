@@ -131,8 +131,8 @@ keeps the watch up to date; taps made out of its reach are delivered when it's b
 
 ### Widgets everywhere
 Interactive widgets on the Mac desktop and the iPhone Home Screen: **start and stop timers, check
-in and log pages without opening the app**, follow a **challenge** day by day, and rate today's
-**mood and energy** in one tap. On iPhone, Lock Screen widgets show today's progress,
+in and log pages without opening the app**, follow a **challenge** day by day, see a **week of focus** by goal, and
+rate today's **mood and energy** in one tap. On iPhone, Lock Screen widgets show today's progress,
 and Control Center gets a focus toggle on iOS 18 and macOS 26.
 
 <picture>
@@ -189,7 +189,8 @@ and Control Center gets a focus toggle on iOS 18 and macOS 26.
 Momentum builds from source with Xcode. App Store releases are being prepared
 ([checklist](docs/APP_STORE.md)).
 
-**Requirements:** macOS 14 or iOS 17 or later; Xcode 16 or later (Xcode 26 for Liquid Glass).
+**Requirements:** macOS 14, iOS 17 or watchOS 10 or later; Xcode 16 or later (Xcode 26 for
+Liquid Glass).
 
 ### Mac
 
@@ -208,6 +209,12 @@ right-click the desktop → **Edit Widgets…** → search for **Momentum**.
 Open `Momentum.xcodeproj`, choose the **MomentumMobile** scheme and your device, and run. To run
 on a device, register the app group `group.<your bundle prefix>.momentum` for your team (Xcode
 offers to under Signing & Capabilities); the simulator needs nothing.
+
+### Apple Watch
+
+The watch app is embedded in the iPhone app, so installing Momentum on an iPhone paired with a
+watch offers it in the Watch app. To run it from Xcode, choose the **MomentumWatch** scheme and
+your watch (or a watch simulator, after `xcodebuild -downloadPlatform watchOS`).
 
 > **Why a team ID?** The apps and their widgets are separate processes that share data through an
 > app group, which the system grants only to signed code. Any Apple ID works, including a free one.
