@@ -140,6 +140,11 @@ and Control Center gets a focus toggle on iOS 18 and macOS 26.
   <img src="docs/images/widgets-light.png" alt="The Today, Goal, Focus and Streaks widgets in small, medium and large sizes" width="760">
 </picture>
 
+### Twelve palettes
+Pick a palette in Settings (Dusk, Ocean, Rose, Sage, Amber, Graphite, Lavender, Mint, Cherry,
+Lagoon, Sand or Midnight) and it sets the accent, the **aurora drifting behind every screen**
+and the widgets, on every device you sync. Goal rings **lap past 100%**, so a big day shows.
+
 ### And the rest
 - **Shortcuts and Siri**: start focusing, log progress, ask how you're doing.
 - **Home Screen quick actions** and **goals in Spotlight** on iPhone, and haptics that match
@@ -263,3 +268,6 @@ widgets and other devices, and [CONTRIBUTING.md](CONTRIBUTING.md) to get involve
 ## License
 
 [MIT](LICENSE) © 2026 Leeevai
+
+The look follows [glasscn](https://glasscn.app) (MIT, © 2026 Tim Mikeladze): its palettes, its
+glass and its aurora, ported to SwiftUI.

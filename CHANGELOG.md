@@ -6,7 +6,21 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- A new look after [glasscn](https://glasscn.app): frosted panes with a lit rim, capsule buttons
+  that squash a touch when pressed, and an aurora drifting slowly behind every screen.
+- Twelve palettes to choose from in Settings (an Appearance tab on the Mac, a Palette section on
+  iPhone), each setting the accent, the aurora and the widgets, and synced between devices.
+- Goal rings lap past 100%, a second sweep over the first, as Activity rings do.
+- The large Today widget opens with today's rings and numbers, and gives one or two goals a tile
+  each, a lone goal with its heatmap, book or milestones.
+
+### Changed
+- Widgets sit on the palette's aurora, with a goal's color in it when the widget is about one goal.
+
 ### Fixed
+- Widget buttons and goal icons turned into solid shapes when macOS faded the desktop widgets
+  or the Home Screen was tinted; they now keep their symbol, and book covers stay photos.
 - Mac desktop widgets showed only grey placeholders when another build of the app with a
   different version was on record, which every Xcode build leaves behind. `install.sh` now
   keeps the installed copy as the only one, and opening the app redraws the widgets.

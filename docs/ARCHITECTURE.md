@@ -97,6 +97,27 @@ every five minutes and one at its planned end, and otherwise the next entry is m
 App Intents (`Shared/Intents`) inside the widget process, which update the file and reload all
 timelines. Links in widgets use `momentum://` deep links that the app resolves.
 
+## The look
+
+The design follows [glasscn](https://glasscn.app): frosted panes with a lit rim over a drifting
+aurora, in one of its palettes.
+
+- **Palettes** live in the core (`ThemePalette`, in OKLCH as glasscn defines them) because the
+  choice is a synced preference (`Preferences.palette`) that the widgets read from the data file.
+  `Color(_: OKLCH)` in `Shared/GlassTheme.swift` converts them.
+- **Where the palette comes from.** Each window's root applies `.storePalette()`, which sets the
+  `palette` environment value and the tint. Colors that need a `Color` outside the view tree use
+  `Color.accent`, a dynamic color that reads `ActivePalette.current`; the store sets it on every
+  change, and the widget timeline sets it when it loads the file.
+- **Glass.** `GlassTokens` holds glasscn's numbers (pane fills, rim, highlight, sheen, shadow,
+  radii, press squash and easing) for light and dark. `GlassCard` uses Liquid Glass tinted with
+  them on macOS 26 and iOS 26, and a frosted material with the fill, sheen, rim and shadow before.
+- **The aurora** (`Shared/Aurora.swift`) is three radial-gradient blobs moved by transforms, so the
+  drift is cheap; it stands still with Reduce Motion, in Low Power Mode, in widgets and in swatches.
+- **Widgets drawn in one tint** (the faded desktop, tinted Home Screens) collapse each element to a
+  single silhouette, so anything white on a fill (buttons, goal tiles) switches to a wash under its
+  label there (`WidgetFilledLabel`), and photos are marked to stay photos.
+
 ## One codebase, two apps
 
 | Folder | Built into |

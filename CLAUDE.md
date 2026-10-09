@@ -34,6 +34,10 @@ xcodebuild -project Momentum.xcodeproj -scheme MomentumMobile -destination 'gene
   a store-wide per-second tick.
 - UI uses the design system in `SharedUI/Components/` (`DesignSystem.swift`, `Glass.swift`).
   Layouts must work at phone width: use `ViewThatFits` for rows that need to stack.
+- The look follows glasscn (see "The look" in `docs/ARCHITECTURE.md`): `Color.accent` or the
+  `.tint` style for the palette's accent (never `accentColor`), `Aurora()` behind a screen
+  (`Aurora(accent: goal.tint)` for a goal's), `glassCard` for panes, `GlassTokens` for numbers.
+  Widget content that is white on a fill goes through `WidgetFilledLabel`.
 - Liquid Glass APIs go behind `#if compiler(>=6.2)` and `#available(macOS 26.0, iOS 26.0, *)`;
   deployment targets are macOS 14 and iOS 17, and CI may build with an older SDK.
 - Every save is stamped for sync by `FileStore.transform`; a merge from another device is written
