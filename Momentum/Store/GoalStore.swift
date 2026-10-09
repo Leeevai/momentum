@@ -70,9 +70,10 @@ final class GoalStore {
     @ObservationIgnored private let logger = Logger(subsystem: "dev.momentum.app", category: "GoalStore")
 
     init(persistence: DataPersistence = SharedFilePersistence(), effects: SideEffects? = nil) {
-        let initial = persistence.load()
+        let snapshot = persistence.load()
+        let initial = snapshot.data
         self.persistence = persistence
-        self.knownModification = persistence.modificationDate()
+        self.knownModification = snapshot.modification
         self.data = initial
         self.engine = ProgressEngine(data: initial)
         self.effects = effects ?? SideEffects()
@@ -99,7 +100,7 @@ final class GoalStore {
     /// by a widget, Shortcuts or another action, survives it.
     func perform(_ undoName: String? = nil, _ change: (inout AppData) -> Void) {
         let result = persistence.update(change)
-        knownModification = persistence.lastWriteModification()
+        knownModification = result.modification
         if let undoName {
             let patch = DataPatch(from: result.before, to: result.after)
             if !patch.isEmpty { registerUndo(patch, name: undoName) }
@@ -110,20 +111,21 @@ final class GoalStore {
     /// Picks up changes made by the widgets or Shortcuts. The folder watcher also fires for the
     /// app's own saves; those leave the file as the app last saw it, so they are skipped.
     func reload() {
-        let modification = persistence.modificationDate()
-        if let modification, modification == knownModification {
+        // A cheap check first; the date that counts is the one read with the data.
+        if let modification = persistence.modificationDate(), modification == knownModification {
             now = .now
             return
         }
-        knownModification = modification
-        apply(persistence.load(), userInitiated: false)
+        let snapshot = persistence.load()
+        knownModification = snapshot.modification
+        apply(snapshot.data, userInitiated: false)
     }
 
     /// Replaces all data, e.g. from an import. The previous file is kept as a backup.
     func replaceAll(with newData: AppData) {
-        persistence.replace(with: newData)
-        knownModification = persistence.lastWriteModification()
-        apply(persistence.load(), userInitiated: false)
+        let snapshot = persistence.replace(with: newData)
+        knownModification = snapshot.modification
+        apply(snapshot.data, userInitiated: false)
     }
 
     /// Daily backups, newest first.
@@ -145,7 +147,7 @@ final class GoalStore {
         undoManager.registerUndo(withTarget: self) { store in
             MainActor.assumeIsolated {
                 let result = store.persistence.update { patch.undo(on: &$0) }
-                store.knownModification = store.persistence.lastWriteModification()
+                store.knownModification = result.modification
                 store.apply(result.after, userInitiated: false)
                 // Registering inside an undo makes it the redo.
                 store.registerUndo(patch.reversed, name: name)

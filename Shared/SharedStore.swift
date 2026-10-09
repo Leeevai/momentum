@@ -24,18 +24,21 @@ enum SharedStore {
         transform(change).after
     }
 
-    /// Like `update`, also returning the data as it was before the change.
+    /// Like `update`, also returning the data before the change and the file's new date.
     @discardableResult
-    static func transform(_ change: (inout AppData) -> Void) -> (before: AppData, after: AppData) {
+    static func transform(_ change: (inout AppData) -> Void) -> FileStore.Transform {
         let result = fileStore.transform(change)
-        if result.before != result.after {
-            WidgetCenter.shared.reloadAllTimelines()
-            #if compiler(>=6.2)
-            if #available(macOS 26.0, *) {
-                ControlCenter.shared.reloadAllControls()
-            }
-            #endif
-        }
+        if result.before != result.after { reloadWidgets() }
         return result
+    }
+
+    /// Refreshes every widget and, on macOS 26, the Control Center focus control.
+    static func reloadWidgets() {
+        WidgetCenter.shared.reloadAllTimelines()
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *) {
+            ControlCenter.shared.reloadAllControls()
+        }
+        #endif
     }
 }

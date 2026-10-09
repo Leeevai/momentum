@@ -27,9 +27,10 @@ struct GoalEditor: View {
         _hasDeadline = State(initialValue: goal.deadline != nil)
     }
 
-    /// The tracking kind is fixed once a goal has history, since amounts are stored in its units.
+    /// The tracking kind is fixed once a goal has history, since amounts are stored in its units,
+    /// and while its timer runs, since a session's seconds only mean something to a time goal.
     private var kindIsLocked: Bool {
-        !isNew && store.data.entries.contains { $0.goalID == draft.id }
+        !isNew && (store.data.entries.contains { $0.goalID == draft.id } || store.data.session?.goalID == draft.id)
     }
 
     private var isValid: Bool {
@@ -134,7 +135,7 @@ struct GoalEditor: View {
                 }
             }
             .disabled(kindIsLocked)
-            Text(kindIsLocked ? "The tracking type can't change once a goal has history." : draft.kind.summary)
+            Text(kindIsLocked ? "The tracking type can't change once a goal has history or a running timer." : draft.kind.summary)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

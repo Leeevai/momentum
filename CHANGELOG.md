@@ -21,7 +21,8 @@ All notable changes to Momentum are recorded here. The format follows
 
 ### Fixed
 - Undo no longer reverts changes made after the action (a session started from a widget, a log
-  from Shortcuts): it reverses only what the action itself changed.
+  from Shortcuts, a milestone checked off): it reverses only the goal settings, milestones, books,
+  links, entries and session the action itself changed, and never discards logged focus time.
 - Siri and Shortcuts could start a focus timer on a count or books goal, logging seconds as its unit.
 - A break now protects the whole day it starts; "Until Tomorrow" protected nothing.
 - Editing a time entry could round it, or turn a correction positive.
@@ -36,6 +37,12 @@ All notable changes to Momentum are recorded here. The format follows
 - Pace for a goal less than two weeks old was understated.
 - Finishing a time goal with the timer didn't celebrate.
 - Quick actions did nothing for a project with every milestone done; it now opens the goal.
+- Marking a book finished in the book editor now logs its remaining pages.
+- A goal's tracking type can't be changed while its timer runs.
+- Imported books count toward a new goal's pace.
+- Editing an entry shorter than 30 seconds no longer stretches it to a minute.
+- Restoring a backup refreshes the Control Center focus toggle.
+- A change from Shortcuts at the same moment as an in-app save could be missed until the next one.
 - Once today's goal was done, tomorrow's first reminder could be skipped too.
 - A book finished exactly at midnight on New Year's Day counted toward both years.
 - Reminders and nudges could fire an hour off on daylight-saving days.

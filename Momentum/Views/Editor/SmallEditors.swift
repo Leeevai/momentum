@@ -12,6 +12,8 @@ struct LogProgressSheet: View {
     let entry: LogEntry?
     @State private var amount: Double
     @State private var minutes: Int
+    /// The minutes shown when the sheet opened: unchanged means keep the entry's exact amount.
+    private let initialMinutes: Int
     @State private var date: Date
     @State private var note: String
 
@@ -23,7 +25,9 @@ struct LogProgressSheet: View {
         let value = entry?.amount ?? goal.quickAddStep
         _amount = State(initialValue: value)
         let wholeMinutes = Int((abs(value) / 60).rounded())
-        _minutes = State(initialValue: value < 0 ? -max(1, wholeMinutes) : max(1, wholeMinutes))
+        let shownMinutes = value < 0 ? -max(1, wholeMinutes) : max(1, wholeMinutes)
+        _minutes = State(initialValue: shownMinutes)
+        initialMinutes = shownMinutes
         _date = State(initialValue: entry?.date ?? day.map(Self.moment(on:)) ?? .now)
         _note = State(initialValue: entry?.note ?? "")
     }
@@ -46,7 +50,7 @@ struct LogProgressSheet: View {
     /// so editing a note never rounds a 25m 40s session to 26m.
     private var amountToSave: Double {
         guard goal.kind == .time else { return amount }
-        if let entry, Int((abs(entry.amount) / 60).rounded()) == abs(minutes) { return entry.amount }
+        if let entry, minutes == initialMinutes { return entry.amount }
         return Double(minutes * 60)
     }
 
@@ -364,12 +368,11 @@ struct BookEditor: View {
             current.notes = edited.notes
             current.link = link
             current.coverURL = edited.coverURL
-            if edited.status != (original?.status ?? .wantToRead) || original == nil { current.status = edited.status }
+            let statusChanged = original == nil || edited.status != original?.status
+            // Finishing goes through finishBook below, which also logs the pages left.
+            let finishing = statusChanged && edited.status == .finished && current.status != .finished
+            if statusChanged && !finishing { current.status = edited.status }
             if current.status == .reading && current.startedAt == nil { current.startedAt = now }
-            if current.status == .finished && current.finishedAt == nil {
-                current.finishedAt = now
-                if let totalPages { current.currentPage = totalPages }
-            }
             if current.status != .finished { current.finishedAt = nil }
             // Only a page the user changed in this sheet moves the bookmark, logged as pages read.
             var pageDelta = 0
@@ -381,6 +384,9 @@ struct BookEditor: View {
             data.upsertBook(current, in: goalID)
             if pageDelta != 0 {
                 data.log(Double(pageDelta), for: goalID, at: now, bookID: current.id)
+            }
+            if finishing {
+                data.finishBook(current.id, in: goalID, rating: edited.rating, at: now)
             }
         }
         dismiss()
