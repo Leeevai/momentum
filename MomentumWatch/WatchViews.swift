@@ -197,13 +197,13 @@ struct GoalPage: View {
             if let session = store.snapshot.session, running == true {
                 HStack(spacing: 8) {
                     Button {
-                        store.perform(.togglePause)
+                        store.perform(.setPaused(goal: item.id, sessionStart: session.startedAt, paused: session.isRunning))
                     } label: {
                         Image(systemName: session.isRunning ? "pause.fill" : "play.fill")
                     }
                     .accessibilityLabel(session.isRunning ? "Pause" : "Resume")
                     Button {
-                        store.perform(.stopFocus)
+                        store.perform(.stop(goal: item.id, sessionStart: session.startedAt))
                     } label: {
                         Image(systemName: "stop.fill")
                     }
@@ -212,7 +212,7 @@ struct GoalPage: View {
                 }
             } else {
                 Button {
-                    store.perform(.toggleFocus(goal: item.id))
+                    store.perform(.start(goal: item.id))
                 } label: {
                     Label("Start", systemImage: "play.fill")
                 }

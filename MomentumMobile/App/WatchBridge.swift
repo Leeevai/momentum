@@ -11,8 +11,22 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
 
     private typealias Key = WatchMessageKey
 
+    /// Everything below is touched only on this queue.
     private let queue = DispatchQueue(label: "momentum.watch-bridge")
     private var lastSent: Data?
+    /// What the watch face last got, to spend the day's complication budget only on changes
+    /// that show there.
+    private var lastFace: FaceState?
+    private static let appliedKey = "watchAppliedCommands"
+    private static let appliedLimit = 200
+
+    private struct FaceState: Equatable {
+        var day: DayID
+        var done: Int
+        var total: Int
+        var session: String?
+        var isRunning: Bool
+    }
 
     func activate() {
         guard WCSession.isSupported() else { return }
@@ -23,16 +37,26 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
     /// Sends today's snapshot, if a watch app is there to show it and it changed.
     func send(_ snapshot: WatchSnapshot) {
         guard WCSession.isSupported() else { return }
-        queue.async { [self] in
-            let session = WCSession.default
-            guard session.activationState == .activated, session.isWatchAppInstalled,
-                  let encoded = try? snapshot.encoded(), encoded != lastSent else { return }
-            do {
-                try session.updateApplicationContext([Key.snapshot: encoded])
-                lastSent = encoded
-            } catch {
-                print("Could not update the watch: \(error)")
-            }
+        queue.async { [self] in deliver(snapshot) }
+    }
+
+    private func deliver(_ snapshot: WatchSnapshot) {
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isWatchAppInstalled,
+              let encoded = try? snapshot.encoded(), encoded != lastSent else { return }
+        do {
+            try session.updateApplicationContext([Key.snapshot: encoded])
+            lastSent = encoded
+        } catch {
+            print("Could not update the watch: \(error)")
+        }
+        // The application context reaches the watch app when it next runs; a complication on the
+        // face needs a push of its own, which wakes it (a limited number of times a day).
+        let face = FaceState(day: snapshot.day, done: snapshot.done, total: snapshot.total,
+                             session: snapshot.session.map(SyncState.sessionKey), isRunning: snapshot.session?.isRunning ?? false)
+        if session.isComplicationEnabled, face != lastFace, session.remainingComplicationUserInfoTransfers > 0 {
+            session.transferCurrentComplicationUserInfo([Key.snapshot: encoded])
+            lastFace = face
         }
     }
 
@@ -50,32 +74,48 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
 
     /// Another watch was paired: start over with it.
     func sessionDidDeactivate(_ session: WCSession) {
-        queue.async { [self] in lastSent = nil }
+        queue.async { [self] in
+            lastSent = nil
+            lastFace = nil
+        }
         session.activate()
     }
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        let snapshot = handle(message)
-        guard let encoded = try? snapshot.encoded() else {
-            replyHandler([:])
-            return
+    /// The watch app was installed (or the complication added): bring it up to date now, rather
+    /// than at the next change.
+    func sessionWatchStateDidChange(_ session: WCSession) {
+        queue.async { [self] in
+            lastSent = nil
+            lastFace = nil
+            deliver(currentSnapshot())
         }
-        replyHandler([Key.snapshot: encoded])
-        send(snapshot)
     }
 
-    /// Actions queued while the phone was out of reach arrive here, in order.
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        queue.async { [self] in
+            let snapshot = handle(message)
+            replyHandler((try? snapshot.encoded()).map { [Key.snapshot: $0] } ?? [:])
+            deliver(snapshot)
+        }
+    }
+
+    /// Commands queued while the phone was out of reach arrive here, in order.
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        send(handle(userInfo))
+        queue.async { [self] in deliver(handle(userInfo)) }
     }
 
-    /// Carries out an action (or just answers a refresh) and returns the snapshot after it.
+    /// Carries out a command, once however often it arrives, and returns the snapshot after it.
+    /// A message without one asks for a fresh snapshot.
     private func handle(_ message: [String: Any]) -> WatchSnapshot {
-        guard let raw = message[Key.action] as? Data, let action = try? WatchAction(encoded: raw) else {
+        guard let raw = message[Key.action] as? Data, let command = try? WatchCommand(encoded: raw) else {
             return currentSnapshot()
         }
+        var applied = UserDefaults.standard.stringArray(forKey: Self.appliedKey) ?? []
+        guard !applied.contains(command.id.uuidString) else { return currentSnapshot() }
         LiveActivitySync.catchUp()
-        let data = SharedStore.update { $0.apply(action) }
+        let data = SharedStore.update { $0.apply(command) }
+        applied.append(command.id.uuidString)
+        UserDefaults.standard.set(Array(applied.suffix(Self.appliedLimit)), forKey: Self.appliedKey)
         Task { await LiveActivitySync.after(data) }
         return ProgressEngine(data: data).watchSnapshot(now: .now)
     }

@@ -9,5 +9,9 @@ struct MomentumWatchApp: App {
             WatchRoot()
                 .environment(store)
         }
+        // A complication update from the iPhone wakes the app in the background to receive it.
+        .backgroundTask(.watchConnectivity) {
+            await store.finishPendingDeliveries()
+        }
     }
 }
