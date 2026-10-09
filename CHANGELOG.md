@@ -6,6 +6,9 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **A Week of Focus widget**: the last seven days of focus, stacked by goal, against the week before.
+
 ## [2.0.0] - 2026-10-09
 
 ### Added
