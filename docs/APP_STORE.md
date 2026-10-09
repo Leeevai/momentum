@@ -48,7 +48,8 @@ daily journal, with widgets and a Live Activity.
 > - Focus sessions with Pomodoro cycles, on the Lock Screen and in the Dynamic Island
 > - Streaks with breaks and a minimum for hard days
 > - A daily plan and an evening reflection, with mood and energy
-> - Forty awards to earn, from First Step to Year of Momentum
+> - Challenges from 7 to 100 days, with a dot for every day
+> - More than forty awards to earn, from First Step to Year of Momentum
 > - Insights into when and how you work best
 > - Reading goals with a library, Open Library search and Goodreads import
 > - Habit stacking: one goal right after another
@@ -56,7 +57,7 @@ daily journal, with widgets and a Live Activity.
 > - Sync through your own iCloud Drive folder, with the Mac app
 > - No account, no ads, no tracking
 
-**Keywords.** habit,streak,focus,pomodoro,goals,tracker,journal,reading,productivity,routine
+**Keywords.** habit,streak,focus,pomodoro,goals,tracker,journal,reading,challenge,routine
 
 **Review notes.** No account or sign-in. To see a running timer, tap Start on any time goal;
 the Live Activity appears on the Lock Screen. Sync needs a folder picked in Settings and is

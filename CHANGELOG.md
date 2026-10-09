@@ -21,8 +21,11 @@ All notable changes to Momentum are recorded here. The format follows
 - **A daily journal**: plan the morning with an intention and up to three priorities, shown on
   Today; reflect in the evening with mood, energy, a win and notes. The Journal is a month calendar
   of how each day went.
-- **Awards**: forty achievements in four tiers, measured from history, with progress on the ones
-  still locked and a banner when one is earned.
+- **Challenges**: commit a goal to a run of days, from a week to a hundred. The goal's page shows
+  a dot for every day (kept, missed, a day off, today), Today shows which day it is, and finishing
+  without a miss earns an award.
+- **Awards**: forty-three achievements in four tiers, measured from history, with progress on the
+  ones still locked and a banner when one is earned.
 - **A coach** on Today: a streak at risk, the next goal in a stack, a goal's usual hour, targets to
   raise or lower, deadlines falling behind, idle goals, books nearly done, milestones due.
 - **Habit stacking**: do a goal right after another; Today orders them and the celebration
@@ -36,6 +39,11 @@ All notable changes to Momentum are recorded here. The format follows
 - **Siri and Shortcuts**: log today's mood (and a win), and hear your week in review.
 - Templates for steps, an instrument, yoga, sleep and coding every day.
 - On iPad, the tabs become a sidebar.
+- **Home Screen quick actions** on iPhone: open the running timer, focus on a goal that still
+  needs it today, plan or reflect on the day, or add a goal.
+- **Goals in Spotlight** (iOS 18, macOS 15), opening straight to the goal.
+- **Haptics** on iPhone that match what happened: start, pause, stop, a break, logging up or
+  down, reaching a goal, earning an award.
 - **A quick panel from any app** on the Mac, with a global shortcut (Control-Option-M by default).
 - **Mood in Insights**: how mood lines up with progress and focus.
 - Focus filters: in System Settings → Focus, choose which goal categories Momentum shows while a

@@ -86,10 +86,16 @@ lines. The **Journal** is a month calendar with every day ringed by how much got
 in pixels**, and a **week in review** with your wins; **Insights** shows how your mood lines up
 with your progress.
 
+### Challenges
+Commit a goal to a run of days: 7, 21, 30, 66, 100. Its page shows a dot for every day, filled when
+kept, crossed when missed, dashed for a day off, with today's breathing until it's done; Today
+shows which day you're on. Finish without a miss for an award.
+
 ### Awards
-Forty achievements in bronze, silver, gold and platinum, from *First Step* to *Year of Momentum*:
-streaks, focus hours, a 90-minute deep dive, a flawless week, a comeback after a week away, books,
-milestones, journaling. Locked ones show how close you are. Each medal morphs open into its story.
+Forty-three achievements in bronze, silver, gold and platinum, from *First Step* to *Year of
+Momentum*: streaks, challenges, focus hours, a 90-minute deep dive, a flawless week, a comeback
+after a week away, books, milestones, journaling. Locked ones show how close you are. Each medal
+morphs open into its story.
 
 ### Streaks that are fair
 - Unscheduled days never break a streak, and **breaks** (a trip, a sick week) protect it entirely.
@@ -125,6 +131,8 @@ and Control Center gets a focus toggle on iOS 18 and macOS 26.
 
 ### And the rest
 - **Shortcuts and Siri**: start focusing, log progress, ask how you're doing.
+- **Home Screen quick actions** and **goals in Spotlight** on iPhone, and haptics that match
+  what you just did.
 - **Focus filters**: pair a system Focus with goal categories, so a Work Focus shows only work goals.
 - **Editable history**, **share cards**, **templates**, **categories**, **archive**, full **undo**.
 - **Export** a JSON backup or a CSV of every entry; a daily copy of your data is kept for 14 days.
