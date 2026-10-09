@@ -28,6 +28,14 @@ struct MobileSettings: View {
                 } footer: {
                     Text("Reorder, archive and restore goals.")
                 }
+                Section {
+                    PalettePicker(columns: 4)
+                        .padding(.vertical, 6)
+                } header: {
+                    Text("Palette")
+                } footer: {
+                    Text("The accent color, the aurora behind every screen and the widgets follow the palette. The palettes are glasscn's.")
+                }
                 Section("Focus") {
                     Picker("Default session length", selection: binding(\.defaultFocusMinutes, preferences)) {
                         ForEach(FocusLengthMenu.lengths, id: \.self) { Text("\($0) minutes").tag($0) }

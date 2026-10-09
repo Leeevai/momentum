@@ -9,6 +9,8 @@ struct SettingsView: View {
         TabView {
             GeneralSettings()
                 .tabItem { Label("General", systemImage: "gearshape") }
+            AppearanceSettings()
+                .tabItem { Label("Appearance", systemImage: "paintpalette") }
             FocusSettings()
                 .tabItem { Label("Focus", systemImage: "timer") }
             NotificationSettings()
@@ -70,6 +72,23 @@ private struct GeneralSettings: View {
 
     private func binding<Value>(_ keyPath: WritableKeyPath<Preferences, Value>, _ preferences: Preferences) -> Binding<Value> {
         Binding(get: { preferences[keyPath: keyPath] }, set: { value in store.updatePreferences { $0[keyPath: keyPath] = value } })
+    }
+}
+
+private struct AppearanceSettings: View {
+    var body: some View {
+        Form {
+            Section {
+                PalettePicker(columns: 4)
+                    .padding(.vertical, 6)
+            } header: {
+                Text("Palette")
+            } footer: {
+                Text("The accent color, the aurora behind every screen and the widgets follow the palette, on every device you sync. The palettes are glasscn's.")
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 400)
     }
 }
 

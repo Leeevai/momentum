@@ -111,6 +111,7 @@ MainActor.assumeIsolated {
             ("sheet-book", AnyView(BookEditor(goalID: books.id, book: books.books.first { $0.status == .reading })), CGSize(width: 480, height: 600)),
             ("sheet-link", AnyView(LinkEditor(goalID: deepWork.id, link: deepWork.links.first)), CGSize(width: 460, height: 330)),
             ("settings", AnyView(SettingsView()), CGSize(width: 500, height: 600)),
+            ("settings-palette", AnyView(Form { Section("Palette") { PalettePicker() } }.formStyle(.grouped)), CGSize(width: 500, height: 330)),
             ("sheet-plan", AnyView(PlanSheet(day: DayID(.now))), CGSize(width: 560, height: 620)),
             ("sheet-review", AnyView(WeekReviewSheet()), CGSize(width: 560, height: 680)),
             ("sheet-reflect", AnyView(ReflectSheet(day: DayID(.now))), CGSize(width: 520, height: 720)),
@@ -133,7 +134,7 @@ MainActor.assumeIsolated {
             rated.sessionRating = SessionRating(goal: rated.data.goals[0], entryIDs: [], seconds: 50 * 60)
             snapshot(screen(rated, route: .today), size: CGSize(width: 1280, height: 860), dark: false, name: "today-rating")
         }
-        for (name, view, size) in sheets {
+        for (name, view, size) in sheets where isWanted(name) {
             let original = output
             withExtrasOutput(extras) {
                 snapshot(view.storePalette().environment(store).background(Color(nsColor: .windowBackgroundColor)), size: size, dark: false, name: name)
