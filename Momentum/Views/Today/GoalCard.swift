@@ -1,10 +1,13 @@
 import MomentumCore
 import SwiftUI
 
-/// A goal on the Today screen: ring, progress, streak, links and its one-tap action.
+/// A goal on the Today screen: ring, progress, streak, links and its one-tap action. Clicking it
+/// opens the goal in place; with `hero`, its glass, ring and title morph into that page.
 struct GoalCard: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
+    var hero: Namespace.ID?
+    var onOpen: () -> Void = {}
     @State private var isHovered = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -19,11 +22,13 @@ struct GoalCard: View {
             HStack(alignment: .top, spacing: 14) {
                 GoalRing(goal: goal, lineWidth: 7)
                     .frame(width: 62, height: 62)
+                    .heroMatch("ring-\(goal.id)", in: hero)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(goal.name)
                             .font(.headline)
                             .lineLimit(1)
+                            .heroMatch("title-\(goal.id)", in: hero)
                         if complete {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
@@ -76,12 +81,13 @@ struct GoalCard: View {
             }
         }
         .glassCard(tint: goal.tint, highlighted: running)
+        .heroMatch("card-\(goal.id)", in: hero)
         .scaleEffect(isHovered && !reduceMotion ? 1.012 : 1)
         .shadow(color: goal.tint.opacity(isHovered ? 0.18 : 0), radius: 16, y: 6)
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isHovered)
         .onHover { isHovered = $0 }
         .contentShape(RoundedRectangle(cornerRadius: 18))
-        .onTapGesture { store.select(goal.id) }
+        .onTapGesture(perform: onOpen)
         .contextMenu { GoalContextMenu(goal: goal) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(goal.name)

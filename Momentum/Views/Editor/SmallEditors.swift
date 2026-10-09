@@ -100,13 +100,13 @@ struct LogProgressSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button(entry == nil ? "Log" : "Save") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(PillButtonStyle(tint: goal.tint))
+                    .primaryActionStyle(goal.tint)
                     .disabled(goal.kind != .time && amount == 0)
             }
             .padding(16)
         }
         .frame(width: 440, height: 400)
-        .background(AmbientBackground(primary: goal.tint))
+        .background(LivingBackdrop(primary: goal.tint))
     }
 
     private func save() {
@@ -186,13 +186,13 @@ struct LinkEditor: View {
                     .keyboardShortcut(.cancelAction)
                 Button(link == nil ? "Add" : "Save") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(PillButtonStyle(tint: goal?.tint ?? .accentColor))
+                    .primaryActionStyle(goal?.tint ?? .accentColor)
                     .disabled(url == nil)
             }
             .padding(16)
         }
         .frame(width: 460, height: 330)
-        .background(AmbientBackground(primary: goal?.tint ?? .accentColor))
+        .background(LivingBackdrop(primary: goal?.tint ?? .accentColor))
     }
 
     private func chooseFile() {
@@ -302,13 +302,13 @@ struct BookEditor: View {
                     .keyboardShortcut(.cancelAction)
                 Button(book == nil ? "Add Book" : "Save") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(PillButtonStyle(tint: goal?.tint ?? .accentColor))
+                    .primaryActionStyle(goal?.tint ?? .accentColor)
                     .disabled(draft.title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(16)
         }
         .frame(width: 480, height: 640)
-        .background(AmbientBackground(primary: goal?.tint ?? .accentColor))
+        .background(LivingBackdrop(primary: goal?.tint ?? .accentColor))
         .task(id: query) { await search() }
     }
 

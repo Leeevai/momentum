@@ -20,14 +20,14 @@ struct BooksSection: View {
                     Button(action: importFromGoodreads) {
                         Label("Import", systemImage: "square.and.arrow.down")
                     }
-                    .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
+                    .secondaryActionStyle(goal.tint, compact: true)
                     .help("Import a Goodreads library export (CSV)")
                     Button {
                         store.sheet = .book(goalID: goal.id, book: nil)
                     } label: {
                         Label("Add book", systemImage: "plus")
                     }
-                    .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
+                    .secondaryActionStyle(goal.tint, compact: true)
                 }
             ))
             if let importMessage {
@@ -158,12 +158,12 @@ private struct BookRow: View {
         switch book.status {
         case .wantToRead, .abandoned:
             Button("Start") { store.perform("Start Book") { $0.startReading(book.id, in: goal.id) } }
-                .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
+                .secondaryActionStyle(goal.tint, compact: true)
         case .reading:
             Button("+\(Int(goal.quickAddStep))") {
                 store.perform("Log Pages") { $0.logPages(Int(goal.quickAddStep), in: book.id, of: goal.id) }
             }
-            .buttonStyle(PillButtonStyle(tint: goal.tint, compact: true))
+            .primaryActionStyle(goal.tint, compact: true)
             .help("Log \(Int(goal.quickAddStep)) pages")
         case .finished:
             EmptyView()

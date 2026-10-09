@@ -18,7 +18,7 @@ struct MilestonesSection: View {
             } label: {
                 Label("Add milestones to this goal", systemImage: "flag.badge.ellipsis")
             }
-            .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
+            .secondaryActionStyle(goal.tint, compact: true)
         } else {
             content
         }

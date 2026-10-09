@@ -16,7 +16,7 @@ struct LinksSection: View {
                 } label: {
                     Label("Add link", systemImage: "plus")
                 }
-                .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
+                .secondaryActionStyle(goal.tint, compact: true)
             ))
             if goal.links.isEmpty {
                 Text("Attach what you need to get started: a doc, a repo, a course, a playlist, or a local project folder. Mark a link with ⚡︎ to open it whenever a focus session starts. You can also drop links and files here.")
@@ -87,7 +87,7 @@ private struct LinkRow: View {
                 .help(link.opensWithFocus ? "Opens when a focus session starts" : "Open when a focus session starts")
             }
             Button("Open") { LinkOpener.open(link) }
-                .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
+                .secondaryActionStyle(goal.tint, compact: true)
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 8)

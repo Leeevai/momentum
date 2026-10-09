@@ -59,7 +59,7 @@ struct InsightsView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollContentBackground(.hidden)
-        .background(AmbientBackground(primary: .indigo, secondary: .pink))
+        .background(LivingBackdrop(primary: .indigo, secondary: .pink))
         .navigationTitle("Insights")
     }
 

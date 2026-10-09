@@ -53,7 +53,7 @@ struct GoalEditor: View {
             footer
         }
         .frame(width: 580, height: 720)
-        .background(AmbientBackground(primary: draft.tint, secondary: draft.color.highlight))
+        .background(LivingBackdrop(primary: draft.tint, secondary: draft.color.highlight))
         .onChange(of: draft.kind) { old, kind in
             guard isNew, old != kind else { return }
             applyDefaults(for: kind)
@@ -221,7 +221,7 @@ struct GoalEditor: View {
                 .keyboardShortcut(.cancelAction)
             Button(isNew ? "Add Goal" : "Save") { save() }
                 .keyboardShortcut(.defaultAction)
-                .buttonStyle(PillButtonStyle(tint: draft.tint))
+                .primaryActionStyle(draft.tint)
                 .disabled(!isValid)
         }
         .padding(16)

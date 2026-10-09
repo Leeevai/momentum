@@ -170,18 +170,18 @@ struct ShareCardSheet: View {
                 } label: {
                     Label("Copy", systemImage: "doc.on.doc")
                 }
-                .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false))
+                .secondaryActionStyle(goal.tint)
                 Button {
                     save()
                 } label: {
                     Label("Save…", systemImage: "square.and.arrow.down")
                 }
-                .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false))
+                .secondaryActionStyle(goal.tint)
                 if let image {
                     ShareLink(item: Image(nsImage: image), preview: SharePreview(goal.name, image: Image(nsImage: image))) {
                         Label("Share", systemImage: "square.and.arrow.up")
                     }
-                    .buttonStyle(PillButtonStyle(tint: goal.tint))
+                    .primaryActionStyle(goal.tint)
                 }
             }
         }
