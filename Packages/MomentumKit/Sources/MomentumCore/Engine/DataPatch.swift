@@ -142,6 +142,7 @@ extension Goal {
         }
         field(\.name)
         field(\.icon)
+        field(\.symbol)
         field(\.color)
         field(\.category)
         field(\.details)

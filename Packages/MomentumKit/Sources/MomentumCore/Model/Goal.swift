@@ -238,8 +238,10 @@ public enum GoalCategory {
 public struct Goal: Codable, Identifiable, Hashable, Sendable {
     public var id: UUID
     public var name: String
-    /// A single emoji.
+    /// The emoji icon of versions before 2.0, kept so older files and apps still read it.
     public var icon: String
+    /// The goal's icon: an SF Symbol name from `SymbolCatalog`.
+    public var symbol: String
     public var color: GoalColor
     /// Free-form grouping shown in the sidebar; empty means uncategorized.
     public var category: String
@@ -275,6 +277,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         id: UUID = UUID(),
         name: String,
         icon: String = "🎯",
+        symbol: String? = nil,
         color: GoalColor = .blue,
         category: String = "",
         details: String = "",
@@ -298,6 +301,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         self.id = id
         self.name = name
         self.icon = icon
+        self.symbol = symbol ?? SymbolCatalog.symbol(forEmoji: icon) ?? SymbolCatalog.defaultSymbol(for: kind)
         self.color = color
         self.category = category
         self.details = details
@@ -326,6 +330,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
     public mutating func applySettings(from other: Goal) {
         name = other.name
         icon = other.icon
+        symbol = other.symbol
         color = other.color
         category = other.category
         details = other.details
@@ -359,7 +364,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, icon, color, category, details, kind, unit, period, target, streakMinimum, weekdays, deadline
+        case id, name, icon, symbol, color, category, details, kind, unit, period, target, streakMinimum, weekdays, deadline
         case quickAddStep, focusMinutes, links, milestones, books, reminder, breaks, createdAt, archivedAt
     }
 
@@ -368,6 +373,10 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         id = try c.decode(.id, default: UUID())
         name = try c.decode(.name, default: "Untitled")
         icon = try c.decode(.icon, default: "🎯")
+        let decodedKind = try c.decode(.kind, default: GoalKind.time)
+        // Goals from before symbols get the closest match to their emoji.
+        symbol = try c.decodeIfPresent(String.self, forKey: .symbol)
+            ?? SymbolCatalog.symbol(forEmoji: icon) ?? SymbolCatalog.defaultSymbol(for: decodedKind)
         // Cosmetic values from a newer version fall back rather than make the whole file unreadable.
         color = (try? c.decode(.color, default: .blue)) ?? .blue
         category = try c.decode(.category, default: "")

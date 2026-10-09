@@ -13,7 +13,7 @@ extension AppData {
         }
 
         var deepWork = Goal(
-            name: "Deep work", icon: "💻", color: .indigo, category: "Work",
+            name: "Deep work", symbol: "laptopcomputer", color: .indigo, category: "Work",
             details: "Two protected hours a day on the thing that matters most.",
             kind: .time, period: .daily, target: 2 * 3600, streakMinimum: 30 * 60, weekdays: Set(2...6), focusMinutes: 50,
             reminder: ReminderSchedule(hour: 9, minute: 30), createdAt: created)
@@ -23,29 +23,29 @@ extension AppData {
         ]
 
         var reading = Goal(
-            name: "Reading challenge", icon: "📚", color: .orange, category: "Reading",
+            name: "Reading challenge", symbol: "books.vertical.fill", color: .orange, category: "Reading",
             details: "24 books this year: fiction and non-fiction, alternating.",
             kind: .books, period: .yearly, target: 24, quickAddStep: 10, createdAt: created)
         reading.links = [GoalLink(title: "Goodreads", url: URL(string: "https://www.goodreads.com")!)]
 
         let exercise = Goal(
-            name: "Exercise", icon: "🏃", color: .green, category: "Fitness",
+            name: "Exercise", symbol: "figure.run", color: .green, category: "Fitness",
             kind: .count, unit: "workouts", period: .weekly, target: 4, createdAt: created)
 
         var spanish = Goal(
-            name: "Learn Spanish", icon: "🇪🇸", color: .red, category: "Learning",
+            name: "Learn Spanish", symbol: "character.bubble.fill", color: .red, category: "Learning",
             kind: .time, period: .daily, target: 15 * 60, quickAddStep: 5 * 60, focusMinutes: 15, createdAt: created)
         spanish.links = [GoalLink(title: "Duolingo", url: URL(string: "https://www.duolingo.com/learn")!, opensWithFocus: true)]
 
         var novel = Goal(
-            name: "Write a novel", icon: "✍️", color: .purple, category: "Creative",
+            name: "Write a novel", symbol: "pencil.and.scribble", color: .purple, category: "Creative",
             details: "First draft before the end of the year.",
             kind: .amount, unit: "words", period: .total, target: 50_000,
             deadline: calendar.date(byAdding: .day, value: 75, to: now), quickAddStep: 500, createdAt: created)
         novel.links = [GoalLink(title: "Manuscript", url: URL(string: "https://docs.google.com/document")!)]
 
         var launch = Goal(
-            name: "Launch portfolio", icon: "🚀", color: .pink, category: "Work",
+            name: "Launch portfolio", symbol: "paperplane.fill", color: .pink, category: "Work",
             kind: .milestones, target: 0, createdAt: created)
         let steps = ["Pick a domain", "Design the home page", "Write three case studies", "Set up analytics", "Ask 5 friends for feedback", "Publish"]
         launch.milestones = steps.enumerated().map { index, title in
@@ -53,7 +53,7 @@ extension AppData {
         }
 
         let meditate = Goal(
-            name: "Meditate", icon: "🧘", color: .teal, category: "Mindfulness",
+            name: "Meditate", symbol: "figure.mind.and.body", color: .teal, category: "Mindfulness",
             kind: .time, period: .daily, target: 10 * 60, quickAddStep: 5 * 60, focusMinutes: 10, createdAt: created)
 
         var data = AppData(goals: [deepWork, reading, exercise, spanish, novel, launch, meditate])

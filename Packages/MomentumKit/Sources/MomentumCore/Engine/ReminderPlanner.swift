@@ -6,6 +6,7 @@ public struct PlannedReminder: Hashable, Sendable {
     public var goalID: UUID
     public var fireDate: Date
     public var title: String
+    public var subtitle: String = ""
     public var body: String
 }
 
@@ -41,7 +42,7 @@ public enum ReminderPlanner {
                         identifier: "\(identifierPrefix)\(goal.id.uuidString).\(engine.dayKey(day)).\(minute)",
                         goalID: goal.id,
                         fireDate: fire,
-                        title: "\(goal.icon) \(goal.name)",
+                        title: goal.name,
                         body: body(for: goal, engine: engine, streak: streak, isToday: offset == 0, now: now)
                     ))
                 }
@@ -73,7 +74,8 @@ public enum ReminderPlanner {
                 identifier: "\(identifierPrefix)nudge.\(goal.id.uuidString).\(engine.dayKey(today))",
                 goalID: goal.id,
                 fireDate: fire,
-                title: "\(goal.icon) Your \(Goal.streakText(streak.current, unit: streak.unit)) ends at midnight",
+                title: "Your \(Goal.streakText(streak.current, unit: streak.unit)) ends at midnight",
+                subtitle: goal.name,
                 body: "\(left) of \(goal.name) to go. You've got this."
             )
         }
