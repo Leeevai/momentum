@@ -15,8 +15,8 @@ The first public release: a full rebuild of the 0.1 prototype.
   with *Stop and save* and *5 more minutes* actions.
 - Links on every goal, including app links and local files and folders, that can open automatically
   when a focus session starts. Drop links or files onto a goal to attach them.
-- Books goals with a library (reading, up next, finished, set aside), page logging, ratings and
-  generated covers.
+- Books goals with a library (reading, up next, finished, set aside), page logging, ratings, and
+  Open Library search that fills in the title, author, page count and cover.
 - Milestone checklists with due dates, on any goal.
 - Fair streaks: unscheduled days are skipped, breaks protect a streak, and weekly and monthly goals
   keep week and month streaks.

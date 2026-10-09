@@ -47,9 +47,10 @@ Every goal can be **daily** (on the weekdays you choose), **weekly**, **monthly*
 - A **live timer in the menu bar**, and a mini player in the sidebar.
 
 ### Reading, properly
-A books goal is a small library: *reading*, *up next*, *finished* and *set aside*. Log pages with
-one click, set your page, finish books with a rating, and the goal counts the books you finish while
-the streak counts the days you read.
+A books goal is a small library: *reading*, *up next*, *finished* and *set aside*. Find books in the
+Open Library catalog (title, author, page count and cover filled in for you), log pages with one
+click, finish books with a rating, and the goal counts the books you finish while the streak counts
+the days you read.
 
 ### Streaks that are fair
 - Days a goal isn't scheduled never break its streak, and **breaks** (a trip, a sick week) protect it entirely.
@@ -83,7 +84,8 @@ right from the desktop** without opening the app.
 - **Editable history**: fix the time, amount or note of anything you logged.
 - **Templates** for common goals, **categories** for grouping, **archive**, **duplicate**, and full **undo**.
 - **Export** a JSON backup or a CSV of every entry; **import** a backup.
-- **Private by design**: everything stays on your Mac. No account, no network access, no analytics.
+- **Private by design**: everything stays on your Mac. No account, no analytics. The only network
+  request is the book search you type, sent to [Open Library](https://openlibrary.org).
 
 ## Screenshots
 
