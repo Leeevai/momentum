@@ -133,11 +133,13 @@ public struct ProgressEngine: Sendable {
         // Day keys sort chronologically (yyyymmdd), so a range is a filter over logged days.
         let first = dayKey(interval.start)
         let end = dayKey(interval.end)
+        // A correction logged on another day (a page set back, a miscount) still applies to the
+        // period, so days are summed as logged and only the total is floored at zero.
         var total = 0.0
         for (key, amount) in days where key >= first && key < end {
-            total += max(0, amount)
+            total += amount
         }
-        return total + live
+        return max(0, total) + live
     }
 
     /// Every amount ever logged for the goal: time, count, amount, or pages read.
@@ -465,10 +467,13 @@ public struct ProgressEngine: Sendable {
         let remaining = max(0, target - done)
         let deadline: Date? = period == .total ? goal.deadline : interval(of: period, containing: now).end
 
-        let window = DateInterval(start: day(-13, from: now), end: day(1, from: now))
+        // The recent rate looks back 14 days (90 for books), or only as far as the goal goes.
+        let age = (calendar.dateComponents([.day], from: firstDay(of: goal), to: startOfDay(now)).day ?? 0) + 1
+        let lookback = max(1, min(goal.kind == .books ? 90 : 14, age))
+        let window = DateInterval(start: day(-(lookback - 1), from: now), end: day(1, from: now))
         let recent: Double = goal.kind == .books
-            ? Double(booksFinished(for: goal, in: DateInterval(start: day(-89, from: now), end: window.end))) / 90
-            : amount(for: goal, in: window, now: now) / 14
+            ? Double(booksFinished(for: goal, in: window)) / Double(lookback)
+            : amount(for: goal, in: window, now: now) / Double(lookback)
 
         let projected: Date? = recent > 0 ? now.addingTimeInterval(remaining / recent * 86_400) : nil
         guard remaining > 0 else {

@@ -59,13 +59,15 @@ extension AppData {
         updateGoal(id) { $0.archivedAt = nil }
     }
 
-    /// Starts a break that protects the streak, until the end of `until`'s day or indefinitely.
+    /// Starts a break that protects the streak from the start of today through the end of
+    /// `until`'s day, or indefinitely. Whole days, since streaks judge days by their start.
     public mutating func startBreak(for id: UUID, until: Date?, at now: Date = .now, calendar: Calendar = .current) {
+        let start = calendar.startOfDay(for: now)
         let end = until.flatMap { calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: $0)) } ?? .distantFuture
         guard end > now else { return }
         updateGoal(id) { goal in
             goal.breaks.removeAll { $0.end > now && $0.start <= now }
-            goal.breaks.append(DateInterval(start: now, end: end))
+            goal.breaks.append(DateInterval(start: start, end: end))
         }
     }
 
@@ -121,9 +123,10 @@ extension AppData {
 // MARK: - Focus sessions
 
 extension AppData {
-    /// Starts a session, first saving any session already running.
+    /// Starts a session, first saving any session already running. Only time goals have
+    /// sessions: their amounts are seconds, which other kinds would misread as their own unit.
     public mutating func startFocus(on goalID: UUID, planned: TimeInterval? = nil, at now: Date = .now, calendar: Calendar = .current) {
-        guard goal(goalID) != nil else { return }
+        guard goal(goalID)?.kind == .time else { return }
         stopFocus(at: now, calendar: calendar)
         session = FocusSession(goalID: goalID, plannedDuration: planned, start: now)
     }
@@ -277,7 +280,16 @@ extension AppData {
         entries.removeAll { $0.goalID == goalID && $0.bookID == bookID }
     }
 
+    /// Starts a book. A finished book is read again as a new copy from page one, so its original
+    /// finish still counts.
     public mutating func startReading(_ bookID: UUID, in goalID: UUID, at now: Date = .now) {
+        guard let book = goal(goalID)?.books.first(where: { $0.id == bookID }) else { return }
+        if book.status == .finished {
+            let reread = Book(title: book.title, author: book.author, totalPages: book.totalPages, status: .reading, notes: "",
+                              link: book.link, coverURL: book.coverURL, addedAt: now, startedAt: now)
+            upsertBook(reread, in: goalID)
+            return
+        }
         updateBook(bookID, in: goalID) { book in
             book.status = .reading
             book.startedAt = book.startedAt ?? now

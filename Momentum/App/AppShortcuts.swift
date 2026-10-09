@@ -19,6 +19,7 @@ struct StartFocusIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let data = SharedStore.load()
         guard let stored = data.goal(goal.id) else { throw MomentumIntentError.goalNotFound }
+        guard stored.kind == .time else { throw MomentumIntentError.notATimeGoal(stored.name) }
         let length = minutes ?? stored.focusMinutes ?? data.preferences.defaultFocusMinutes
         SharedStore.update { $0.startFocus(on: stored.id, planned: Double(length) * 60) }
         return .result(dialog: "Focusing on \(stored.name) for \(length) minutes.")
@@ -96,10 +97,12 @@ struct CheckProgressIntent: AppIntent {
 
 enum MomentumIntentError: Error, CustomLocalizedStringResourceConvertible {
     case goalNotFound
+    case notATimeGoal(String)
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .goalNotFound: "That goal no longer exists."
+        case .notATimeGoal(let name): "\(name) isn't tracked by time. Use Log Progress for it instead."
         }
     }
 }

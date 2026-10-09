@@ -10,7 +10,7 @@ struct WidgetScheduleTests {
         #expect(dates == [referenceNow, date(2026, 10, 9, 0)])
     }
 
-    @Test("Running: every five minutes, the planned end, and midnight")
+    @Test("Running: every five minutes for an hour, plus the planned end")
     func running() {
         let goal = Goal(name: "Focus", kind: .time, target: 3600)
         var data = AppData(goals: [goal])
@@ -19,9 +19,18 @@ struct WidgetScheduleTests {
         #expect(dates.first == referenceNow)
         #expect(dates.contains(referenceNow.addingTimeInterval(55 * 60)))
         #expect(dates.contains(referenceNow.addingTimeInterval(24 * 60)))   // planned end
-        #expect(dates.last == date(2026, 10, 9, 0))
+        #expect(dates.last == referenceNow.addingTimeInterval(55 * 60))      // then rebuilt
         #expect(dates == dates.sorted())
-        #expect(dates.count == 14)
+        #expect(dates.count == 13)
+    }
+
+    @Test("Running late at night: midnight inside the hour is included")
+    func runningPastMidnight() {
+        let goal = Goal(name: "Focus", kind: .time, target: 3600)
+        var data = AppData(goals: [goal])
+        let late = date(2026, 10, 8, 23, 30)
+        data.startFocus(on: goal.id, at: late, calendar: testCalendar)
+        #expect(WidgetSchedule.entryDates(for: data, now: late, calendar: testCalendar).contains(date(2026, 10, 9, 0)))
     }
 
     @Test("Paused: no extra frames")

@@ -17,12 +17,13 @@ public struct PlannedReminder: Hashable, Sendable {
 public enum ReminderPlanner {
     public static let identifierPrefix = "reminder."
 
+    /// Goal reminders, streak nudges and the weekly recap, each behind its own switch.
     public static func plan(_ engine: ProgressEngine, now: Date, days: Int = 7, limit: Int = 60) -> [PlannedReminder] {
-        guard engine.data.preferences.remindersEnabled else { return [] }
         let calendar = engine.calendar
         var planned = streakNudges(engine, now: now)
         planned += weeklyRecap(engine, now: now).map { [$0] } ?? []
-        for goal in engine.activeGoals {
+        let goalsWithReminders = engine.data.preferences.remindersEnabled ? engine.activeGoals : []
+        for goal in goalsWithReminders {
             guard let reminder = goal.reminder, reminder.isEnabled else { continue }
             let streak = engine.streak(for: goal, now: now)
             let current = engine.interval(of: goal.effectivePeriod, containing: now)

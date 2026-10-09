@@ -321,6 +321,26 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
 
     public var isArchived: Bool { archivedAt != nil }
 
+    /// Copies what the goal editor edits, leaving links, milestones, books, breaks, archive state
+    /// and creation date alone.
+    public mutating func applySettings(from other: Goal) {
+        name = other.name
+        icon = other.icon
+        color = other.color
+        category = other.category
+        details = other.details
+        kind = other.kind
+        unit = other.unit
+        period = other.period
+        target = other.target
+        streakMinimum = other.streakMinimum
+        weekdays = other.weekdays
+        deadline = other.deadline
+        quickAddStep = other.quickAddStep
+        focusMinutes = other.focusMinutes
+        reminder = other.reminder
+    }
+
     /// The period progress is measured over; milestone goals are always overall.
     public var effectivePeriod: GoalPeriod { kind.usesPeriod ? period : .total }
 
