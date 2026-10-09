@@ -253,11 +253,14 @@ public struct Preferences: Codable, Hashable, Sendable {
     public var journalPromptsEnabled: Bool
     /// After a focus session, a one-tap question about how it went.
     public var asksSessionQuality: Bool
+    /// The colors the app, its widgets and its watch app are drawn in.
+    public var palette: ThemePalette
 
     public init(defaultFocusMinutes: Int = 25, celebratesCompletion: Bool = true, playsSounds: Bool = true, remindersEnabled: Bool = true,
                 showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60,
                 weeklyRecapEnabled: Bool = true, focusSound: FocusSound = .off, focusSoundVolume: Double = 0.4,
-                pomodoro: PomodoroSettings = PomodoroSettings(), journalPromptsEnabled: Bool = true, asksSessionQuality: Bool = true) {
+                pomodoro: PomodoroSettings = PomodoroSettings(), journalPromptsEnabled: Bool = true, asksSessionQuality: Bool = true,
+                palette: ThemePalette = .dusk) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
@@ -271,11 +274,12 @@ public struct Preferences: Codable, Hashable, Sendable {
         self.pomodoro = pomodoro
         self.journalPromptsEnabled = journalPromptsEnabled
         self.asksSessionQuality = asksSessionQuality
+        self.palette = palette
     }
 
     private enum CodingKeys: String, CodingKey {
         case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar, streakNudgesEnabled, streakNudgeMinute
-        case weeklyRecapEnabled, focusSound, focusSoundVolume, pomodoro, journalPromptsEnabled, asksSessionQuality
+        case weeklyRecapEnabled, focusSound, focusSoundVolume, pomodoro, journalPromptsEnabled, asksSessionQuality, palette
     }
 
     public init(from decoder: Decoder) throws {
@@ -294,6 +298,8 @@ public struct Preferences: Codable, Hashable, Sendable {
         pomodoro = try c.decode(.pomodoro, default: PomodoroSettings())
         journalPromptsEnabled = try c.decode(.journalPromptsEnabled, default: true)
         asksSessionQuality = try c.decode(.asksSessionQuality, default: true)
+        // A palette from a newer version draws in the default rather than failing the file.
+        palette = (try? c.decode(.palette, default: .dusk)) ?? .dusk
     }
 }
 
