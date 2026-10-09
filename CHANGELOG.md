@@ -44,11 +44,13 @@ All notable changes to Momentum are recorded here. The format follows
 - **Year in pixels**: every day of the past year, colored by progress or by mood.
 - **On this day**: the Journal brings back the wins and reflections from the same date a week, a
   month and a year ago.
-- **Siri and Shortcuts**: log today's mood (and a win), and hear your week in review.
+- **Siri and Shortcuts**: log today's mood (and a win), hear your week in review, and ask how a
+  challenge is going.
+- **iPad keyboard shortcuts and menus**, the same as on the Mac.
 - Templates for steps, an instrument, yoga, sleep and coding every day.
 - On iPad, the tabs become a sidebar.
 - **Home Screen quick actions** on iPhone: open the running timer, focus on a goal that still
-  needs it today, plan or reflect on the day, or add a goal.
+  needs it, open the Journal, or add a goal.
 - **Goals in Spotlight** (iOS 18, macOS 15), opening straight to the goal.
 - **Challenge and Mood widgets**: a challenge's day and dots (also on the Lock Screen), and
   today's mood and energy in one tap.
@@ -73,7 +75,9 @@ All notable changes to Momentum are recorded here. The format follows
 - An unknown goal color or book status written by a newer version no longer makes the data file
   unreadable, and a damaged journal entry is skipped rather than failing the file.
 - Dates are saved to the exact fraction of a second, so a saved copy always equals the one in
-  memory; files with whole-second dates from earlier versions still open.
+  memory; files with whole-second dates from earlier versions still open. Momentum 1.x can't read
+  files saved by 2.0, so update every device that syncs.
+- VoiceOver reads the activity grids as a summary rather than square by square.
 
 ### Fixed
 - Synced devices: a restored backup kept its history only until the next sync; a Pomodoro block
