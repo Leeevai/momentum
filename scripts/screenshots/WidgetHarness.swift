@@ -8,6 +8,11 @@ let output = URL(fileURLWithPath: CommandLine.arguments[1])
 
 MainActor.assumeIsolated {
     var data = AppData.demo()
+    // MOMENTUM_PALETTE=ocean renders in another palette.
+    if let name = ProcessInfo.processInfo.environment["MOMENTUM_PALETTE"], let palette = ThemePalette(rawValue: name) {
+        data.preferences.palette = palette
+    }
+    ActivePalette.current = data.preferences.palette
     if let deepWork = data.goals.first(where: { $0.name == "Deep work" }) {
         data.session = FocusSession(goalID: deepWork.id, plannedDuration: 50 * 60, start: Date().addingTimeInterval(-32 * 60))
     }
@@ -19,52 +24,60 @@ MainActor.assumeIsolated {
     let challengeEntry = MomentumEntry(date: .now, engine: engine, goalID: spanish)
     let small = CGSize(width: 170, height: 170), medium = CGSize(width: 364, height: 170), large = CGSize(width: 364, height: 382)
 
-    func tile<V: View>(_ view: V, _ size: CGSize, tint: Color) -> some View {
+    // What `widgetBackground(for:accent:)` puts behind a widget, drawn here by hand because the
+    // container background only exists on the desktop.
+    func tile<V: View>(_ view: V, _ size: CGSize, accent: Color? = nil) -> some View {
         view
             .padding(16)
             .frame(width: size.width, height: size.height)
-            .background {
-                ZStack {
-                    Color(nsColor: .windowBackgroundColor)
-                    LinearGradient(colors: [tint.opacity(0.16), tint.opacity(0.03)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                }
-            }
+            .background(Aurora(accent: accent, animates: false, scale: 0.3))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+            .palette(data.preferences.palette)
     }
+    let deepWorkTint = data.goals.first { $0.name == "Deep work" }?.tint
+    let booksTint = data.goals.first { $0.kind == .books }?.tint
+    let spanishTint = data.goals.first { $0.challenge != nil }?.tint
+    // A day with a single goal, as a new user's is.
+    var single = data
+    single.goals = Array(data.goals.prefix(1))
+    let singleEntry = MomentumEntry(date: .now, engine: ProgressEngine(data: single))
 
     for dark in [false, true] {
         let gallery = VStack(alignment: .leading, spacing: 22) {
             HStack(alignment: .top, spacing: 22) {
-                tile(TodayWidgetView(family: .systemSmall, entry: entry), small, tint: .blue)
-                tile(TodayWidgetView(family: .systemMedium, entry: entry), medium, tint: .blue)
-                tile(FocusWidgetView(family: .systemSmall, entry: entry), small, tint: .indigo)
+                tile(TodayWidgetView(family: .systemSmall, entry: entry), small)
+                tile(TodayWidgetView(family: .systemMedium, entry: entry), medium)
+                tile(FocusWidgetView(family: .systemSmall, entry: entry), small, accent: deepWorkTint)
             }
             HStack(alignment: .top, spacing: 22) {
-                tile(GoalWidgetView(family: .systemLarge, entry: entry), large, tint: .indigo)
-                tile(TodayWidgetView(family: .systemLarge, entry: entry), large, tint: .blue)
+                tile(GoalWidgetView(family: .systemLarge, entry: entry), large, accent: deepWorkTint)
+                tile(TodayWidgetView(family: .systemLarge, entry: entry), large)
             }
             HStack(alignment: .top, spacing: 22) {
-                tile(GoalWidgetView(family: .systemMedium, entry: bookEntry), medium, tint: .orange)
-                tile(StreaksWidgetView(family: .systemMedium, entry: entry), medium, tint: .orange)
+                tile(GoalWidgetView(family: .systemMedium, entry: bookEntry), medium, accent: booksTint)
+                tile(StreaksWidgetView(family: .systemMedium, entry: entry), medium)
             }
             HStack(alignment: .top, spacing: 22) {
-                tile(GoalWidgetView(family: .systemSmall, entry: bookEntry), small, tint: .orange)
-                tile(FocusWidgetView(family: .systemMedium, entry: entry), medium, tint: .indigo)
-                tile(StreaksWidgetView(family: .systemSmall, entry: entry), small, tint: .orange)
+                tile(GoalWidgetView(family: .systemSmall, entry: bookEntry), small, accent: booksTint)
+                tile(FocusWidgetView(family: .systemMedium, entry: entry), medium, accent: deepWorkTint)
+                tile(StreaksWidgetView(family: .systemSmall, entry: entry), small)
             }
             HStack(alignment: .top, spacing: 22) {
-                tile(ChallengeWidgetView(family: .systemSmall, entry: challengeEntry), small, tint: .red)
-                tile(ChallengeWidgetView(family: .systemMedium, entry: challengeEntry), medium, tint: .red)
-                tile(GoalWidgetView(family: .systemSmall, entry: challengeEntry), small, tint: .red)
+                tile(ChallengeWidgetView(family: .systemSmall, entry: challengeEntry), small, accent: spanishTint)
+                tile(ChallengeWidgetView(family: .systemMedium, entry: challengeEntry), medium, accent: spanishTint)
+                tile(GoalWidgetView(family: .systemSmall, entry: challengeEntry), small, accent: spanishTint)
             }
             HStack(alignment: .top, spacing: 22) {
-                tile(MoodWidgetView(family: .systemSmall, entry: entry), small, tint: .teal)
-                tile(MoodWidgetView(family: .systemMedium, entry: entry), medium, tint: .teal)
+                tile(MoodWidgetView(family: .systemSmall, entry: entry), small, accent: nil)
+                tile(MoodWidgetView(family: .systemMedium, entry: entry), medium, accent: nil)
             }
             HStack(alignment: .top, spacing: 22) {
-                tile(WeekWidgetView(family: .systemSmall, entry: entry), small, tint: .indigo)
-                tile(WeekWidgetView(family: .systemMedium, entry: entry), medium, tint: .indigo)
+                tile(WeekWidgetView(family: .systemSmall, entry: entry), small)
+                tile(WeekWidgetView(family: .systemMedium, entry: entry), medium)
+            }
+            HStack(alignment: .top, spacing: 22) {
+                tile(TodayWidgetView(family: .systemLarge, entry: singleEntry), large)
             }
         }
         .padding(34)
