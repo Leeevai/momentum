@@ -19,12 +19,29 @@ public struct SyncState: Codable, Equatable, Sendable {
     /// It only grows, and merges by union, so a device can tell a session nobody ended (one the
     /// merge merely replaced with an older view of the timer) from one that ended elsewhere.
     public var endedSessions: [String: Date]
+    /// Every focus session started, by `sessionKey`, with its start. Merged by union too, so a
+    /// device settling a merge knows where a session it never saw began, and can end its own
+    /// session there rather than count the same stretch twice.
+    public var startedSessions: [String: Date]
+    /// Sessions that ended and then came back (an undone stop), by `sessionKey`, with when. A
+    /// session is ended while its end is later than its last return.
+    public var resumedSessions: [String: Date]
 
-    public init(stamps: [String: Date] = [:], tombstones: [String: Date] = [:], order: [UUID]? = nil, endedSessions: [String: Date] = [:]) {
+    public init(stamps: [String: Date] = [:], tombstones: [String: Date] = [:], order: [UUID]? = nil,
+                endedSessions: [String: Date] = [:], startedSessions: [String: Date] = [:], resumedSessions: [String: Date] = [:]) {
         self.stamps = stamps
         self.tombstones = tombstones
         self.order = order
         self.endedSessions = endedSessions
+        self.startedSessions = startedSessions
+        self.resumedSessions = resumedSessions
+    }
+
+    /// Whether a session has ended, on any device, since it last came back.
+    public func hasEnded(_ session: FocusSession) -> Bool {
+        let key = SyncState.sessionKey(session)
+        guard let ended = endedSessions[key] else { return false }
+        return resumedSessions[key].map { ended > $0 } ?? true
     }
 
     /// Names a session the same way on every device: its goal and the moment it started.
@@ -59,7 +76,7 @@ public struct SyncState: Codable, Equatable, Sendable {
         return deleted >= date
     }
 
-    private enum CodingKeys: String, CodingKey { case stamps, tombstones, order, endedSessions }
+    private enum CodingKeys: String, CodingKey { case stamps, tombstones, order, endedSessions, startedSessions, resumedSessions }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -67,6 +84,8 @@ public struct SyncState: Codable, Equatable, Sendable {
         tombstones = try c.decode(.tombstones, default: [:])
         order = try c.decodeIfPresent([UUID].self, forKey: .order)
         endedSessions = try c.decode(.endedSessions, default: [:])
+        startedSessions = try c.decode(.startedSessions, default: [:])
+        resumedSessions = try c.decode(.resumedSessions, default: [:])
     }
 }
 
@@ -127,6 +146,12 @@ public enum SyncStamper {
             if let ended = before.session, after.session.map({ !$0.isSameSession(as: ended) }) ?? true {
                 sync.endedSessions[SyncState.sessionKey(ended)] = now
             }
+            if let started = after.session, before.session.map({ !$0.isSameSession(as: started) }) ?? true {
+                let key = SyncState.sessionKey(started)
+                sync.startedSessions[key] = started.startedAt
+                // An ended session back again (an undone stop) is running once more.
+                if sync.endedSessions[key] != nil { sync.resumedSessions[key] = now }
+            }
         }
         if before.rest != after.rest { sync.stamps[SyncState.rest] = now }
         if before.preferences != after.preferences { sync.stamps[SyncState.preferences] = now }
@@ -134,6 +159,12 @@ public enum SyncStamper {
         sync.tombstones = sync.tombstones.filter { now.timeIntervalSince($0.value) < SyncState.tombstoneLifetime }
         if sync.endedSessions.contains(where: { now.timeIntervalSince($0.value) >= SyncState.tombstoneLifetime }) {
             sync.endedSessions = sync.endedSessions.filter { now.timeIntervalSince($0.value) < SyncState.tombstoneLifetime }
+        }
+        if sync.startedSessions.contains(where: { now.timeIntervalSince($0.value) >= SyncState.tombstoneLifetime }) {
+            sync.startedSessions = sync.startedSessions.filter { now.timeIntervalSince($0.value) < SyncState.tombstoneLifetime }
+        }
+        if sync.resumedSessions.contains(where: { now.timeIntervalSince($0.value) >= SyncState.tombstoneLifetime }) {
+            sync.resumedSessions = sync.resumedSessions.filter { now.timeIntervalSince($0.value) < SyncState.tombstoneLifetime }
         }
         after.sync = sync
     }

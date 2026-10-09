@@ -109,7 +109,7 @@ struct ReviewRoundTests {
 
         var merged = SyncMerge.merge(phone, mac)
         #expect(merged.session == nil)
-        let changed = merged.settleAfterMerge(keeping: phone.session, calendar: testCalendar)
+        let changed = merged.settleAfterMerge(from: phone, calendar: testCalendar)
         #expect(changed)
         #expect(merged.session?.goalID == reading.id)
     }
@@ -123,7 +123,7 @@ struct ReviewRoundTests {
         stamped(&mac, at: 1200) { $0.stopFocus(at: time(1200), calendar: testCalendar) }
 
         var merged = SyncMerge.merge(phone, mac)
-        let changed = merged.settleAfterMerge(keeping: phone.session, calendar: testCalendar)
+        let changed = merged.settleAfterMerge(from: phone, calendar: testCalendar)
         #expect(!changed)
         #expect(merged.session == nil)
         #expect(merged.entries.map(\.amount) == [1200])
@@ -142,7 +142,7 @@ struct ReviewRoundTests {
 
         var merged = SyncMerge.merge(phone, mac)
         #expect(merged.session?.goalID == writing.id)
-        merged.settleAfterMerge(keeping: phone.session, calendar: testCalendar)
+        merged.settleAfterMerge(from: phone, calendar: testCalendar)
         #expect(merged.session?.goalID == writing.id)
         #expect(merged.entries.filter { $0.goalID == reading.id }.map(\.amount) == [1800])
     }
@@ -161,7 +161,7 @@ struct ReviewRoundTests {
 
         var onPhone = SyncMerge.merge(phone, mac)
         #expect(onPhone.session?.goalID == writing.id)
-        onPhone.settleAfterMerge(keeping: phone.session, at: time(1600), calendar: testCalendar)
+        onPhone.settleAfterMerge(from: phone, at: time(1600), calendar: testCalendar)
         #expect(onPhone.session?.goalID == reading.id)
         // Writing was logged once, up to where reading began.
         #expect(onPhone.entries.filter { $0.goalID == writing.id }.map(\.amount) == [1000])
@@ -170,7 +170,7 @@ struct ReviewRoundTests {
         var settled = onPhone
         SyncStamper.stamp(&settled, from: SyncMerge.merge(phone, mac), at: time(1600))
         var onMac = SyncMerge.merge(mac, settled)
-        onMac.settleAfterMerge(keeping: mac.session, at: time(1700), calendar: testCalendar)
+        onMac.settleAfterMerge(from: mac, at: time(1700), calendar: testCalendar)
         #expect(onMac.session?.goalID == reading.id)
     }
 
@@ -188,10 +188,59 @@ struct ReviewRoundTests {
         stamped(&mac, at: 1500) { $0.session?.note = "Chapter two" }
 
         var merged = SyncMerge.merge(phone, mac)
-        merged.settleAfterMerge(keeping: phone.session, at: time(1600), calendar: testCalendar)
+        merged.settleAfterMerge(from: phone, at: time(1600), calendar: testCalendar)
         #expect(merged.session?.goalID == reading.id)
         #expect(merged.entries.filter { $0.goalID == writing.id }.map(\.amount) == [1000])
         #expect(merged.sync.endedSessions[SyncState.sessionKey(SyncMerge.merge(phone, mac).session!)] != nil)
+    }
+
+    @Test("A session brought back by an undo isn't lost when another device starts one")
+    func undoneStopSurvives() {
+        let reading = timeGoal(minutes: nil)
+        var writing = timeGoal(minutes: nil)
+        writing.name = "Writing"
+        var phone = AppData(goals: [reading, writing])
+        stamped(&phone, at: 0) { $0.startFocus(on: reading.id, at: time(0), calendar: testCalendar) }
+        let running = phone
+        stamped(&phone, at: 1000) { $0.stopFocus(at: time(1000), calendar: testCalendar) }
+        var mac = SyncMerge.merge(AppData(goals: [reading, writing]), phone)
+        // The phone undoes the stop; the Mac, not having seen that, starts writing.
+        let stopped = phone
+        stamped(&phone, at: 1100) { data in DataPatch(from: running, to: stopped).undo(on: &data) }
+        #expect(phone.session?.goalID == reading.id)
+        stamped(&mac, at: 2000) { $0.startFocus(on: writing.id, at: time(2000), calendar: testCalendar) }
+
+        var onPhone = SyncMerge.merge(phone, mac)
+        onPhone.settleAfterMerge(from: phone, at: time(2100), calendar: testCalendar)
+        #expect(onPhone.session?.goalID == writing.id)
+        #expect(onPhone.entries.filter { $0.goalID == reading.id }.map(\.amount) == [2000])
+    }
+
+    @Test("Three devices starting one after another count each stretch once")
+    func threeDevices() {
+        let goals = (1...3).map { index -> Goal in
+            var goal = timeGoal(minutes: nil)
+            goal.name = "Goal \(index)"
+            return goal
+        }
+        let shared = AppData(goals: goals)
+        var devices = [shared, shared, shared]
+        for (index, device) in devices.indices.enumerated() {
+            let start = Double(index) * 1000
+            stamped(&devices[device], at: start) { $0.startFocus(on: goals[index].id, at: time(start), calendar: testCalendar) }
+        }
+        // Each device merges the other two at once, then settles.
+        var settled: [AppData] = []
+        for index in devices.indices {
+            var merged = devices[index]
+            for other in devices.indices where other != index { merged = SyncMerge.merge(merged, devices[other]) }
+            merged.settleAfterMerge(from: devices[index], at: time(3000), calendar: testCalendar)
+            settled.append(merged)
+        }
+        let everything = settled.dropFirst().reduce(settled[0]) { SyncMerge.merge($0, $1) }
+        #expect(everything.session?.goalID == goals[2].id)
+        #expect(everything.entries.filter { $0.goalID == goals[0].id }.map(\.amount) == [1000])
+        #expect(everything.entries.filter { $0.goalID == goals[1].id }.map(\.amount) == [1000])
     }
 
     @Test("A goal encodes its weekdays in the same order every time")

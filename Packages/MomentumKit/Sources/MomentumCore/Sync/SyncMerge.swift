@@ -11,7 +11,9 @@ public enum SyncMerge {
     public static func merge(_ local: AppData, _ remote: AppData) -> AppData {
         var sync = SyncState(stamps: local.sync.stamps.merging(remote.sync.stamps, uniquingKeysWith: max),
                              tombstones: local.sync.tombstones.merging(remote.sync.tombstones, uniquingKeysWith: max),
-                             endedSessions: local.sync.endedSessions.merging(remote.sync.endedSessions, uniquingKeysWith: max))
+                             endedSessions: local.sync.endedSessions.merging(remote.sync.endedSessions, uniquingKeysWith: max),
+                             startedSessions: local.sync.startedSessions.merging(remote.sync.startedSessions, uniquingKeysWith: max),
+                             resumedSessions: local.sync.resumedSessions.merging(remote.sync.resumedSessions, uniquingKeysWith: max))
 
         func pick<T: Codable & Equatable>(_ a: T?, _ b: T?, key: String, stampsA: SyncState, stampsB: SyncState) -> T? {
             switch (a, b) {

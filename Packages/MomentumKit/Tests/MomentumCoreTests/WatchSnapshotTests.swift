@@ -70,12 +70,33 @@ struct WatchSnapshotTests {
         data.log(1, for: gym.id, at: referenceNow)
         let snapshot = engine(data).watchSnapshot(now: referenceNow)
         #expect(snapshot.done == 1)
-        let tomorrow = snapshot.current(on: DayID(dayOffset(1), calendar: testCalendar))
+        let tomorrow = snapshot.current(at: dayOffset(1), calendar: testCalendar)
         #expect(tomorrow.done == 0)
         let item = try #require(tomorrow.item(gym.id))
         #expect(!item.isComplete)
         #expect(item.progress == 0)
-        #expect(snapshot.current(on: snapshot.day) == snapshot)
+        #expect(snapshot.current(at: referenceNow, calendar: testCalendar) == snapshot)
+    }
+
+    @Test("A weekly goal starts over at the week's end, not at midnight")
+    func weeklyReset() throws {
+        let gym = checkInGoal(period: .weekly, target: 1)
+        var data = AppData(goals: [gym])
+        data.log(1, for: gym.id, at: referenceNow)
+        let snapshot = engine(data).watchSnapshot(now: referenceNow)
+        // Thursday: tomorrow is still this week.
+        #expect(snapshot.current(at: dayOffset(1), calendar: testCalendar).item(gym.id)?.isComplete == true)
+        // Next Monday: a new week.
+        let monday = try #require(snapshot.current(at: dayOffset(4), calendar: testCalendar).item(gym.id))
+        #expect(!monday.isComplete)
+    }
+
+    @Test("A Start from the watch uses the goal's session length")
+    func startUsesLength() {
+        let work = timeGoal(minutes: 25)
+        var data = AppData(goals: [work])
+        data.apply(WatchCommand(action: .start(goal: work.id), date: referenceNow), now: referenceNow, calendar: testCalendar)
+        #expect(data.session?.plannedDuration == 1500)
     }
 
     private func time(_ seconds: Double) -> Date { referenceNow.addingTimeInterval(seconds) }
@@ -94,7 +115,7 @@ struct WatchSnapshotTests {
     func commandCoding() throws {
         let actions: [WatchAction] = [.start(goal: UUID()), .stop(goal: UUID(), sessionStart: referenceNow.addingTimeInterval(0.123)),
                                       .setPaused(goal: UUID(), sessionStart: referenceNow, paused: true), .quickAdd(goal: UUID()),
-                                      .startNextBlock, .endRest]
+                                      .startNextBlock(restStart: referenceNow), .endRest(restStart: referenceNow)]
         for action in actions {
             let command = WatchCommand(action: action, date: referenceNow.addingTimeInterval(0.456))
             #expect(try WatchCommand(encoded: command.encoded()) == command)

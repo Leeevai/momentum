@@ -18,11 +18,11 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         public var isComplete: Bool
         /// The one-tap action for goals without a timer: "+1", "+10 pages", "Done"; nil if none.
         public var actionTitle: String?
-        /// The target alone ("2h", "4 workouts"), to show a fresh day's progress before the iPhone
-        /// has sent one.
+        /// The target alone ("2h", "4 workouts"), to show a fresh period's progress before the
+        /// iPhone has sent one.
         public var targetText: String
-        /// Whether progress starts over each day.
-        public var isDaily: Bool
+        /// When the period this progress counts toward ends (nil for an overall target).
+        public var periodEnd: Date?
         /// The day of a running challenge, and its length.
         public var challengeDay: Int?
         public var challengeLength: Int?
@@ -49,22 +49,25 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         self.day = day
     }
 
-    /// The snapshot as it stands on `today`: if it describes an earlier day, daily goals start
-    /// over (nothing done yet), so the watch never shows yesterday's progress as today's. The
-    /// rest (streaks, weekly progress, the timer) carries over until the iPhone sends a new one.
-    public func current(on today: DayID) -> WatchSnapshot {
-        guard day < today else { return self }
+    /// The snapshot as it stands at `date`: goals whose period has ended since (each day for a
+    /// daily goal, at the week's end for a weekly one) start over with nothing done, so the
+    /// watch never shows a finished period's progress as the current one's. The rest (streaks,
+    /// the timer) carries over until the iPhone sends a new snapshot.
+    public func current(at date: Date, calendar: Calendar = .current) -> WatchSnapshot {
+        guard items.contains(where: { ($0.periodEnd ?? .distantFuture) <= date }) || DayID(date, calendar: calendar) > day else { return self }
         var fresh = self
+        var reopened = 0
         fresh.items = items.map { item in
-            guard item.isDaily else { return item }
+            guard let end = item.periodEnd, end <= date else { return item }
             var item = item
+            if item.isComplete { reopened += 1 }
             item.progress = 0
             item.isComplete = false
             item.progressText = item.kind == .time ? "0m / \(item.targetText)" : "0 / \(item.targetText)"
             return item
         }
-        fresh.done = fresh.items.count { $0.isComplete }
-        fresh.day = today
+        fresh.done = max(0, done - reopened)
+        fresh.day = max(day, DayID(date, calendar: calendar))
         return fresh
     }
 
@@ -100,8 +103,9 @@ public enum WatchAction: Codable, Equatable, Sendable {
     case stop(goal: UUID, sessionStart: Date)
     case setPaused(goal: UUID, sessionStart: Date, paused: Bool)
     case quickAdd(goal: UUID)
-    case startNextBlock
-    case endRest
+    /// Ends the break that started at `restStart` and starts the next block.
+    case startNextBlock(restStart: Date)
+    case endRest(restStart: Date)
 }
 
 /// An action with when it was tapped, and an id so it's carried out once however often it
@@ -149,7 +153,7 @@ extension ProgressEngine {
             streak: streak.current, streakUnit: streak.unit, isComplete: isComplete(goal, now: now),
             actionTitle: actionTitle(for: goal),
             targetText: goal.kind == .milestones ? "\(goal.milestones.count) milestones" : goal.format(target(for: goal)),
-            isDaily: goal.effectivePeriod == .daily,
+            periodEnd: goal.effectivePeriod == .total ? nil : interval(of: goal.effectivePeriod, containing: now).end,
             challengeDay: challenge?.dayNumber, challengeLength: challenge?.challenge.days)
     }
 
@@ -172,22 +176,34 @@ extension AppData {
             guard let session, session.goalID == goal else { return false }
             return abs(session.startedAt.timeIntervalSince(start)) < 0.001
         }
+        func isShownRest(_ start: Date) -> Bool {
+            guard let rest else { return false }
+            return abs(rest.start.timeIntervalSince(start)) < 0.001
+        }
+        // The timer's last change on any device: a tap from before it can't reach back past it.
+        let lastTimerChange = sync.stamp(SyncState.session)
         switch command.action {
         case .start(let goal):
             guard let target = self.goal(goal), target.kind == .time, !target.isArchived, session?.goalID != goal else { return }
-            startFocus(on: goal, at: max(tapped, session?.startedAt ?? tapped), calendar: calendar)
+            let start = max(tapped, lastTimerChange, session?.startedAt ?? tapped)
+            startFocus(on: goal, planned: defaultFocusLength(for: goal), at: min(start, now), calendar: calendar)
         case .stop(let goal, let start):
             guard isShown(goal, start) else { return }
             stopFocus(at: max(tapped, start), calendar: calendar)
         case .setPaused(let goal, let start, let paused):
-            guard isShown(goal, start), session?.isRunning == paused else { return }
-            if paused { pauseFocus(at: max(tapped, session?.runningSince ?? tapped)) } else { resumeFocus(at: tapped) }
+            guard isShown(goal, start), let current = session, current.isRunning == paused else { return }
+            if paused {
+                pauseFocus(at: max(tapped, current.runningSince ?? tapped))
+            } else {
+                resumeFocus(at: min(max(tapped, current.segments.last?.end ?? tapped), now))
+            }
         case .quickAdd(let goal):
             quickAdd(to: goal, at: tapped)
-        case .startNextBlock:
-            guard rest != nil else { return }
-            startNextBlock(at: tapped, calendar: calendar)
-        case .endRest:
+        case .startNextBlock(let restStart):
+            guard isShownRest(restStart) else { return }
+            startNextBlock(at: max(tapped, restStart), calendar: calendar)
+        case .endRest(let restStart):
+            guard isShownRest(restStart) else { return }
             endRest()
         }
     }

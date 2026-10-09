@@ -36,36 +36,46 @@ extension AppData {
     /// won on time) is settled as one device would have settled it. Of the two sessions, the one
     /// started later is the timer; the earlier one stops where the later one started, its time
     /// saved, unless it already ended elsewhere. Returns whether anything changed.
+    ///
+    /// `before` is this device's data before the merge. A session brought back after it ended (an
+    /// undone stop) counts as running again.
     @discardableResult
-    public mutating func keepUnendedSession(_ local: FocusSession?, at now: Date = .now, calendar: Calendar = .current) -> Bool {
-        guard let local, session.map({ !$0.isSameSession(as: local) }) ?? true,
-              sync.endedSessions[SyncState.sessionKey(local)] == nil, goal(local.goalID) != nil else { return false }
+    public mutating func keepUnendedSession(from before: AppData, at now: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard let local = before.session, session.map({ !$0.isSameSession(as: local) }) ?? true,
+              !sync.hasEnded(local), goal(local.goalID) != nil else { return false }
         guard let other = session else {
             session = local
             return true
         }
-        let otherEnded = sync.endedSessions[SyncState.sessionKey(other)] != nil
+        let otherEnded = sync.hasEnded(other)
         if otherEnded || other.startedAt <= local.startedAt {
             // The merge brought back an older session: this one replaced it here.
             if !otherEnded {
-                stopFocus(at: local.startedAt, calendar: calendar)
+                stopFocus(at: firstStart(after: other, before: local.startedAt), calendar: calendar)
                 sync.endedSessions[SyncState.sessionKey(other)] = now
             }
             session = local
         } else {
-            // Another device started a session after this one: this one ends where that began.
+            // Another device started a session after this one: this one ends where the first
+            // session after it began (that one, or one in between this device never saw).
             session = local
-            stopFocus(at: other.startedAt, calendar: calendar)
+            stopFocus(at: firstStart(after: local, before: other.startedAt), calendar: calendar)
             sync.endedSessions[SyncState.sessionKey(local)] = now
             session = other
         }
         return true
     }
 
+    /// The start of the first session known to begin after `session`, and no later than `limit`.
+    private func firstStart(after session: FocusSession, before limit: Date) -> Date {
+        sync.startedSessions.values.filter { $0 > session.startedAt && $0 < limit }.min() ?? limit
+    }
+
     /// Everything a device settles after merging others' copies in, as a change of its own.
+    /// `before` is this device's data before the merge.
     @discardableResult
-    public mutating func settleAfterMerge(keeping local: FocusSession?, at now: Date = .now, calendar: Calendar = .current) -> Bool {
-        let kept = keepUnendedSession(local, at: now, calendar: calendar)
+    public mutating func settleAfterMerge(from before: AppData, at now: Date = .now, calendar: Calendar = .current) -> Bool {
+        let kept = keepUnendedSession(from: before, at: now, calendar: calendar)
         let settled = settleTimer()
         return kept || settled
     }
