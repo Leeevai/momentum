@@ -268,8 +268,9 @@ private struct StatsRow: View {
         let unit = streak.unit
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 14)], spacing: 14) {
             StatTile(title: "Current streak", value: "\(streak.current) \(Formatting.unit("\(unit)s", for: Double(streak.current)))", systemImage: "flame.fill", tint: .orange,
-                     caption: goal.kind == .books || goal.kind == .milestones ? "Days with progress" : nil)
-            StatTile(title: "Best streak", value: "\(streak.best) \(Formatting.unit("\(unit)s", for: Double(streak.best)))", systemImage: "trophy.fill", tint: .yellow)
+                     caption: goal.kind == .books || goal.kind == .milestones ? "Days with progress" : streakCaption(streak))
+            StatTile(title: "Best streak", value: "\(streak.best) \(Formatting.unit("\(unit)s", for: Double(streak.best)))", systemImage: "trophy.fill", tint: .yellow,
+                     caption: streak.best > 0 && streak.current >= streak.best ? "Happening now" : nil)
             if goal.kind == .books {
                 let year = engine.interval(of: .yearly, containing: now)
                 StatTile(title: "Books this year", value: "\(engine.booksFinished(for: goal, in: year))", systemImage: "books.vertical.fill", tint: goal.tint)
@@ -290,6 +291,16 @@ private struct StatsRow: View {
                 }
             }
         }
+    }
+
+    /// How the current run compares with the best: "3 days to beat your best".
+    private func streakCaption(_ streak: ProgressEngine.Streak) -> String {
+        if streak.current == 0 {
+            return streak.unit == "day" ? "Hit today's target to start one" : "Hit this \(streak.unit)'s target to start one"
+        }
+        if streak.current >= streak.best { return "Your best yet" }
+        let gap = streak.best - streak.current + 1
+        return "\(gap) \(Formatting.unit("\(streak.unit)s", for: Double(gap))) to beat your best"
     }
 
     private var rateCaption: String {
