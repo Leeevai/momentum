@@ -5,24 +5,34 @@
 # Momentum
 
 **Show up for what matters, every day.**
-Goals, focus sessions, streaks and reading, with interactive widgets on your Mac's desktop.
+Goals, focus sessions, streaks, a daily journal and reading, on your Mac and your iPhone, with
+widgets, a Live Activity and Liquid Glass throughout.
 
 [![CI](https://github.com/Leeevai/momentum/actions/workflows/ci.yml/badge.svg)](https://github.com/Leeevai/momentum/actions/workflows/ci.yml)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111?logo=apple)
+![iOS 17+](https://img.shields.io/badge/iOS-17%2B-111?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/today-dark.png">
-  <img src="docs/images/today-light.png" alt="The Today screen: a running focus session, and every goal due today with its ring, streak and one-click action" width="900">
+  <img src="docs/images/today-light.png" alt="The Today screen on a Mac: a running focus session, coach tips, the day's plan and a focus timeline" width="900">
 </picture>
 
 </div>
 
-Momentum is a native macOS app for the hardest part of any goal: doing a little of it every day.
-Pick what you want to show up for, and Momentum keeps it in front of you, in a window, in the
-menu bar and on your desktop, so starting is always one click away.
+Momentum is a native app for the hardest part of any goal: doing a little of it every day. Pick
+what you want to show up for, and Momentum keeps it in front of you, in a window, in the menu bar,
+on your desktop, your Home Screen and your Lock Screen, so starting is always one tap away. A coach
+watches your history and tells you what's worth doing next.
+
+<p align="center">
+  <img src="docs/images/iphone-today.png" alt="Today on iPhone" width="200">
+  <img src="docs/images/iphone-goal.png" alt="A goal's page on iPhone" width="200">
+  <img src="docs/images/iphone-journal.png" alt="The journal calendar on iPhone" width="200">
+  <img src="docs/images/iphone-awards.png" alt="Awards on iPhone" width="200">
+</p>
 
 ## Features
 
@@ -30,107 +40,135 @@ menu bar and on your desktop, so starting is always one click away.
 
 | Kind | Tracks | Example |
 |------|--------|---------|
-| ⏱ **Time** | Focused minutes, with a timer or logged by hand | 2 hours of deep work on weekdays |
-| ✅ **Count** | Things you do a number of times | 4 workouts a week |
-| 🔢 **Amount** | Any number with a unit | 20 pages a day, 100 km a month, $500 saved |
-| 📚 **Books** | A reading list: pages read and books finished | 24 books this year |
-| 🏁 **Milestones** | A project broken into steps | Launch my portfolio in 6 steps |
+| **Time** | Focused minutes, with a timer or logged by hand | 2 hours of deep work on weekdays |
+| **Count** | Things you do a number of times | 4 workouts a week |
+| **Amount** | Any number with a unit | 20 pages a day, 100 km a month, $500 saved |
+| **Books** | A reading list: pages read and books finished | 24 books this year |
+| **Milestones** | A project broken into steps | Launch my portfolio in 6 steps |
 
 Every goal can be **daily** (on the weekdays you choose), **weekly**, **monthly**, **yearly**, or an
-**overall** target with a deadline. Momentum projects whether you're on pace.
+**overall** target with a deadline, and Momentum projects whether you're on pace. Each gets an
+SF Symbol icon from a searchable catalog and a color.
+
+### A coach, not just a tracker
+Today opens with a few timely tips, built from your own history:
+- **Streak at risk**: in the evening, the streak that would end at midnight, and exactly how much keeps it alive.
+- **Next up**: the goal you stacked after the one you just finished.
+- **Your hour**: when you usually do a goal, at that hour.
+- **Ready for more?** After three weeks of easy wins, a bigger target, one tap to apply. After weeks
+  of misses, a smaller one that keeps the habit alive.
+- Deadlines falling behind, goals left idle, books nearly finished, milestones due, and prompts to
+  plan your morning and reflect in the evening.
+
+### Habit stacking
+Stack a goal after another (*after coffee, read*). Today lists it right after its anchor, finishing
+the anchor celebrates with a **Next up** button, and the coach suggests it.
 
 ### Focus that gets you started
-- **One-click focus sessions** with Pomodoro lengths, pause and resume, and a note for what you're working on.
-- **Links on every goal**: docs, repos, courses, app links like `notion://` or `obsidian://`, even local files and folders.
-  Mark a link with ⚡︎ and it **opens automatically when a session starts**, so your workspace is ready.
-- **Time's up notifications** with *Stop and save* and *5 more minutes* buttons.
-- **Focus sounds**: white, pink or brown noise (rain) while the timer runs, generated on the fly.
-- A **live timer in the menu bar**, and a mini player in the sidebar.
+- **One-tap focus sessions** with pause and resume and a note for what you're working on.
+- **Pomodoro cycles**: a block that reaches its length is saved and a short break begins, with a
+  long break after every few blocks; the next block can start by itself.
+- **On the Lock Screen and in the Dynamic Island**: a Live Activity counts down the block or the
+  break, with pause, stop and next-block buttons.
+- **Links on every goal**: docs, repos, courses, `notion://` or `obsidian://` links, local files.
+  Mark one to **open when a session starts**, so your workspace is ready.
+- **Focus sounds**: white, pink or brown noise, generated on the fly.
+- A **live timer in the menu bar**, and a **quick panel from any app** (Control-Option-M): type a
+  goal and press Return to start or log it without leaving your work.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/menubar-dark.png">
-    <img src="docs/images/menubar-light.png" alt="The menu bar panel: the running session with pause and stop, and today's goals with one-click actions" width="340">
-  </picture>
-</p>
+### A daily journal
+Plan the morning with an intention and up to three priorities; Today shows them, ticking each one
+off as its goal is done. Reflect in the evening: mood as weather, energy as a battery, a win, a few
+lines. The **Journal** is a month calendar with every day ringed by how much got done, and
+**Insights** shows how your mood lines up with your progress.
 
-### Reading, properly
-A books goal is a small library: *reading*, *up next*, *finished* and *set aside*. Find books in the
-Open Library catalog (title, author, page count and cover filled in for you), import your Goodreads
-library, log pages with one click and finish books with a rating. The goal counts the books you
-finish, while the streak counts the days you read.
+### Awards
+Forty achievements in bronze, silver, gold and platinum, from *First Step* to *Year of Momentum*:
+streaks, focus hours, a 90-minute deep dive, a flawless week, a comeback after a week away, books,
+milestones, journaling. Locked ones show how close you are. Each medal morphs open into its story.
 
 ### Streaks that are fair
-- Days a goal isn't scheduled never break its streak, and **breaks** (a trip, a sick week) protect it entirely.
-- **Hard days count**: set a minimum (say 20 minutes of a 2-hour goal) that keeps the streak alive while the ring still asks for the full target.
-- Weekly and monthly goals keep **week and month streaks**.
-- **Smart reminders** at the time you choose, skipped on days the goal is already done.
-- **Streak protection**: an evening nudge when a streak would end at midnight, and a **weekly recap** on Sunday evening.
+- Unscheduled days never break a streak, and **breaks** (a trip, a sick week) protect it entirely.
+- **Hard days count**: a minimum (say 20 minutes of a 2-hour goal) keeps the streak alive.
+- Weekly and monthly goals keep week and month streaks.
+- **Smart reminders**, skipped on days the goal is already done, an evening **streak nudge**, and a
+  **weekly recap**.
+
+### Reading, properly
+A books goal is a small library: reading, up next, finished and set aside. Find books in the Open
+Library catalog with covers and page counts, import your Goodreads library, log pages with one tap
+and finish books with a rating.
 
 ### Insights
-Focus time per day by goal, compared with the period before, your strongest weekday, the hour you
-focus best, hit rates, streaks, books and milestones, over 7 days up to a year.
+Focus per day by goal against the period before, your strongest weekday, the hour you focus best,
+where time went by category, mood against progress, hit rates and streaks, from 7 days to a year.
 
-### Widgets
-Four interactive widgets in every size. **Start and stop timers, check in, and log pages
-right from the desktop** without opening the app.
+### Sync between your devices
+Pick the same folder in iCloud Drive (or Dropbox, or any shared folder) on your Mac and your
+iPhone. Each device keeps its own file there and merges the others' record by record: the latest
+change to each goal wins, deletions stick, and progress logged anywhere adds up. No account, no
+server, and nothing to resolve by hand.
+
+### Widgets everywhere
+Interactive widgets on the Mac desktop and the iPhone Home Screen: **start and stop timers, check
+in and log pages without opening the app**. On iPhone, Lock Screen widgets show today's progress,
+and Control Center gets a focus toggle on iOS 18 and macOS 26.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/widgets-dark.png">
   <img src="docs/images/widgets-light.png" alt="The Today, Goal, Focus and Streaks widgets in small, medium and large sizes" width="760">
 </picture>
 
-| Widget | Shows |
-|--------|-------|
-| **Today** | Every goal due today with its action button; the large size adds a week at a glance |
-| **Goal** | One goal you choose: ring, streaks, heatmap, the book you're reading, or next milestones |
-| **Focus** | A live countdown with pause and stop, or one-tap starts |
-| **Streaks** | Your streaks, longest first |
-
 ### And the rest
-- **Shortcuts and Siri**: *Start focusing in Momentum*, *Log progress in Momentum*, *How am I doing in Momentum*.
-- **Control Center** (macOS 26): a focus toggle for Control Center and the menu bar.
-- **Focus filters**: pair a macOS Focus with goal categories, so a Work Focus shows only work goals.
-- **Editable history**: fix the time, amount or note of anything you logged.
-- **Share cards**: a polished image of any goal's ring, streak and history to save, copy or share.
-- **Templates** for common goals, **categories** for grouping, **archive**, **duplicate**, and full **undo**.
-- **Export** a JSON backup or a CSV of every entry; **import** a backup. Momentum also keeps a
-  daily copy of your data for the last 14 days.
-- **Private by design**: everything stays on your Mac. No account, no analytics. The only network
-  request is the book search you type, sent to [Open Library](https://openlibrary.org).
+- **Shortcuts and Siri**: start focusing, log progress, ask how you're doing.
+- **Focus filters**: pair a system Focus with goal categories, so a Work Focus shows only work goals.
+- **Editable history**, **share cards**, **templates**, **categories**, **archive**, full **undo**.
+- **Export** a JSON backup or a CSV of every entry; a daily copy of your data is kept for 14 days.
+- **Fast with years of history**: on five years of heavy use, rebuilding progress after a change
+  takes about 5 ms and every streak about 4 ms.
+- **Private by design**: no account, no analytics, no tracking. The only network request is the
+  book search you type, sent to [Open Library](https://openlibrary.org).
 
 ## Screenshots
 
 <table>
   <tr>
-    <td><img src="docs/images/goal-time-light.png" alt="A time goal: live session, stats, minutes-per-day chart, heatmap, links and history"></td>
-    <td><img src="docs/images/goal-books-light.png" alt="A books goal: currently reading, pace, library with ratings, and pages read"></td>
+    <td><img src="docs/images/journal-light.png" alt="Journal: a month calendar with each day's progress and mood, and the selected day's plan, reflection and focus"></td>
+    <td><img src="docs/images/awards-dark.png" alt="Awards: recently earned medals, the ones almost earned, and every award by family"></td>
   </tr>
   <tr>
-    <td><img src="docs/images/insights-dark.png" alt="Insights: focus time per day by goal, weekday and time-of-day charts, and goal scores"></td>
+    <td><img src="docs/images/goal-time-light.png" alt="A time goal: live session, stats, minutes-per-day chart, heatmap, links and history"></td>
+    <td><img src="docs/images/insights-dark.png" alt="Insights: focus time per day by goal, weekday and time-of-day charts, categories and mood"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/goal-books-light.png" alt="A books goal: currently reading, pace, library with ratings, and pages read"></td>
     <td><img src="docs/images/goal-milestones-dark.png" alt="A milestones goal: checklist with due dates and progress"></td>
   </tr>
 </table>
 
-## Keyboard shortcuts
+## Keyboard shortcuts (Mac)
 
 | Shortcut | Action |
 |----------|--------|
+| Control-Option-M | Quick panel from any app (change it in Settings) |
 | ⌘K | Quick actions: find a goal, then start, log or open it |
 | ⌘N | New goal |
-| ⌘1 / ⌘2 | Today / Insights |
-| ⌘3 to ⌘9 | Jump to a goal |
+| ⌘1 to ⌘4 | Today, Journal, Insights, Awards |
+| ⌘5 to ⌘9 | Jump to a goal |
+| ⌥⌘P / ⌥⌘R | Plan today / Reflect on today |
 | ⌘E | Edit the selected goal |
-| ⌘↩ | Start focus, or log progress, on the selected goal |
-| ⇧⌘P | Pause or resume the session |
+| ⇧⌘P | Pause or resume the session, or start the next Pomodoro block |
 | ⇧⌘S | Stop and save the session |
 | ⌘Z | Undo |
 
 ## Install
 
-Momentum builds from source with Xcode. It isn't notarized, so there is no download yet.
+Momentum builds from source with Xcode. App Store releases are being prepared
+([checklist](docs/APP_STORE.md)).
 
-**Requirements:** macOS 14 Sonoma or later, Xcode 16 or later (Xcode 26+ for the Liquid Glass look).
+**Requirements:** macOS 14 or iOS 17 or later; Xcode 16 or later (Xcode 26 for Liquid Glass).
+
+### Mac
 
 ```bash
 git clone https://github.com/Leeevai/momentum.git
@@ -142,40 +180,47 @@ cp Config/Local.xcconfig.example Config/Local.xcconfig   # then set your team ID
 `install.sh` builds a Release copy, installs it to `/Applications` and launches it. Then
 right-click the desktop → **Edit Widgets…** → search for **Momentum**.
 
-> **Why a team ID?** The app and its widgets are separate processes that share data through an
-> app group, and macOS only grants that to signed code. Any Apple ID works, including a free
-> one: find your team ID in Xcode → Settings → Accounts.
+### iPhone and iPad
+
+Open `Momentum.xcodeproj`, choose the **MomentumMobile** scheme and your device, and run. To run
+on a device, register the app group `group.<your bundle prefix>.momentum` for your team (Xcode
+offers to under Signing & Capabilities); the simulator needs nothing.
+
+> **Why a team ID?** The apps and their widgets are separate processes that share data through an
+> app group, which the system grants only to signed code. Any Apple ID works, including a free one.
 
 ## Development
 
 ```bash
 swift test --package-path Packages/MomentumKit   # the core's test suite
-open Momentum.xcodeproj                          # run the app from Xcode
-./scripts/screenshots/render.sh                  # regenerate docs/images from demo data
+open Momentum.xcodeproj                          # run the apps from Xcode
+./scripts/screenshots/render.sh                  # regenerate the Mac screenshots from demo data
 ```
-
-The project is split so the logic is testable without a UI:
 
 | Path | What lives there |
 |------|------------------|
-| `Packages/MomentumKit` | **MomentumCore**: the model, the progress engine (periods, streaks, pace, insights), persistence and migrations, reminder planning, CSV export. Swift 6, no UI, fully tested. |
-| `Momentum/` | The SwiftUI app: store, side effects (notifications, links), screens, menu bar, Settings, App Shortcuts. |
-| `MomentumWidgets/` | The WidgetKit extension. |
-| `Shared/` | Code both processes compile: storage location, App Intents for widget buttons, shared views. |
+| `Packages/MomentumKit` | **MomentumCore**: the model, the progress engine (periods, streaks, pace, insights, achievements, coach), Pomodoro, the journal, sync (stamps, merge, folder layout), persistence and migrations, reminder planning. Swift 6, no UI, fully tested. |
+| `SharedUI/` | The store, side effects and every screen both apps share: Today's cards, goal pages, editors, Journal, Insights, Awards, the design system. |
+| `Momentum/` | The Mac app: window and sidebar, menu bar, quick panel and global shortcut, Settings. |
+| `MomentumMobile/` | The iPhone and iPad app: tabs, Today with zoom transitions, Settings. |
+| `MomentumWidgets/` | The widgets, for both platforms, and the iPhone Live Activity. |
+| `Shared/` | Code the apps and widgets all compile: storage location, App Intents, the Live Activity model. |
 | `Config/` | Signing (`Shared.xcconfig`), entitlements and Info.plists. |
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how data flows between the app and the widgets,
-and [CONTRIBUTING.md](CONTRIBUTING.md) to get involved.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how data flows between the apps, the
+widgets and other devices, and [CONTRIBUTING.md](CONTRIBUTING.md) to get involved.
 
 ## Roadmap
 
-- [x] Control Center focus toggle (macOS 26)
-- [x] Book search with covers and page counts, and Goodreads import
-- [ ] iCloud sync between Macs
-- [ ] An iPhone companion with Lock Screen widgets
-- [x] Focus filters: show only the goals that fit the Focus you're in
+- [x] Control Center focus toggle
+- [x] Book search with covers, and Goodreads import
+- [x] Focus filters
+- [x] Sync between devices
+- [x] An iPhone and iPad app, with Lock Screen widgets and a Live Activity
+- [x] Pomodoro cycles, a daily journal, awards and a coach
+- [ ] App Store releases
+- [ ] Apple Watch
 - [ ] Translations
-- [ ] Notarized releases
 
 ## License
 

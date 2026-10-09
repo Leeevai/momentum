@@ -7,16 +7,45 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- **An iPhone and iPad app**, sharing the Mac app's store and screens: Today with goal cards that
+  zoom open into their pages, Journal, Insights and Awards in tabs with the Liquid Glass tab bar,
+  and Settings. Lock Screen widgets, the Home Screen widgets, a Control Center focus toggle, and
+  Siri and Shortcuts come with it.
+- **A Live Activity** for the focus timer and Pomodoro breaks, on the Lock Screen and in the
+  Dynamic Island, with pause, stop, start-next-block and skip-break buttons.
+- **Sync** through a folder in iCloud Drive or any shared folder. Each device writes its own file
+  and merges the others' record by record; the merge always converges.
+- **Pomodoro cycles**: a planned session that reaches its length is saved exactly and a short
+  break begins, with a long break after every few blocks; the next block can start by itself.
+  Notifications mark the end of each block and break.
+- **A daily journal**: plan the morning with an intention and up to three priorities, shown on
+  Today; reflect in the evening with mood, energy, a win and notes. The Journal is a month calendar
+  of how each day went.
+- **Awards**: forty achievements in four tiers, measured from history, with progress on the ones
+  still locked and a banner when one is earned.
+- **A coach** on Today: a streak at risk, the next goal in a stack, a goal's usual hour, targets to
+  raise or lower, deadlines falling behind, idle goals, books nearly done, milestones due.
+- **Habit stacking**: do a goal right after another; Today orders them and the celebration
+  offers the next one.
+- **A focus timeline** of the day's sessions on Today and in the Journal.
+- **A quick panel from any app** on the Mac, with a global shortcut (Control-Option-M by default).
+- **Mood in Insights**: how mood lines up with progress and focus.
 - Focus filters: in System Settings → Focus, choose which goal categories Momentum shows while a
   Focus is on. Today, the menu bar and the widgets follow it, with a "Show all" way past it.
 - Focus sounds: white, pink or brown noise during a focus session, generated on the fly, fading in
-  and out with the timer. Pick it from the session banner or Settings.
-- Book covers from Open Library are saved on the Mac, so the Goal widget shows the cover of the
-  book you're reading and the library works offline.
+  and out with the timer.
+- Book covers from Open Library are saved on the device, so widgets show them and the library
+  works offline.
 
 ### Changed
+- **A new look**: Liquid Glass throughout, mesh-gradient backdrops, vivid glass buttons, Activity
+  style rings, goal icons as SF Symbols on gradient tiles in place of emoji, and a new app icon.
+  Today's cards morph open into their goals, and Start splits into Pause and Stop.
+- **Much faster with long histories**: on five years of heavy use, rebuilding progress after a
+  change went from 29 to 5 ms and every streak from 60 to 4 ms; a save no longer re-reads the file
+  it just wrote; undo and sync diff only what changed.
 - An unknown goal color or book status written by a newer version no longer makes the data file
-  unreadable.
+  unreadable, and a damaged journal entry is skipped rather than failing the file.
 
 ## [1.1.0] - 2026-10-08
 
