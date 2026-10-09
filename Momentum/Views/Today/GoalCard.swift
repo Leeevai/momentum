@@ -27,6 +27,12 @@ struct GoalCard: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                                 .transition(.scale.combined(with: .opacity))
+                        } else if goal.streakMinimum != nil && engine.keepsStreak(goal, periodContaining: now, now: now) {
+                            Label("Streak safe", systemImage: "shield.checkered")
+                                .labelStyle(.iconOnly)
+                                .foregroundStyle(.orange)
+                                .help("You've done the minimum: the streak is safe for today")
+                                .transition(.scale.combined(with: .opacity))
                         }
                     }
                     GoalProgressText(goal: goal)

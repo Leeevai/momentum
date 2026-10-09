@@ -143,6 +143,9 @@ struct GoalEditor: View {
                 }
                 .pickerStyle(.segmented)
                 TargetField(goal: $draft)
+                if draft.kind != .books && draft.period != .total {
+                    StreakMinimumField(goal: $draft)
+                }
             }
         } header: {
             Text("Tracking")
@@ -296,6 +299,49 @@ private struct TargetField: View {
             get: { (Int(goal.target) % 3600) / 60 },
             set: { goal.target = Double((Int(goal.target) / 3600) * 3600 + $0 * 60) }
         )
+    }
+}
+
+/// The "two-minute rule": a smaller amount that still keeps the streak on a hard day.
+private struct StreakMinimumField: View {
+    @Binding var goal: Goal
+
+    var body: some View {
+        Toggle(isOn: Binding(
+            get: { goal.streakMinimum != nil },
+            set: { goal.streakMinimum = $0 ? defaultMinimum : nil }
+        )) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Keep the streak with less on hard days")
+                Text("The ring still shows the full target.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        if let minimum = goal.streakMinimum {
+            if goal.kind == .time {
+                Stepper(value: Binding(get: { Int(minimum / 60) }, set: { goal.streakMinimum = Double(max(1, $0) * 60) }),
+                        in: 1...max(1, Int(goal.target / 60)), step: 5) {
+                    LabeledContent("At least", value: Formatting.duration(minimum))
+                }
+            } else {
+                LabeledContent("At least") {
+                    HStack {
+                        TextField("Minimum", value: Binding(get: { minimum }, set: { goal.streakMinimum = max(0.01, $0) }),
+                                  format: .number.precision(.fractionLength(0...2)))
+                            .labelsHidden()
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text(goal.displayUnit).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    /// A fifth of the target, rounded to something sensible.
+    private var defaultMinimum: Double {
+        goal.kind == .time ? max(5, (goal.target / 60 / 5 / 5).rounded() * 5) * 60 : max(1, (goal.target / 5).rounded())
     }
 }
 

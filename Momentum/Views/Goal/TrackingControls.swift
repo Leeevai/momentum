@@ -76,7 +76,24 @@ private struct TimeControls: View {
                     }
                 }
             }
+            StreakSafeNote(goal: goal)
             ManualLogRow(goal: goal)
+        }
+    }
+}
+
+/// Explains the minimum when a goal has one: whether today's amount already protects the streak.
+private struct StreakSafeNote: View {
+    @Environment(GoalStore.self) private var store
+    let goal: Goal
+
+    var body: some View {
+        if let minimum = goal.streakMinimum, !store.engine.isComplete(goal, now: store.now) {
+            let safe = store.engine.keepsStreak(goal, periodContaining: store.now, now: store.now)
+            Label(safe ? "Streak safe: you've done the minimum today" : "\(goal.format(minimum)) keeps your streak today",
+                  systemImage: safe ? "shield.checkered" : "shield")
+                .font(.callout)
+                .foregroundStyle(safe ? Color.orange : Color.secondary)
         }
     }
 }
@@ -97,6 +114,7 @@ private struct AmountControls: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
+            StreakSafeNote(goal: goal)
             HStack(spacing: 10) {
                 GoalPrimaryButton(goal: goal)
                     .keyboardShortcut(.return, modifiers: .command)

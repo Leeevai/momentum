@@ -98,6 +98,10 @@ private struct NotificationSettings: View {
                 Text("Only for goals with a streak of two or more, on the last day of their period, if they're not done yet.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Weekly recap on the last evening of the week", isOn: Binding(
+                    get: { store.data.preferences.weeklyRecapEnabled },
+                    set: { value in store.updatePreferences { $0.weeklyRecapEnabled = value } }
+                ))
             }
             Section("Permission") {
                 LabeledContent("Status") {
@@ -132,7 +136,7 @@ private struct NotificationSettings: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 520)
+        .frame(height: 560)
         .task { await scheduler.refreshAuthorization() }
     }
 }
