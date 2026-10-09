@@ -10,8 +10,6 @@ struct GoalPrimaryButton: View {
     var iconOnly = false
 
     var body: some View {
-        let engine = store.engine
-        let running = engine.isRunning(goal)
         Group {
             switch goal.kind {
             case .time:
@@ -31,7 +29,7 @@ struct GoalPrimaryButton: View {
                 }
             }
         }
-        .sensoryFeedback(.success, trigger: engine.currentAmount(for: goal, now: store.now))
+        .sensoryFeedback(.success, trigger: store.engine.currentAmount(for: goal, now: store.now))
     }
 
     private var quickAddTitle: String {
