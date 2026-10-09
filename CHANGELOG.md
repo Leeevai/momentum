@@ -20,7 +20,10 @@ The first public release: a full rebuild of the 0.1 prototype.
 - Milestone checklists with due dates, on any goal.
 - Fair streaks: unscheduled days are skipped, breaks protect a streak, and weekly and monthly goals
   keep week and month streaks.
-- Smart reminders that skip days a goal is already done.
+- Smart reminders that skip days a goal is already done, and an evening nudge when a streak would
+  end at midnight.
+- Editable history: change the time, amount or note of any entry.
+- A Control Center focus toggle on macOS 26.
 - Insights: focus per day by goal, weekday and time-of-day patterns, hit rates, books and milestones.
 - Widgets: Today, Goal (configurable), Focus and Streaks, all interactive.
 - Menu bar timer and panel; Settings; App Shortcuts for Shortcuts, Spotlight and Siri.

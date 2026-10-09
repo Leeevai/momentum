@@ -55,6 +55,7 @@ the streak counts the days you read.
 - Days a goal isn't scheduled never break its streak, and **breaks** (a trip, a sick week) protect it entirely.
 - Weekly and monthly goals keep **week and month streaks**.
 - **Smart reminders** at the time you choose, skipped on days the goal is already done.
+- **Streak protection**: an evening nudge when a streak would end at midnight.
 
 ### Insights
 Focus time per day by goal, your strongest weekday, the hour you focus best, hit rates, streaks,
@@ -78,6 +79,8 @@ right from the desktop** without opening the app.
 
 ### And the rest
 - **Shortcuts and Siri**: *Start focusing in Momentum*, *Log progress in Momentum*, *How am I doing in Momentum*.
+- **Control Center** (macOS 26): a focus toggle for Control Center and the menu bar.
+- **Editable history**: fix the time, amount or note of anything you logged.
 - **Templates** for common goals, **categories** for grouping, **archive**, **duplicate**, and full **undo**.
 - **Export** a JSON backup or a CSV of every entry; **import** a backup.
 - **Private by design**: everything stays on your Mac. No account, no network access, no analytics.
@@ -105,7 +108,7 @@ right from the desktop** without opening the app.
 | ⌘E | Edit the selected goal |
 | ⌘↩ | Start focus, or log progress, on the selected goal |
 | ⇧⌘P | Pause or resume the session |
-| ⌘. | Stop and save the session |
+| ⇧⌘S | Stop and save the session |
 | ⌘Z | Undo |
 
 ## Install
