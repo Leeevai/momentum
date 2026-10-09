@@ -8,13 +8,18 @@ struct ChallengeWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "Challenge", intent: SelectGoalIntent.self, provider: GoalProvider()) { entry in
             ChallengeWidgetView(entry: entry)
-                .widgetBackground(entry.challengeGoal?.tint ?? .orange)
                 .widgetURL(entry.challengeGoal.map { DeepLink.goal($0.id).url } ?? DeepLink.today.url)
         }
         .configurationDisplayName("Challenge")
         .description("A goal's challenge: which day it is, and a dot for every day.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies(Self.families)
     }
+
+    #if os(iOS)
+    private static let families: [WidgetFamily] = [.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular]
+    #else
+    private static let families: [WidgetFamily] = [.systemSmall, .systemMedium]
+    #endif
 }
 
 extension MomentumEntry {
@@ -32,8 +37,20 @@ struct ChallengeWidgetView: View {
     var body: some View {
         if let goal = entry.challengeGoal, let status = entry.engine.challengeStatus(for: goal, now: entry.date) {
             switch family {
-            case .systemSmall: ChallengeSmall(goal: goal, status: status, entry: entry)
-            default: ChallengeMedium(goal: goal, status: status, entry: entry)
+            #if os(iOS)
+            case .accessoryCircular:
+                ChallengeCircular(status: status)
+                    .accessoryBackground()
+            case .accessoryRectangular:
+                ChallengeRectangular(goal: goal, status: status)
+                    .accessoryBackground()
+            #endif
+            case .systemSmall:
+                ChallengeSmall(goal: goal, status: status, entry: entry)
+                    .widgetBackground(goal.tint)
+            default:
+                ChallengeMedium(goal: goal, status: status, entry: entry)
+                    .widgetBackground(goal.tint)
             }
         } else {
             VStack(spacing: 6) {
@@ -45,9 +62,51 @@ struct ChallengeWidgetView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
+            .widgetBackground(.orange)
         }
     }
 }
+
+#if os(iOS)
+/// The Lock Screen ring: the day number, filling as days are kept.
+private struct ChallengeCircular: View {
+    let status: ChallengeStatus
+
+    var body: some View {
+        Gauge(value: Double(status.kept), in: 0...Double(max(status.challenge.days, 1))) {
+            Image(systemName: status.isWon ? "trophy.fill" : "flag.fill")
+        } currentValueLabel: {
+            if status.isWon {
+                Image(systemName: "trophy.fill")
+            } else {
+                Text("\(status.dayNumber)")
+                    .monospacedDigit()
+            }
+        }
+        .gaugeStyle(.accessoryCircularCapacity)
+    }
+}
+
+private struct ChallengeRectangular: View {
+    let goal: Goal
+    let status: ChallengeStatus
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label(goal.name, systemImage: status.isWon ? "trophy.fill" : "flag.fill")
+                .font(.headline)
+                .lineLimit(1)
+                .widgetAccentable()
+            Text(ChallengeText.short(status))
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+            Gauge(value: Double(status.kept), in: 0...Double(max(status.challenge.days, 1))) { EmptyView() }
+                .gaugeStyle(.accessoryLinearCapacity)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+#endif
 
 private struct ChallengeSmall: View {
     let goal: Goal
