@@ -78,6 +78,15 @@ enum Metrics {
         false
         #endif
     }
+
+    /// "Click" on a Mac, "Tap" on a touch screen, for hints that name the gesture.
+    static var tapVerb: String {
+        #if os(macOS)
+        "Click"
+        #else
+        "Tap"
+        #endif
+    }
 }
 
 /// A file to save through `fileExporter`: a JSON backup or a CSV of entries.

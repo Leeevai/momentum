@@ -45,6 +45,10 @@ struct YearInPixels: View {
                 }
             }
             .aspectRatio(CGFloat(weeks.count) / 7, contentMode: .fit)
+            // Hundreds of squares mean nothing read one by one: VoiceOver hears the year at once.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Year in pixels")
+            .accessibilityValue(summary(pixels))
             legend
         }
         .glassCard(cornerRadius: 22)
@@ -73,6 +77,20 @@ struct YearInPixels: View {
     }
 
     private typealias Pixel = (day: Date, completion: Double?, mood: Mood?)
+
+    /// "212 days with progress, 64 perfect", or how the rated days felt.
+    private func summary(_ pixels: [Pixel]) -> String {
+        if showsMood {
+            let rated = pixels.compactMap(\.mood)
+            guard !rated.isEmpty else { return "No days rated yet" }
+            let counts = Dictionary(grouping: rated, by: { $0 }).mapValues(\.count)
+            let common = counts.max { $0.value < $1.value }?.key
+            return "\(rated.count) days rated, most often \(common?.title.lowercased() ?? "")"
+        }
+        let active = pixels.filter { ($0.completion ?? 0) > 0 }.count
+        let perfect = pixels.filter { ($0.completion ?? 0) >= 1 }.count
+        return "\(active) days with progress, \(perfect) perfect"
+    }
 
     private func color(for pixel: Pixel) -> Color {
         if showsMood {

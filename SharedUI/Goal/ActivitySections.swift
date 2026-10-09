@@ -128,13 +128,23 @@ struct HeatmapCard: View {
                 store.sheet = .log(goalID: goal.id, day: day)
             } : nil)
                 .frame(height: 7 * 15 + 6 * 3)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Activity")
+                .accessibilityValue(activitySummary)
             if logsByDay {
-                Text("Click a day to log progress for it.")
+                Text("\(Metrics.tapVerb) a day to log progress for it.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
         }
         .glassCard(tint: goal.tint)
+    }
+
+    /// What the heatmap shows, for VoiceOver: "34 active days in the last 12 weeks".
+    private var activitySummary: String {
+        let days = store.engine.dailyAmounts(for: goal, days: 84, now: store.now)
+        let active = days.filter { $0.amount > 0 }.count
+        return "\(active) active \(active == 1 ? "day" : "days") in the last 12 weeks"
     }
 }
 
