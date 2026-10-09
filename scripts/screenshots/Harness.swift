@@ -104,6 +104,7 @@ MainActor.assumeIsolated {
             ("sheet-link", AnyView(LinkEditor(goalID: deepWork.id, link: deepWork.links.first)), CGSize(width: 460, height: 330)),
             ("settings", AnyView(SettingsView()), CGSize(width: 500, height: 600)),
             ("sheet-plan", AnyView(PlanSheet(day: DayID(.now))), CGSize(width: 560, height: 620)),
+            ("sheet-review", AnyView(WeekReviewSheet()), CGSize(width: 560, height: 680)),
             ("sheet-reflect", AnyView(ReflectSheet(day: DayID(.now))), CGSize(width: 520, height: 720)),
         ]
         for goal in [deepWork, books] {
