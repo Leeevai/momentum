@@ -48,6 +48,9 @@ struct InsightsView: View {
                         WeekdayChart(report: report)
                         HourChart(report: report)
                     }
+                    if report.focusByCategory.count > 1 {
+                        CategoryChart(report: report)
+                    }
                 }
                 ScoresCard(report: report)
             }
@@ -176,6 +179,73 @@ private struct HourChart: View {
             .frame(height: 160)
         }
         .glassCard(tint: .pink)
+    }
+}
+
+/// Where the focus time went, by category.
+private struct CategoryChart: View {
+    let report: InsightsReport
+    @State private var selectedAngle: Double?
+
+    private static let palette: [Color] = [.indigo, .orange, .teal, .pink, .green, .purple, .yellow, .blue, .red, .mint]
+
+    var body: some View {
+        let shares = report.focusByCategory
+        let selected = selectedAngle.flatMap { angle -> InsightsReport.CategoryShare? in
+            var running = 0.0
+            return shares.first { share in
+                running += share.seconds
+                return angle <= running
+            }
+        }
+        HStack(alignment: .center, spacing: 28) {
+            Chart(shares) { share in
+                SectorMark(
+                    angle: .value("Time", share.seconds),
+                    innerRadius: .ratio(0.62),
+                    angularInset: 1.5
+                )
+                .cornerRadius(4)
+                .foregroundStyle(by: .value("Category", share.name))
+                .opacity(selected == nil || selected?.name == share.name ? 1 : 0.4)
+            }
+            .chartForegroundStyleScale(domain: shares.map(\.name), range: shares.indices.map { Self.palette[$0 % Self.palette.count] })
+            .chartLegend(.hidden)
+            .chartAngleSelection(value: $selectedAngle)
+            .chartBackground { _ in
+                VStack(spacing: 2) {
+                    Text(selected.map { Formatting.duration($0.seconds) } ?? Formatting.duration(report.totalFocusSeconds))
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                    Text(selected?.name ?? "total")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 190, height: 190)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Label("By category", systemImage: "chart.pie.fill")
+                    .font(.headline)
+                ForEach(Array(shares.enumerated()), id: \.element.id) { index, share in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(Self.palette[index % Self.palette.count])
+                            .frame(width: 9, height: 9)
+                        Text(share.name)
+                            .frame(minWidth: 110, alignment: .leading)
+                        Text(Formatting.duration(share.seconds))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                        Text(Formatting.percent(share.seconds / max(1, report.totalFocusSeconds)))
+                            .monospacedDigit()
+                            .foregroundStyle(.tertiary)
+                    }
+                    .font(.callout)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .glassCard(tint: .indigo)
     }
 }
 

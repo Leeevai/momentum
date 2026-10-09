@@ -9,6 +9,7 @@ All notable changes to Momentum are recorded here. The format follows
 ### Added
 - Hover a day in a goal's activity heatmap to see its amount; click it to log progress for that day.
 - Session statistics for time goals: how many, the average length and the longest.
+- Insights shows where focus time went by category, as an interactive donut.
 
 ### Changed
 - Much faster on long histories: streak history is cached, the data file is written compactly, and
