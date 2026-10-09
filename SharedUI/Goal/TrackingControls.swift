@@ -208,20 +208,20 @@ private struct BookControls: View {
                     }
                     .frame(maxWidth: 360)
                 }
-                HStack(spacing: 10) {
-                    GoalPrimaryButton(goal: goal)
-                    TextField("Page", text: $pageText)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 70)
-                        .onSubmit { setPage(book) }
-                    Button("Set page") { setPage(book) }
-                        .disabled(Int(pageText) == nil)
-                    Button {
-                        store.perform("Finish Book") { $0.finishBook(book.id, in: goal.id) }
-                    } label: {
-                        Label("Finished", systemImage: "checkmark.seal")
+                // One row where it fits; on a phone, the page entry goes on a row of its own.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        GoalPrimaryButton(goal: goal)
+                        pageEntry(book)
+                        finishButton(book)
                     }
-                    .secondaryActionStyle(goal.tint, compact: true)
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 10) {
+                            GoalPrimaryButton(goal: goal)
+                            finishButton(book)
+                        }
+                        pageEntry(book)
+                    }
                 }
             } else {
                 Text(goal.books.contains { $0.status == .wantToRead } ? "Pick your next book" : "Start your reading list")
@@ -237,6 +237,29 @@ private struct BookControls: View {
                 .primaryActionStyle(goal.tint)
             }
         }
+    }
+
+    private func pageEntry(_ book: Book) -> some View {
+        HStack(spacing: 10) {
+            TextField("Page", text: $pageText)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 70)
+                #if os(iOS)
+                .keyboardType(.numberPad)
+                #endif
+                .onSubmit { setPage(book) }
+            Button("Set page") { setPage(book) }
+                .disabled(Int(pageText) == nil)
+        }
+    }
+
+    private func finishButton(_ book: Book) -> some View {
+        Button {
+            store.perform("Finish Book") { $0.finishBook(book.id, in: goal.id) }
+        } label: {
+            Label("Finished", systemImage: "checkmark.seal")
+        }
+        .secondaryActionStyle(goal.tint, compact: true)
     }
 
     private func setPage(_ book: Book) {
