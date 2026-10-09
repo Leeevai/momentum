@@ -33,18 +33,26 @@ struct ComplicationProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ComplicationEntry) -> Void) {
-        completion(ComplicationEntry(date: .now, snapshot: WatchSnapshotStore.load() ?? WatchSnapshot(done: 2, total: 5)))
+        let snapshot = WatchSnapshotStore.load() ?? WatchSnapshot(done: 2, total: 5)
+        completion(ComplicationEntry(date: .now, snapshot: snapshot.current(on: DayID(.now))))
     }
 
-    /// One entry: the watch app reloads the timeline whenever the iPhone sends a new snapshot,
-    /// and the clocks run by themselves. A planned block gets a second entry when it ends.
+    /// The watch app reloads the timeline whenever the iPhone sends a snapshot, and the clocks
+    /// run by themselves. Beyond now: when a planned block ends (its clock turns to overtime),
+    /// and at midnight, when daily goals start over even if the iPhone hasn't been heard from.
     func getTimeline(in context: Context, completion: @escaping (Timeline<ComplicationEntry>) -> Void) {
         let snapshot = WatchSnapshotStore.load() ?? WatchSnapshot()
-        var entries = [ComplicationEntry(date: .now, snapshot: snapshot)]
-        if let end = snapshot.session?.plannedEnd, end > .now {
-            entries.append(ComplicationEntry(date: end, snapshot: snapshot))
+        let now = Date.now
+        var entries = [ComplicationEntry(date: now, snapshot: snapshot.current(on: DayID(now)))]
+        if let end = snapshot.session?.plannedEnd, end > now {
+            entries.append(ComplicationEntry(date: end, snapshot: snapshot.current(on: DayID(end))))
         }
-        completion(Timeline(entries: entries, policy: .after(.now.addingTimeInterval(3600))))
+        let calendar = Calendar.current
+        if let midnight = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) {
+            entries.append(ComplicationEntry(date: midnight, snapshot: snapshot.current(on: DayID(midnight))))
+        }
+        entries.sort { $0.date < $1.date }
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
 
@@ -83,7 +91,7 @@ private struct ComplicationView: View {
                     Image(systemName: item.symbol)
                         .font(.caption)
                         .widgetAccentable()
-                    ComplicationClock(session: session)
+                    ComplicationClock(session: session, date: entry.date)
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .minimumScaleFactor(0.6)
                 }
@@ -120,10 +128,8 @@ private struct ComplicationView: View {
     @ViewBuilder
     private var inline: some View {
         if let session = entry.snapshot.session, let item = entry.runningItem {
-            HStack {
-                Text(item.name)
-                ComplicationClock(session: session)
-            }
+            // Inline shows a single line of text: one `Text`, not a stack of them.
+            Text("\(item.name) ") + ComplicationClock.text(session: session, date: entry.date)
         } else {
             Text("\(entry.snapshot.done) of \(entry.snapshot.total) done")
         }
@@ -136,7 +142,7 @@ private struct ComplicationView: View {
                     .font(.headline)
                     .widgetAccentable()
                     .lineLimit(1)
-                ComplicationClock(session: session)
+                ComplicationClock(session: session, date: entry.date)
                     .font(.system(.title3, design: .rounded, weight: .semibold))
             } else {
                 Label("Momentum", systemImage: "flame.fill")
@@ -157,19 +163,23 @@ private struct ComplicationView: View {
 }
 
 /// The timer on the watch face: counting down a planned block, up otherwise, still when paused.
+/// Drawn as of the entry's date, since entries are rendered before they're shown.
 private struct ComplicationClock: View {
     let session: FocusSession
+    let date: Date
 
     var body: some View {
-        Group {
-            if !session.isRunning {
-                Text(Formatting.clock(session.elapsed(at: .now)))
-            } else if let end = session.plannedEnd, end > .now {
-                Text(timerInterval: Date.now...end, countsDown: true)
-            } else {
-                Text(timerInterval: session.clockStart()...Date.distantFuture, countsDown: false)
-            }
+        Self.text(session: session, date: date)
+            .monospacedDigit()
+    }
+
+    static func text(session: FocusSession, date: Date) -> Text {
+        if !session.isRunning {
+            return Text(Formatting.clock(session.elapsed(at: date)))
         }
-        .monospacedDigit()
+        if let end = session.plannedEnd, end > date {
+            return Text(timerInterval: date...end, countsDown: true)
+        }
+        return Text(timerInterval: session.clockStart(at: date)...Date.distantFuture, countsDown: false)
     }
 }
