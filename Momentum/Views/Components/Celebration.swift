@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Confetti and a toast when a goal hits its target. Dismisses itself.
 struct CelebrationOverlay: View {
+    @Environment(GoalStore.self) private var store
     let celebration: Celebration
     var onFinish: () -> Void
 
@@ -34,6 +35,16 @@ struct CelebrationOverlay: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
+                    if let next = celebration.next {
+                        Button {
+                            if next.kind == .time { store.toggleFocus(next) } else { store.select(next.id) }
+                            onFinish()
+                        } label: {
+                            Label("Next: \(next.name)", systemImage: next.kind == .time ? "play.fill" : "arrow.right")
+                        }
+                        .primaryActionStyle(next.tint, compact: true)
+                        .padding(.leading, 6)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
@@ -44,7 +55,8 @@ struct CelebrationOverlay: View {
         }
         .task {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) { toastVisible = true }
-            try? await Task.sleep(for: .seconds(2.6))
+            // A stacked goal waits a little longer, so its button can be pressed.
+            try? await Task.sleep(for: .seconds(celebration.next == nil ? 2.6 : 5))
             withAnimation(.easeIn(duration: 0.3)) { toastVisible = false }
             try? await Task.sleep(for: .seconds(0.4))
             onFinish()
