@@ -17,6 +17,7 @@ public struct ProgressEngine: Sendable {
     private let firstDay: [UUID: Date]
     private let goalsByID: [UUID: Goal]
     private let streakCache = StreakCache()
+    private let entryIndex = EntryIndex()
 
     public init(data: AppData, calendar: Calendar = .current) {
         self.data = data
@@ -191,7 +192,7 @@ public struct ProgressEngine: Sendable {
         return target > 0 && currentAmount(for: goal, now: now) >= target
     }
 
-    func isMet(_ goal: Goal, periodContaining date: Date, now: Date) -> Bool {
+    public func isMet(_ goal: Goal, periodContaining date: Date, now: Date) -> Bool {
         let target = target(for: goal)
         return target > 0 && progressAmount(for: goal, periodContaining: date, now: now) >= target
     }
@@ -500,7 +501,7 @@ public struct ProgressEngine: Sendable {
     /// Timer sessions logged for a goal. A session across midnight is logged per day, so it
     /// counts once per day it touched.
     public func sessionStats(for goal: Goal) -> SessionStats? {
-        let sessions = data.entries.filter { $0.goalID == goal.id && $0.source == .timer && $0.amount > 0 }
+        let sessions = entries(for: goal).filter { $0.source == .timer && $0.amount > 0 }
         guard !sessions.isEmpty else { return nil }
         let total = sessions.reduce(0) { $0 + $1.amount }
         return SessionStats(count: sessions.count, average: total / Double(sessions.count), longest: sessions.map(\.amount).max() ?? 0)
@@ -508,8 +509,24 @@ public struct ProgressEngine: Sendable {
 
     // MARK: - History
 
+    /// A goal's log entries, newest first.
     public func entries(for goal: Goal) -> [LogEntry] {
-        data.entries.filter { $0.goalID == goal.id }.sorted { $0.date > $1.date }
+        entryIndex.entries(for: goal.id, in: data.entries)
+    }
+}
+
+/// Log entries grouped by goal, newest first, built on first use and kept for the engine's life.
+final class EntryIndex: @unchecked Sendable {
+    private let lock = NSLock()
+    private var byGoal: [UUID: [LogEntry]]?
+
+    func entries(for goalID: UUID, in all: [LogEntry]) -> [LogEntry] {
+        lock.lock()
+        defer { lock.unlock() }
+        if let byGoal { return byGoal[goalID] ?? [] }
+        let grouped = Dictionary(grouping: all, by: \.goalID).mapValues { $0.sorted { $0.date > $1.date } }
+        byGoal = grouped
+        return grouped[goalID] ?? []
     }
 }
 
