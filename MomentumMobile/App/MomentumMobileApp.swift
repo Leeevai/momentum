@@ -22,11 +22,15 @@ struct MomentumMobileApp: App {
         }
     }
 
-    /// The real store; in debug builds, `MOMENTUM_DEMO=1` swaps in demo data held in memory, and
+    /// The real store; in debug builds, `MOMENTUM_DEMO=1` swaps in demo data held in memory (`empty`
+    /// for none), and
     /// `MOMENTUM_TAB` opens a tab and `MOMENTUM_SHEET` a sheet, for screenshots and simulator runs.
     private static func makeStore() -> GoalStore {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
+        if environment["MOMENTUM_DEMO"] == "empty" {
+            return GoalStore.preview(AppData())
+        }
         if environment["MOMENTUM_DEMO"] == "1" {
             var data = AppData.demo()
             if let deepWork = data.goals.first(where: { $0.name == "Deep work" }) {

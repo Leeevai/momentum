@@ -38,18 +38,22 @@ struct TodayHeader: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// Today's numbers, once there are goals to count.
     @ViewBuilder
     private var chips: some View {
         let engine = store.engine
         let now = store.now
-        let summary = engine.todaySummary(now: now)
-        let focus = engine.data.goals.filter { $0.kind == .time }.reduce(0.0) { $0 + engine.amount(for: $1, on: now, now: now) }
-        HeaderChip(systemImage: "checkmark.circle.fill", text: "\(summary.done) of \(summary.total) done", tint: .green)
-        HeaderChip(systemImage: "flame.fill", text: "Best streak \(engine.longestCurrentStreak(now: now))", tint: .orange)
-        if focus > 0 {
-            HeaderChip(systemImage: "timer", text: "\(Formatting.duration(focus)) focused", tint: .indigo)
+        if !engine.activeGoals.isEmpty {
+            let summary = engine.todaySummary(now: now)
+            let focus = engine.data.goals.filter { $0.kind == .time }.reduce(0.0) { $0 + engine.amount(for: $1, on: now, now: now) }
+            HeaderChip(systemImage: "checkmark.circle.fill", text: "\(summary.done) of \(summary.total) done", tint: .green)
+            HeaderChip(systemImage: "flame.fill", text: "Best streak \(engine.longestCurrentStreak(now: now))", tint: .orange)
+            if focus > 0 {
+                HeaderChip(systemImage: "timer", text: "\(Formatting.duration(focus)) focused", tint: .indigo)
+            }
         }
     }
+
 
     @ViewBuilder
     private func rings(size: CGFloat, lineWidth: CGFloat) -> some View {
@@ -275,6 +279,12 @@ struct FocusFilterBanner: View {
 
 /// First-run screen: a few one-click templates.
 struct WelcomeView: View {
+    #if os(macOS)
+    static let whereWidgetsLive = "on your desktop"
+    #else
+    static let whereWidgetsLive = "on your Home Screen"
+    #endif
+
     @Environment(GoalStore.self) private var store
 
     var body: some View {
@@ -282,7 +292,7 @@ struct WelcomeView: View {
             EmptyStateView(
                 systemImage: "sparkles",
                 title: "Show up for what matters",
-                message: "Momentum turns big intentions into small daily wins. Track focus time, habits, books, savings, or a project's milestones, and watch your streaks grow on your desktop."
+                message: "Momentum turns big intentions into small daily wins. Track focus time, habits, books, savings, or a project's milestones, and watch your streaks grow \(Self.whereWidgetsLive)."
             ) {
                 Button {
                     store.sheet = .newGoal
