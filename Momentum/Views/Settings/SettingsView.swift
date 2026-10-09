@@ -178,7 +178,7 @@ private struct DataSettings: View {
             Section("Storage") {
                 LabeledContent("Goals", value: "\(store.data.goals.count)")
                 LabeledContent("Entries", value: "\(store.data.entries.count)")
-                Text("Everything stays on this Mac, in Momentum's app group container. Nothing is sent anywhere.")
+                Text("Everything stays on this Mac, in Momentum's app group container. The only network request is a book search you type, sent to Open Library.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

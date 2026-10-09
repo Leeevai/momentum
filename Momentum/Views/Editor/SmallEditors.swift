@@ -163,6 +163,7 @@ struct LinkEditor: View {
             .padding(16)
         }
         .frame(width: 460, height: 330)
+        .background(AmbientBackground(primary: goal?.tint ?? .accentColor))
     }
 
     private func chooseFile() {
@@ -198,6 +199,10 @@ struct BookEditor: View {
     @State private var draft: Book
     @State private var pagesText: String
     @State private var linkText: String
+    @State private var query = ""
+    @State private var results: [BookSearchResult] = []
+    @State private var isSearching = false
+    @State private var searchError: String?
 
     init(goalID: UUID, book: Book?) {
         self.goalID = goalID
@@ -222,6 +227,21 @@ struct BookEditor: View {
             }
             .padding(20)
             Form {
+                Section {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        TextField("Find a book", text: $query, prompt: Text("Search Open Library by title or author"))
+                            .labelsHidden()
+                        if isSearching { ProgressView().controlSize(.small) }
+                    }
+                    ForEach(results.prefix(5)) { result in
+                        Button { apply(result) } label: { SearchResultRow(result: result) }
+                            .buttonStyle(.plain)
+                    }
+                    if let searchError {
+                        Text(searchError).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 TextField("Title", text: $draft.title)
                 TextField("Author", text: $draft.author)
                 TextField("Pages", text: $pagesText, prompt: Text("Optional, enables progress"))
@@ -256,8 +276,45 @@ struct BookEditor: View {
             }
             .padding(16)
         }
-        .frame(width: 480, height: 600)
+        .frame(width: 480, height: 640)
         .background(AmbientBackground(primary: goal?.tint ?? .accentColor))
+        .task(id: query) { await search() }
+    }
+
+    /// Searches after typing pauses, so each keystroke doesn't send a request.
+    private func search() async {
+        let text = query
+        guard OpenLibrary.searchURL(for: text) != nil else {
+            results = []
+            searchError = nil
+            return
+        }
+        try? await Task.sleep(for: .milliseconds(450))
+        guard !Task.isCancelled else { return }
+        isSearching = true
+        defer { isSearching = false }
+        do {
+            let found = try await OpenLibrary.search(text)
+            guard !Task.isCancelled else { return }
+            results = found
+            searchError = found.isEmpty ? "No books found for \"\(text)\"." : nil
+        } catch is CancellationError {
+            return
+        } catch {
+            if (error as? URLError)?.code == .cancelled { return }
+            results = []
+            searchError = "Couldn't reach Open Library. You can still fill the details in by hand."
+        }
+    }
+
+    private func apply(_ result: BookSearchResult) {
+        draft.title = result.title
+        draft.author = result.author
+        draft.coverURL = result.coverURL
+        pagesText = result.pages.map(String.init) ?? pagesText
+        linkText = result.link.absoluteString
+        results = []
+        query = ""
     }
 
     private func save() {
@@ -284,5 +341,30 @@ struct BookEditor: View {
             }
         }
         dismiss()
+    }
+}
+
+/// A catalog match: cover, title, author, year and length.
+private struct SearchResultRow: View {
+    let result: BookSearchResult
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            BookCover(book: result.makeBook(), tint: .accentColor, height: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(result.title).font(.callout.weight(.semibold)).lineLimit(1)
+                Text([result.author, result.year.map(String.init), result.pages.map { "\($0) pages" }].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "plus.circle.fill")
+                .foregroundStyle(isHovered ? Color.accentColor : Color.secondary)
+        }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
     }
 }

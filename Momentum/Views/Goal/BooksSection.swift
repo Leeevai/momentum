@@ -153,30 +153,47 @@ private struct BookRow: View {
     }
 }
 
-/// A generated cover: the title's initials on a gradient picked from the title.
+/// A book's cover: the catalog image when there is one, otherwise a generated cover with the
+/// title's initials on a color picked from the title.
 struct BookCover: View {
     let book: Book
     let tint: Color
     var height: CGFloat = 60
 
     var body: some View {
+        Group {
+            if let url = book.coverURL {
+                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        generated
+                    }
+                }
+            } else {
+                generated
+            }
+        }
+        .frame(width: height * 0.68, height: height)
+        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        .overlay(alignment: .leading) {
+            Rectangle().fill(.black.opacity(0.18)).frame(width: 3)
+        }
+        .shadow(color: .black.opacity(0.2), radius: 2, x: 1, y: 2)
+        .opacity(book.status == .abandoned ? 0.5 : 1)
+    }
+
+    private var generated: some View {
         let palette: [Color] = [.indigo, .teal, .orange, .pink, .purple, .brown, .blue, .green, .red, .mint]
         let seed = book.title.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
         let color = palette[seed % palette.count]
         let initials = book.title.split(separator: " ").prefix(2).compactMap(\.first).map(String.init).joined()
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
-            .fill(LinearGradient(colors: [color.blended(with: .white, by: 0.2), color.blended(with: .black, by: 0.25)], startPoint: .top, endPoint: .bottom))
-            .frame(width: height * 0.68, height: height)
-            .overlay(alignment: .leading) {
-                Rectangle().fill(.black.opacity(0.18)).frame(width: 3)
-            }
+        return LinearGradient(colors: [color.blended(with: .white, by: 0.2), color.blended(with: .black, by: 0.25)], startPoint: .top, endPoint: .bottom)
             .overlay {
                 Text(initials.uppercased())
                     .font(.system(size: height * 0.26, weight: .bold, design: .serif))
                     .foregroundStyle(.white.opacity(0.92))
             }
-            .shadow(color: .black.opacity(0.2), radius: 2, x: 1, y: 2)
-            .opacity(book.status == .abandoned ? 0.5 : 1)
     }
 }
 
