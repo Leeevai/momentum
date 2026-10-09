@@ -39,12 +39,15 @@ extension ProgressEngine {
         let goals = activeGoals.filter { !$0.isOnBreak(at: now) }
         let today = DayID(now, calendar: calendar)
         let journal = data.journalEntry(for: today)
+        // The hour rated sessions go best, from the last month: once known, it beats habit.
+        let monthBack = calendar.date(byAdding: .day, value: -30, to: now) ?? now
+        let flowHour = focusQualityReport(in: DateInterval(start: min(monthBack, now), end: now)).bestHour
 
         for goal in goals {
             if let tip = streakAtRisk(goal, hour: hour, now: now) { tips.append(tip) }
             if let tip = nextInStack(goal, now: now) { tips.append(tip) }
             if let tip = behindPace(goal, now: now) { tips.append(tip) }
-            if let tip = bestTime(goal, hour: hour, now: now) { tips.append(tip) }
+            if let tip = bestTime(goal, hour: hour, flowHour: flowHour, now: now) { tips.append(tip) }
             if let tip = targetAdjustment(goal, now: now) { tips.append(tip) }
             if let tip = neglected(goal, now: now) { tips.append(tip) }
             tips.append(contentsOf: almostFinishedBooks(goal))
@@ -96,12 +99,22 @@ extension ProgressEngine {
                         action: .open(goal.id), actionTitle: "Open", tone: .urgent, priority: 60)
     }
 
-    private func bestTime(_ goal: Goal, hour: Int, now: Date) -> CoachTip? {
-        guard goal.kind == .time, !isComplete(goal, now: now), isScheduled(goal, on: now),
-              let peak = peakHour(for: goal, now: now), hour == peak || hour == peak - 1 else { return nil }
-        let time = calendar.date(bySettingHour: peak, minute: 0, second: 0, of: now)?.formatted(date: .omitted, time: .shortened) ?? "\(peak):00"
+    /// Suggests a time goal in the hour the user's sessions go best (from their ratings), or,
+    /// before there are enough ratings, the hour they usually work on it.
+    private func bestTime(_ goal: Goal, hour: Int, flowHour: Int?, now: Date) -> CoachTip? {
+        guard goal.kind == .time, !isComplete(goal, now: now), isScheduled(goal, on: now), !isRunning(goal) else { return nil }
+        func timeText(_ peak: Int) -> String {
+            calendar.date(bySettingHour: peak, minute: 0, second: 0, of: now)?.formatted(date: .omitted, time: .shortened) ?? "\(peak):00"
+        }
+        if let flowHour {
+            guard hour == flowHour || hour == flowHour - 1 else { return nil }
+            return CoachTip(id: "flow-\(goal.id)", goalID: goal.id, symbol: "water.waves", title: "Your best focus hour",
+                            message: "Your sessions go best around \(timeText(flowHour)). A good time for \(goal.name).",
+                            action: .startFocus(goal.id), actionTitle: "Start", tone: .positive, priority: 50)
+        }
+        guard let peak = peakHour(for: goal, now: now), hour == peak || hour == peak - 1 else { return nil }
         return CoachTip(id: "time-\(goal.id)", goalID: goal.id, symbol: "clock.fill", title: "Your \(goal.name) hour",
-                        message: "You usually focus on \(goal.name) around \(time). Now is a good time.",
+                        message: "You usually focus on \(goal.name) around \(timeText(peak)). Now is a good time.",
                         action: .startFocus(goal.id), actionTitle: "Start", tone: .positive, priority: 50)
     }
 

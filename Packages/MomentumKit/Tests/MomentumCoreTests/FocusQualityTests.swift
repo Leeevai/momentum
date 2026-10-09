@@ -66,3 +66,19 @@ struct FocusQualityTests {
         #expect(future.amount == 600)
     }
 }
+
+@Suite("Focus quality coaching")
+struct FocusQualityCoachTests {
+    @Test("Once sessions are rated, the coach suggests the hour they go best")
+    func flowHourTip() {
+        let goal = timeGoal(target: 7200)
+        var data = AppData(goals: [goal])
+        for day in -10 ... -1 {
+            data.entries.append(LogEntry(goalID: goal.id, date: dayOffset(day, hour: 9), amount: 2700, source: .timer, quality: .flow))
+            data.entries.append(LogEntry(goalID: goal.id, date: dayOffset(day, hour: 16), amount: 2700, source: .timer, quality: .scattered))
+        }
+        let tips = engine(data).coachTips(now: dayOffset(0, hour: 8), limit: 10)
+        #expect(tips.contains { $0.id == "flow-\(goal.id)" })
+        #expect(!engine(data).coachTips(now: dayOffset(0, hour: 13), limit: 10).contains { $0.id == "flow-\(goal.id)" })
+    }
+}
