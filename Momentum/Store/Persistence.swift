@@ -6,8 +6,9 @@ protocol DataPersistence: AnyObject {
     /// The stored data and the file's date as it was read.
     func load() -> FileStore.Snapshot
     /// Applies a change to the latest stored data; returns the data before and after, and the
-    /// file's date after the write, read inside the same coordinated access.
-    func update(_ change: (inout AppData) -> Void) -> FileStore.Transform
+    /// file's date after the write, read inside the same coordinated access. `stamping` off is
+    /// for merges, which carry their own change stamps.
+    func update(stamping: Bool, _ change: (inout AppData) -> Void) -> FileStore.Transform
     func replace(with data: AppData) -> FileStore.Snapshot
     /// The folder to watch for changes made by other processes (the widgets), if any.
     var watchedDirectory: URL? { get }
@@ -22,7 +23,9 @@ protocol DataPersistence: AnyObject {
 final class SharedFilePersistence: DataPersistence {
     func load() -> FileStore.Snapshot { SharedStore.fileStore.loadSnapshot() }
 
-    func update(_ change: (inout AppData) -> Void) -> FileStore.Transform { SharedStore.transform(change) }
+    func update(stamping: Bool, _ change: (inout AppData) -> Void) -> FileStore.Transform {
+        SharedStore.transform(stamping: stamping, change)
+    }
 
     func replace(with data: AppData) -> FileStore.Snapshot {
         let snapshot = SharedStore.fileStore.replace(with: data)
@@ -46,7 +49,7 @@ final class InMemoryPersistence: DataPersistence {
 
     func load() -> FileStore.Snapshot { FileStore.Snapshot(data: data, modification: nil) }
 
-    func update(_ change: (inout AppData) -> Void) -> FileStore.Transform {
+    func update(stamping: Bool, _ change: (inout AppData) -> Void) -> FileStore.Transform {
         let before = data
         change(&data)
         return FileStore.Transform(before: before, after: data, modification: nil)
@@ -64,4 +67,10 @@ final class InMemoryPersistence: DataPersistence {
     func dailyBackups() -> [URL] { [] }
 
     func modificationDate() -> Date? { nil }
+}
+
+extension DataPersistence {
+    func update(_ change: (inout AppData) -> Void) -> FileStore.Transform {
+        update(stamping: true, change)
+    }
 }

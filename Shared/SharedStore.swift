@@ -27,8 +27,8 @@ enum SharedStore {
 
     /// Like `update`, also returning the data before the change and the file's new date.
     @discardableResult
-    static func transform(_ change: (inout AppData) -> Void) -> FileStore.Transform {
-        let result = fileStore.transform(change)
+    static func transform(stamping: Bool = true, _ change: (inout AppData) -> Void) -> FileStore.Transform {
+        let result = fileStore.transform(stamping: stamping, change)
         if result.before != result.after { reloadWidgets() }
         return result
     }

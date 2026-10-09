@@ -90,6 +90,8 @@ final class GoalStore {
     @ObservationIgnored weak var undoManager: UndoManager?
 
     @ObservationIgnored let effects: SideEffects
+    /// Syncing through a shared folder; nil for previews.
+    @ObservationIgnored private(set) var sync: FolderSync?
     @ObservationIgnored private let persistence: DataPersistence
     @ObservationIgnored private var watcher: DispatchSourceFileSystemObject?
     @ObservationIgnored private var dayTimer: Timer?
@@ -118,9 +120,13 @@ final class GoalStore {
         advancePomodoro()
         schedulePomodoro()
         recordAchievements()
+        if persistence.watchedDirectory != nil { sync = FolderSync(store: self) }
         persistence.backUpDaily()
         observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in self?.reload() }
+            Task { @MainActor in
+                self?.reload()
+                self?.sync?.pull()
+            }
         })
     }
 
@@ -157,6 +163,17 @@ final class GoalStore {
         let snapshot = persistence.load()
         knownModification = snapshot.modification
         apply(snapshot.data, userInitiated: false)
+    }
+
+    /// Merges copies of the data from other devices. Not undoable: it brings in what happened
+    /// elsewhere rather than doing something here.
+    func merge(_ remotes: [AppData]) {
+        guard !remotes.isEmpty else { return }
+        let result = persistence.update(stamping: false) { data in
+            for remote in remotes { data = SyncMerge.merge(data, remote) }
+        }
+        knownModification = result.modification
+        apply(result.after, userInitiated: false)
     }
 
     /// Replaces all data, e.g. from an import. The previous file is kept as a backup.
@@ -199,6 +216,7 @@ final class GoalStore {
         effects.dataDidChange(from: previousData, to: newData, engine: engine)
         if userInitiated { celebrateNewCompletions(from: previousData, to: newData) }
         if case .goal(let id) = route, newData.goal(id) == nil { route = .today }
+        sync?.localDataDidChange()
         if previousData.session != newData.session || previousData.rest != newData.rest
             || previousData.preferences.pomodoro != newData.preferences.pomodoro {
             schedulePomodoro()

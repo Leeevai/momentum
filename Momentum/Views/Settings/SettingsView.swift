@@ -13,6 +13,8 @@ struct SettingsView: View {
                 .tabItem { Label("Focus", systemImage: "timer") }
             NotificationSettings()
                 .tabItem { Label("Notifications", systemImage: "bell.badge") }
+            SyncSettings()
+                .tabItem { Label("Sync", systemImage: "arrow.triangle.2.circlepath.icloud") }
             DataSettings()
                 .tabItem { Label("Data", systemImage: "externaldrive") }
             AboutSettings()
@@ -119,6 +121,82 @@ private struct FocusSettings: View {
 
     private func pomodoroBinding<Value>(_ keyPath: WritableKeyPath<PomodoroSettings, Value>, _ settings: PomodoroSettings) -> Binding<Value> {
         Binding(get: { settings[keyPath: keyPath] }, set: { value in store.updatePreferences { $0.pomodoro[keyPath: keyPath] = value } })
+    }
+}
+
+private struct SyncSettings: View {
+    @Environment(GoalStore.self) private var store
+
+    var body: some View {
+        Form {
+            if let sync = store.sync {
+                Section {
+                    HStack(spacing: 14) {
+                        Image(systemName: sync.isEnabled ? "checkmark.icloud.fill" : "icloud.slash")
+                            .font(.system(size: 30))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(sync.isEnabled ? Color.accentColor : .secondary)
+                            .contentTransition(.symbolEffect(.replace))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(sync.isEnabled ? "Syncing" : "Not syncing")
+                                .font(.headline)
+                            if let folder = sync.folder {
+                                Text(folder.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            } else {
+                                Text("Pick a folder in iCloud Drive, or any folder your devices share.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                    }
+                    HStack {
+                        Button(sync.isEnabled ? "Change Folder…" : "Choose Folder…") { sync.chooseFolder() }
+                        if sync.isEnabled {
+                            Button("Sync Now") { sync.syncNow() }
+                            Spacer()
+                            Button("Stop Syncing", role: .destructive) { sync.stop() }
+                        }
+                    }
+                    if let error = sync.lastError {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    } else if let last = sync.lastSync {
+                        Text("Last synced \(last.formatted(.relative(presentation: .named)))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if sync.isEnabled {
+                    Section("Other devices") {
+                        if sync.peers.isEmpty {
+                            Text("None yet. Choose the same folder on your other devices.")
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(sync.peers) { peer in
+                            HStack {
+                                Label(peer.name, systemImage: peer.platform == "iOS" ? "iphone" : "laptopcomputer")
+                                Spacer()
+                                Text(peer.savedAt.formatted(.relative(presentation: .named)))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                Section {
+                    Text("Each device keeps its own file in the folder and merges the others' into its data: the latest change to each goal wins, and progress logged anywhere adds up. Nothing leaves your devices and the folder's service.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 460)
     }
 }
 
