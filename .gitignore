@@ -1,0 +1,17 @@
+# Xcode
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/MomentumKit/Package.resolved
+
+# Local signing overrides (see Config/Local.xcconfig.example)
+Config/Local.xcconfig
+
+# macOS
+.DS_Store
