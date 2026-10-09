@@ -123,15 +123,20 @@ and no sync service has a conflict to resolve.
   anything deleted. Entries that were only ever added need no stamp.
 - **Merging is record by record.** `SyncMerge.merge` takes the latest change to each record,
   keeps deletions unless the record changed again afterwards, unions the entries, and keeps each
-  achievement's earliest date. Ties break on the records' content, so the merge is commutative and
-  idempotent: devices converge whatever order they sync in. A randomized three-device test checks it.
+  achievement's earliest date. Ties break on the records' content, so the merge is commutative,
+  associative and idempotent: devices converge whatever order they sync in, and however the
+  merges are grouped. A randomized three-device test checks all three.
+- **The merge only picks records; it never judges them.** Anything that depends on several
+  records at once would break that guarantee, so it happens elsewhere. The goal order is a list
+  of its own, last arranged wins, with goals it doesn't mention after it in a fixed order.
+  Entries for a goal deleted elsewhere stay in the file and count for nothing (the engine skips
+  them), so they come back if the goal does.
 - **Merges keep their stamps.** A merge is written with stamping off, so a change keeps the time
   it was really made and can't outrank a newer one from a third device.
-- **The timer is about sessions, not just stamps.** Each copy remembers which sessions it saw
-  end. No session beats a running one only where that session ended after it last changed
-  elsewhere; of two different sessions, the later one wins; a running session ends any break.
-  Entries a session logs have ids derived from the session, so two devices stopping the same
-  session log it once.
+- **The timer.** The running session and the break each take the latest change. What only a
+  merge can produce, a timer on a deleted goal or a session alongside a break, is settled by the
+  app afterwards (`settleTimer`) as a change of its own, which then syncs out. Entries a session
+  logs have ids derived from the session, so two devices stopping the same session log it once.
 - **When.** A device writes its file a moment after each change, and merges others' files when
   the folder changes, every minute, when the app comes forward, and before a Lock Screen or
   widget button acts.
