@@ -48,7 +48,10 @@ struct MomentumMobileApp: App {
             case "journal": store.route = .journal
             case "insights": store.route = .insights
             case "awards": store.route = .awards
-            case "goal": if let first = data.goals.first { store.route = .goal(first.id) }
+            case "goal":
+                // MOMENTUM_GOAL picks one by name; the first goal otherwise.
+                let named = data.goals.first { $0.name == environment["MOMENTUM_GOAL"] } ?? data.goals.first
+                if let named { store.route = .goal(named.id) }
             default: break
             }
             switch environment["MOMENTUM_SHEET"] {

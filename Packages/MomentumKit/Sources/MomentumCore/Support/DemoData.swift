@@ -123,8 +123,9 @@ extension AppData {
         }
         data.entries.sort { $0.date < $1.date }
 
-        // Habit stack: Spanish right after meditating.
+        // Habit stack: Spanish right after meditating, on day 19 of a 30-day challenge.
         data.goals[3].stackAfter = meditate.id
+        data.goals[3].challenge = Challenge(start: DayID(day(-18), calendar: calendar), days: 30)
 
         // Journal: most evenings rated, with better moods on better days; plans on most mornings.
         let engine = ProgressEngine(data: data, calendar: calendar)
