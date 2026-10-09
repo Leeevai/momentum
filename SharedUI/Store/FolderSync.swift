@@ -226,6 +226,9 @@ final class FolderSync {
         guard let folder, !isSyncing else { return }
         let source = SyncFolder(url: folder, deviceID: Self.deviceID)
         let known = peerDates
+        // With nothing here yet (a new device, a reinstall) no deletion can be undone, so even a
+        // folder untouched for months is read.
+        let includeStale = store.map { $0.data.goals.isEmpty && $0.data.entries.isEmpty && $0.data.sync.tombstones.isEmpty } ?? false
         isSyncing = true
         Task { [weak self] in
             // Only files changed since they were last read are read; a file that couldn't be
@@ -239,7 +242,7 @@ final class FolderSync {
                         dates[name] = file.modified
                         continue
                     }
-                    switch source.read(file.url) {
+                    switch source.read(file.url, includeStale: includeStale) {
                     case .read(let envelope):
                         envelopes.append(envelope)
                         dates[name] = file.modified

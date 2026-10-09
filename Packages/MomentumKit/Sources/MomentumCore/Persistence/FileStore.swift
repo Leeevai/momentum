@@ -143,9 +143,16 @@ public final class FileStore: Sendable {
     public func dailyBackups() throws -> [URL] {
         let manager = FileManager.default
         guard manager.fileExists(atPath: backupsDirectory.path) else { return [] }
-        return try manager.contentsOfDirectory(at: backupsDirectory, includingPropertiesForKeys: nil)
+        // By the file's date, not its name: names from before 2.0 followed the device's calendar,
+        // and a Buddhist-calendar year (2569) would sort above every new one.
+        func modified(_ url: URL) -> Date {
+            (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+        }
+        return try manager.contentsOfDirectory(at: backupsDirectory, includingPropertiesForKeys: [.contentModificationDateKey])
             .filter { $0.lastPathComponent.hasPrefix("data-") && $0.pathExtension == "json" }
-            .sorted { $0.lastPathComponent > $1.lastPathComponent }
+            .map { ($0, modified($0)) }
+            .sorted { ($0.1, $0.0.lastPathComponent) > ($1.1, $1.0.lastPathComponent) }
+            .map(\.0)
     }
 
     // MARK: - Encoding

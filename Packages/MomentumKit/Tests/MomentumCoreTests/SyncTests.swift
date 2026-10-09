@@ -151,13 +151,23 @@ struct SyncMergeTests {
     func convergence(seed: UInt64) {
         var random = SeededRandom(seed: seed)
         let goals = (0..<3).map { index in Goal(name: "G\(index)", kind: .count, target: 2) }
+            + [Goal(name: "Focus A", kind: .time, target: 3600), Goal(name: "Focus B", kind: .time, target: 3600)]
         var devices = Array(repeating: Device(data: AppData(goals: goals)), count: 3)
         var clock = 0.0
         for _ in 0..<120 {
             clock += 1
             let index = random.next(upTo: 3)
             let time = at(clock)
-            switch random.next(upTo: 9) {
+            switch random.next(upTo: 12) {
+            case 9:
+                let timeGoals = devices[index].data.goals.filter { $0.kind == .time }
+                if let goal = timeGoals.randomElement(using: &random) {
+                    devices[index].change(at: time) { $0.startFocus(on: goal.id, at: time) }
+                }
+            case 10:
+                devices[index].change(at: time) { $0.stopFocus(at: time) }
+            case 11:
+                devices[index].change(at: time) { $0.togglePauseFocus(at: time) }
             case 0, 1, 2:
                 if let goal = devices[index].data.goals.randomElement(using: &random) {
                     devices[index].change(at: time) { $0.log(1, for: goal.id, at: time) }

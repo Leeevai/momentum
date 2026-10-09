@@ -12,11 +12,18 @@ public struct SyncState: Codable, Equatable, Sendable {
     public var stamps: [String: Date]
     /// Record key -> when it was deleted.
     public var tombstones: [String: Date]
+    /// The starts of the last sessions this data saw end, so a merge can tell "that session was
+    /// stopped" from "this device never saw that session": only the first lets no session win.
+    public var endedSessions: [Date]
 
-    public init(stamps: [String: Date] = [:], tombstones: [String: Date] = [:]) {
+    public init(stamps: [String: Date] = [:], tombstones: [String: Date] = [:], endedSessions: [Date] = []) {
         self.stamps = stamps
         self.tombstones = tombstones
+        self.endedSessions = endedSessions
     }
+
+    /// How many ended sessions are remembered.
+    public static let endedSessionLimit = 50
 
     /// Deletions are remembered this long, so a device that was away for months still learns of
     /// them; after that, a copy that never heard of one could bring the record back.
@@ -43,12 +50,13 @@ public struct SyncState: Codable, Equatable, Sendable {
         return deleted >= date
     }
 
-    private enum CodingKeys: String, CodingKey { case stamps, tombstones }
+    private enum CodingKeys: String, CodingKey { case stamps, tombstones, endedSessions }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         stamps = try c.decode(.stamps, default: [:])
         tombstones = try c.decode(.tombstones, default: [:])
+        endedSessions = try c.decode(.endedSessions, default: [])
     }
 }
 
@@ -83,8 +91,11 @@ public enum SyncStamper {
                 let key = SyncState.entry(id)
                 if let previous = old[id] {
                     if previous != entry { changed(key) }
-                } else if sync.tombstones[key] != nil {
+                } else if sync.tombstones[key] != nil || entry.source == .timer {
                     // Back after a delete (an undo): stamp it, so it outranks its own tombstone.
+                    // A timer entry's id is the same on every device that stops the session, so
+                    // another device may hold a tombstone for it (stopped there, then undone):
+                    // stamping it now keeps this later stop from losing to that older delete.
                     changed(key)
                 }
             }
@@ -99,6 +110,9 @@ public enum SyncStamper {
         }
 
         if before.session != after.session { sync.stamps[SyncState.session] = now }
+        if let ended = before.session, after.session.map({ !$0.isSameSession(as: ended) }) ?? true {
+            sync.endedSessions = Array((sync.endedSessions + [ended.startedAt]).uniqued().suffix(SyncState.endedSessionLimit))
+        }
         if before.rest != after.rest { sync.stamps[SyncState.rest] = now }
         if before.preferences != after.preferences { sync.stamps[SyncState.preferences] = now }
 

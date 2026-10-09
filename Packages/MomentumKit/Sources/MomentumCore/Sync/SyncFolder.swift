@@ -90,8 +90,9 @@ public struct SyncFolder: Sendable {
         case unreadable
     }
 
-    /// Reads one device's file.
-    public func read(_ file: URL, now: Date = .now) -> PeerRead {
+    /// Reads one device's file. `includeStale` reads a long-unsaved file too, which is safe when
+    /// this device has nothing it could have deleted (a fresh install).
+    public func read(_ file: URL, now: Date = .now, includeStale: Bool = false) -> PeerRead {
         var envelope: SyncEnvelope?
         var coordinationError: NSError?
         NSFileCoordinator().coordinate(readingItemAt: file, options: [], error: &coordinationError) { source in
@@ -102,13 +103,14 @@ public struct SyncFolder: Sendable {
             }
         }
         guard let envelope else { return .unreadable }
-        return now.timeIntervalSince(envelope.savedAt) < SyncState.peerLifetime ? .read(envelope) : .stale
+        return includeStale || now.timeIntervalSince(envelope.savedAt) < SyncState.peerLifetime ? .read(envelope) : .stale
     }
 
-    /// Reads the other devices' copies, leaving out stale and unreadable files.
-    public func readPeers(now: Date = .now) -> [SyncEnvelope] {
+    /// Reads the other devices' copies, leaving out unreadable files and, unless `includeStale`,
+    /// stale ones.
+    public func readPeers(now: Date = .now, includeStale: Bool = false) -> [SyncEnvelope] {
         peerFiles().compactMap { file in
-            if case .read(let envelope) = read(file.url, now: now) { return envelope }
+            if case .read(let envelope) = read(file.url, now: now, includeStale: includeStale) { return envelope }
             return nil
         }
     }

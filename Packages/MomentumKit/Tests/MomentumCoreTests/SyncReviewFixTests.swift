@@ -196,4 +196,112 @@ struct SyncReviewFixTests {
         let written = try #require(store.backUpDaily(now: referenceNow, calendar: japanese))
         #expect(written.lastPathComponent == "data-2026-10-08.json")
     }
+
+    // MARK: - Second review
+
+    private func stamped(_ data: inout AppData, at seconds: Double, _ change: (inout AppData) -> Void) {
+        let before = data
+        change(&data)
+        SyncStamper.stamp(&data, from: before, at: referenceNow.addingTimeInterval(seconds))
+    }
+
+    @Test("Any date survives a save to the last bit")
+    func everyDateExact() throws {
+        var generator = SeededRandom(seed: 7)
+        let dates = (0..<2000).map { _ in Date(timeIntervalSinceReferenceDate: Double(generator.next(upTo: 1_000_000_000)) + Double(generator.next(upTo: 1_000_000)) / 1_000_003) }
+            + (0..<200).map { _ in Date.now }
+        let entries = dates.map { LogEntry(goalID: UUID(), date: $0, amount: 1) }
+        let data = AppData(entries: entries)
+        let back = try FileStore.decode(FileStore.encode(data))
+        #expect(back.entries.map(\.date) == dates)
+    }
+
+    @Test("A stop undone on one device doesn't erase the same session's stop on another")
+    func undoneStopKeepsOtherStop() {
+        let goal = timeGoal(minutes: nil)
+        var shared = AppData(goals: [goal])
+        stamped(&shared, at: 0) { $0.startFocus(on: goal.id, at: referenceNow, calendar: testCalendar) }
+        var mac = shared
+        var phone = shared
+        let beforeStop = mac
+        stamped(&mac, at: 600) { $0.stopFocus(at: referenceNow.addingTimeInterval(600), calendar: testCalendar) }
+        let afterStop = mac
+        stamped(&mac, at: 620) { DataPatch(from: beforeStop, to: afterStop).undo(on: &$0) }
+        stamped(&phone, at: 1800) { $0.stopFocus(at: referenceNow.addingTimeInterval(1800), calendar: testCalendar) }
+        let merged = SyncMerge.merge(mac, phone)
+        #expect(merged.session == nil)
+        #expect(merged.entries.map(\.amount) == [1800.0])
+        #expect(SyncMerge.merge(phone, mac).entries.map(\.amount) == [1800.0])
+    }
+
+    @Test("Skipping a break on one device doesn't drop a session started on another")
+    func skipBreakKeepsSession() {
+        let first = timeGoal()
+        let second = Goal(name: "Spanish", kind: .time, target: 900)
+        var shared = AppData(goals: [first, second])
+        shared.preferences.pomodoro.isEnabled = true
+        stamped(&shared, at: 0) { $0.toggleFocus(on: first.id, at: referenceNow, calendar: testCalendar) }
+        stamped(&shared, at: 1500) { $0.advancePomodoro(at: referenceNow.addingTimeInterval(1500), calendar: testCalendar) }
+        var mac = shared
+        var phone = shared
+        stamped(&mac, at: 1600) { $0.startFocus(on: second.id, at: referenceNow.addingTimeInterval(1600), calendar: testCalendar) }
+        stamped(&phone, at: 1700) { $0.endRest() }
+        #expect(SyncMerge.merge(mac, phone).session?.goalID == second.id)
+        #expect(SyncMerge.merge(phone, mac).session?.goalID == second.id)
+        #expect(SyncMerge.merge(mac, phone).rest == nil)
+    }
+
+    @Test("A session resumed by undo survives a device that saw it stop earlier")
+    func resumedSessionSurvives() {
+        let goal = timeGoal(minutes: nil)
+        var mac = AppData(goals: [goal])
+        stamped(&mac, at: 0) { $0.startFocus(on: goal.id, at: referenceNow, calendar: testCalendar) }
+        let beforeStop = mac
+        stamped(&mac, at: 600) { $0.stopFocus(at: referenceNow.addingTimeInterval(600), calendar: testCalendar) }
+        let phone = mac
+        let afterStop = mac
+        stamped(&mac, at: 650) { DataPatch(from: beforeStop, to: afterStop).undo(on: &$0) }
+        #expect(SyncMerge.merge(mac, phone).session?.goalID == goal.id)
+        #expect(SyncMerge.merge(phone, mac).session?.goalID == goal.id)
+    }
+
+    @Test("Backups are pruned by date, so old names in another calendar can't crowd out new ones")
+    func backupsPrunedByDate() throws {
+        let dir = try folder()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = FileStore(fileURL: dir.appendingPathComponent("data.json"))
+        store.update { $0.upsert(checkInGoal()) }
+        try FileManager.default.createDirectory(at: store.backupsDirectory, withIntermediateDirectories: true)
+        for day in 1...14 {
+            let url = store.backupsDirectory.appendingPathComponent(String(format: "data-2569-09-%02d.json", day))
+            try Data("{}".utf8).write(to: url)
+            try FileManager.default.setAttributes([.modificationDate: date(2026, 9, day)], ofItemAtPath: url.path)
+        }
+        store.backUpDaily(now: referenceNow, calendar: testCalendar)
+        let names = try store.dailyBackups().map(\.lastPathComponent)
+        #expect(names.first == "data-2026-10-08.json")
+        #expect(names.count == 14)
+        #expect(!names.contains("data-2569-09-01.json"))
+    }
+
+    @Test("A fresh install can read a sync folder untouched for months")
+    func staleReadableWhenAsked() throws {
+        let dir = try folder()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try SyncFolder(url: dir, deviceID: "old").write(SyncEnvelope(deviceID: "old", deviceName: "Old", platform: "iOS",
+            savedAt: referenceNow.addingTimeInterval(-200 * 86_400), data: AppData(goals: [checkInGoal()])))
+        let fresh = SyncFolder(url: dir, deviceID: "new")
+        #expect(fresh.readPeers(now: referenceNow).isEmpty)
+        #expect(fresh.readPeers(now: referenceNow, includeStale: true).count == 1)
+    }
+
+    @Test("Timer entry ids are well-formed version 4 UUIDs")
+    func timerIDsAreUUIDs() {
+        for seconds in stride(from: 0.0, to: 50_000, by: 997) {
+            let id = AppData.timerEntryID(goal: UUID(), sessionStart: referenceNow.addingTimeInterval(seconds), day: referenceNow).uuidString
+            let characters = Array(id)
+            #expect(characters[14] == "4")
+            #expect("89AB".contains(characters[19]))
+        }
+    }
 }

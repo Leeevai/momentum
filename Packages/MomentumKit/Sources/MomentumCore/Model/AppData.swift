@@ -80,6 +80,11 @@ public struct FocusSession: Codable, Hashable, Sendable {
 
     public var isRunning: Bool { runningSince != nil }
 
+    /// Whether `other` is this session, paused or resumed since: the same goal, started at the same moment.
+    public func isSameSession(as other: FocusSession) -> Bool {
+        goalID == other.goalID && startedAt == other.startedAt
+    }
+
     public var startedAt: Date {
         segments.first?.start ?? runningSince ?? .distantPast
     }

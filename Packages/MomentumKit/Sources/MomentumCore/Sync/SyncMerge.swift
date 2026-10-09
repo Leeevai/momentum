@@ -72,21 +72,15 @@ public enum SyncMerge {
         }
 
         // Single values.
-        // The session and the break are one timer: both come from the side that touched it last,
-        // so a session started on one device can't run alongside a break begun on another.
-        let localTimer = max(local.sync.stamp(SyncState.session), local.sync.stamp(SyncState.rest))
-        let remoteTimer = max(remote.sync.stamp(SyncState.session), remote.sync.stamp(SyncState.rest))
-        let timer: (session: FocusSession?, rest: RestPeriod?)
-        if localTimer > remoteTimer || (local.session == remote.session && local.rest == remote.rest) {
-            timer = (local.session, local.rest)
-        } else if remoteTimer > localTimer {
-            timer = (remote.session, remote.rest)
-        } else {
-            let pick = tieBreak(TimerPair(session: local.session, rest: local.rest), TimerPair(session: remote.session, rest: remote.rest))
-            timer = (pick.session, pick.rest)
-        }
-        merged.session = timer.session.flatMap { goalIDs.contains($0.goalID) ? $0 : nil }
-        merged.rest = timer.rest.flatMap { goalIDs.contains($0.goalID) ? $0 : nil }
+        // The session: the same session on both sides takes its latest state; no session wins
+        // over a session only where that session was seen to end; of two different sessions the
+        // later one wins, since starting it ended the other there. A running session then
+        // supersedes a break, as starting one always ends the break.
+        merged.session = mergeSession(local, remote).flatMap { goalIDs.contains($0.goalID) ? $0 : nil }
+        merged.rest = single(local.rest, remote.rest, key: SyncState.rest, local.sync, remote.sync)
+            .flatMap { goalIDs.contains($0.goalID) ? $0 : nil }
+        if merged.session != nil { merged.rest = nil }
+        sync.endedSessions = Array(Set(local.sync.endedSessions + remote.sync.endedSessions).sorted().suffix(SyncState.endedSessionLimit))
         merged.preferences = single(local.preferences, remote.preferences, key: SyncState.preferences, local.sync, remote.sync) ?? local.preferences
 
         // Achievements stay earned, at the earliest date either side earned them.
@@ -102,9 +96,28 @@ public enum SyncMerge {
         return merged
     }
 
-    private struct TimerPair: Codable {
-        var session: FocusSession?
-        var rest: RestPeriod?
+    /// Whether `ender` saw `session` end, after the other side last changed it: a stop that
+    /// happened before a resume (an undo, say) mustn't stop it again.
+    private static func endedLater(_ session: FocusSession, by ender: AppData, than holder: AppData) -> Bool {
+        ender.sync.endedSessions.contains(session.startedAt)
+            && ender.sync.stamp(SyncState.session) >= holder.sync.stamp(SyncState.session)
+    }
+
+    private static func mergeSession(_ local: AppData, _ remote: AppData) -> FocusSession? {
+        switch (local.session, remote.session) {
+        case (nil, nil):
+            return nil
+        case (let only?, nil):
+            return endedLater(only, by: remote, than: local) ? nil : only
+        case (nil, let only?):
+            return endedLater(only, by: local, than: remote) ? nil : only
+        case (let a?, let b?):
+            if a.isSameSession(as: b) {
+                return single(a, b, key: SyncState.session, local.sync, remote.sync)
+            }
+            if a.startedAt != b.startedAt { return a.startedAt > b.startedAt ? a : b }
+            return tieBreak(a, b)
+        }
     }
 
     /// The side whose single value changed last; nil values (no session) count as values.

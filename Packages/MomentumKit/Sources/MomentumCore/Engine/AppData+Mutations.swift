@@ -204,7 +204,8 @@ extension AppData {
         // Mark it a version 4, RFC 4122 UUID like any other.
         var head = first
         head = (head & ~(0xF000 as UInt64)) | 0x4000
-        second = (second & ~(0xC0 as UInt64)) | 0x80
+        // Byte 8, the top byte of the second half once stored big-endian, holds the variant.
+        second = (second & ~(UInt64(0xC0) << 56)) | (UInt64(0x80) << 56)
         var raw = (head.bigEndian, second.bigEndian)
         return withUnsafeBytes(of: &raw) { pointer in
             let b = Array(pointer)
