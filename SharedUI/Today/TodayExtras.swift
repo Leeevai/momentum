@@ -9,20 +9,20 @@ struct CoachStrip: View {
     let tips: [CoachTip]
 
     var body: some View {
+        // Not a glass container: cards that close would blend into one slab of glass.
         ScrollView(.horizontal) {
-            GlassGroup(spacing: 14) {
-                HStack(alignment: .top, spacing: 14) {
-                    ForEach(tips) { tip in
-                        CoachCard(tip: tip)
-                            .transition(.asymmetric(insertion: .scale(scale: 0.92).combined(with: .opacity),
-                                                    removal: .scale(scale: 0.85).combined(with: .opacity)))
-                    }
+            HStack(alignment: .top, spacing: 14) {
+                ForEach(tips) { tip in
+                    CoachCard(tip: tip)
+                        .transition(.asymmetric(insertion: .scale(scale: 0.92).combined(with: .opacity),
+                                                removal: .scale(scale: 0.85).combined(with: .opacity)))
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 2)
             }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 2)
         }
         .scrollIndicators(.never)
+        .scrollClipDisabled()
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: tips.map(\.id))
     }
 }

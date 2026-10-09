@@ -1,7 +1,11 @@
-import AppKit
 import MomentumCore
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// Log an amount at a chosen time, with a note: forgotten sessions, past workouts, words written.
 /// With an existing entry, edits it instead.
@@ -105,7 +109,7 @@ struct LogProgressSheet: View {
             }
             .padding(16)
         }
-        .frame(width: 440, height: 400)
+        .sheetFrame(width: 440, height: 400)
         .background(LivingBackdrop(primary: goal.tint))
     }
 
@@ -168,11 +172,13 @@ struct LinkEditor: View {
                 .padding(20)
             Form {
                 TextField("Address", text: $address, prompt: Text("https://…, notion://…, or a file"))
+                #if os(macOS)
                 HStack {
                     Spacer()
                     Button("Choose File or Folder…", action: chooseFile)
                         .controlSize(.small)
                 }
+                #endif
                 TextField("Title", text: $title, prompt: Text(url.map { GoalLink(title: "", url: $0).displayTitle } ?? "Optional"))
                 if goal?.kind == .time {
                     Toggle("Open when a focus session starts", isOn: $opensWithFocus)
@@ -191,10 +197,11 @@ struct LinkEditor: View {
             }
             .padding(16)
         }
-        .frame(width: 460, height: 330)
+        .sheetFrame(width: 460, height: 330)
         .background(LivingBackdrop(primary: goal?.tint ?? .accentColor))
     }
 
+    #if os(macOS)
     private func chooseFile() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
@@ -207,6 +214,7 @@ struct LinkEditor: View {
         bookmarkPath = picked.path(percentEncoded: false)
         if title.isEmpty { title = picked.lastPathComponent }
     }
+    #endif
 
     private func save() {
         guard let url else { return }
@@ -307,7 +315,7 @@ struct BookEditor: View {
             }
             .padding(16)
         }
-        .frame(width: 480, height: 640)
+        .sheetFrame(width: 480, height: 640)
         .background(LivingBackdrop(primary: goal?.tint ?? .accentColor))
         .task(id: query) { await search() }
     }

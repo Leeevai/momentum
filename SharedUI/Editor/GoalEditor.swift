@@ -52,7 +52,7 @@ struct GoalEditor: View {
             .scrollContentBackground(.hidden)
             footer
         }
-        .frame(width: 580, height: 720)
+        .sheetFrame(width: 580, height: 720)
         .background(LivingBackdrop(primary: draft.tint, secondary: draft.color.highlight))
         .onChange(of: draft.kind) { old, kind in
             guard isNew, old != kind else { return }

@@ -61,7 +61,7 @@ struct PlanSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 560)
+        .sheetFrame(width: 560)
         .onAppear {
             let entry = store.data.journalEntry(for: day)
             intention = entry?.intention ?? ""
@@ -197,7 +197,7 @@ struct ReflectSheet: View {
             }
         }
         .padding(26)
-        .frame(width: 520)
+        .sheetFrame(width: 520)
         .onAppear {
             let entry = store.data.journalEntry(for: day)
             mood = entry?.mood

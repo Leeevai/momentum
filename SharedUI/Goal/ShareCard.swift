@@ -1,7 +1,11 @@
-import AppKit
 import MomentumCore
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// A self-contained image of a goal's progress: ring, streak, key numbers and history.
 /// Pure SwiftUI shapes and text, so `ImageRenderer` draws it faithfully.
@@ -96,10 +100,14 @@ struct ShareCard: View {
 
     /// Renders the card at 2x for crisp sharing.
     @MainActor
-    static func image(for goal: Goal, engine: ProgressEngine, now: Date = .now) -> NSImage? {
+    static func image(for goal: Goal, engine: ProgressEngine, now: Date = .now) -> PlatformImage? {
         let renderer = ImageRenderer(content: ShareCard(goal: goal, engine: engine, now: now).environment(\.colorScheme, .dark))
         renderer.scale = 2
+        #if os(macOS)
         return renderer.nsImage
+        #else
+        return renderer.uiImage
+        #endif
     }
 }
 
@@ -142,7 +150,7 @@ struct ShareCardSheet: View {
     @Environment(GoalStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let goal: Goal
-    @State private var image: NSImage?
+    @State private var image: PlatformImage?
     @State private var status: String?
 
     var body: some View {
@@ -150,7 +158,7 @@ struct ShareCardSheet: View {
             Text("Share your progress")
                 .font(.title2.weight(.bold))
             if let image {
-                Image(nsImage: image)
+                Image(platformImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: 520)
@@ -171,14 +179,16 @@ struct ShareCardSheet: View {
                     Label("Copy", systemImage: "doc.on.doc")
                 }
                 .secondaryActionStyle(goal.tint)
+                #if os(macOS)
                 Button {
                     save()
                 } label: {
                     Label("Save…", systemImage: "square.and.arrow.down")
                 }
                 .secondaryActionStyle(goal.tint)
+                #endif
                 if let image {
-                    ShareLink(item: Image(nsImage: image), preview: SharePreview(goal.name, image: Image(nsImage: image))) {
+                    ShareLink(item: Image(platformImage: image), preview: SharePreview(goal.name, image: Image(platformImage: image))) {
                         Label("Share", systemImage: "square.and.arrow.up")
                     }
                     .primaryActionStyle(goal.tint)
@@ -186,17 +196,24 @@ struct ShareCardSheet: View {
             }
         }
         .padding(24)
+        #if os(macOS)
         .frame(width: 600)
+        #endif
         .task { image = ShareCard.image(for: goal, engine: store.engine) }
     }
 
     private func copy() {
         guard let image else { return }
+        #if os(macOS)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.writeObjects([image])
+        #else
+        UIPasteboard.general.image = image
+        #endif
         status = "Copied. Paste it anywhere."
     }
 
+    #if os(macOS)
     private func save() {
         guard let image, let tiff = image.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
         let panel = NSSavePanel()
@@ -210,4 +227,5 @@ struct ShareCardSheet: View {
             status = "Couldn't save: \(error.localizedDescription)"
         }
     }
+    #endif
 }

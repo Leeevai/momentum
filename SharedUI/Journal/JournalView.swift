@@ -18,14 +18,14 @@ struct JournalView: View {
                 dayColumn
                     .frame(minWidth: 380, maxWidth: .infinity, alignment: .top)
             }
-            .padding(28)
+            .padding(Metrics.screenPadding)
             .frame(minWidth: 860)
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     calendarColumn
                     dayColumn
                 }
-                .padding(28)
+                .padding(Metrics.screenPadding)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

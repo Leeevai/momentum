@@ -60,7 +60,7 @@ struct AwardsView: View {
                         .glassCard(cornerRadius: 24, padding: 20)
                     }
                 }
-                .padding(28)
+                .padding(Metrics.screenPadding)
                 .frame(maxWidth: 1100, alignment: .leading)
                 .frame(maxWidth: .infinity)
             }
@@ -84,24 +84,32 @@ struct AwardsView: View {
     private func header(_ progress: [AchievementProgress]) -> some View {
         let earned = progress.filter(\.isEarned).count
         let total = progress.count
-        return HStack(alignment: .center, spacing: 22) {
-            VStack(alignment: .leading, spacing: 8) {
+        let summary = VStack(alignment: .leading, spacing: 8) {
+            if Metrics.showsInlineTitles {
                 Text("Awards")
                     .font(.system(size: 36, weight: .bold, design: .rounded))
-                Text("\(earned) of \(total) earned. Each one marks something you kept showing up for.")
-                    .foregroundStyle(.secondary)
-                ProgressBar(progress: total > 0 ? Double(earned) / Double(total) : 0, color: .yellow)
-                    .frame(maxWidth: 360)
             }
-            Spacer()
-            ZStack {
-                ForEach(Array(Achievement.Tier.allCases.reversed().enumerated()), id: \.offset) { index, tier in
-                    let count = progress.filter { $0.isEarned && $0.achievement.tier == tier }.count
-                    TierCount(tier: tier, count: count)
-                        .offset(x: CGFloat(index) * -58)
-                }
+            Text("\(earned) of \(total) earned. Each one marks something you kept showing up for.")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ProgressBar(progress: total > 0 ? Double(earned) / Double(total) : 0, color: .yellow)
+                .frame(maxWidth: 360)
+        }
+        let tiers = HStack(spacing: 4) {
+            ForEach(Achievement.Tier.allCases, id: \.self) { tier in
+                TierCount(tier: tier, count: progress.filter { $0.isEarned && $0.achievement.tier == tier }.count)
             }
-            .frame(width: 60 + 58 * 3, alignment: .trailing)
+        }
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 22) {
+                summary.frame(minWidth: 320, alignment: .leading)
+                Spacer()
+                tiers
+            }
+            VStack(alignment: .leading, spacing: 16) {
+                summary
+                tiers
+            }
         }
     }
 

@@ -141,9 +141,7 @@ struct LinkChip: View {
             LinkOpener.open(link)
         } label: {
             HStack(spacing: 6) {
-                Image(nsImage: LinkOpener.icon(for: link))
-                    .resizable()
-                    .frame(width: 16, height: 16)
+                LinkIcon(link: link, size: 16)
                 Text(link.displayTitle)
                     .lineLimit(1)
                 if link.opensWithFocus {

@@ -1,0 +1,80 @@
+import MomentumCore
+import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
+
+/// A link's icon: the app that opens it on a Mac, a symbol on iPhone.
+struct LinkIcon: View {
+    let link: GoalLink
+    var size: CGFloat = 28
+
+    var body: some View {
+        #if os(macOS)
+        Image(nsImage: LinkOpener.icon(for: link))
+            .resizable()
+            .frame(width: size, height: size)
+        #else
+        Image(systemName: link.isFile ? "doc.fill" : "safari.fill")
+            .font(.system(size: size * 0.6))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(RoundedRectangle(cornerRadius: size * 0.25, style: .continuous).fill(Color.accentColor.gradient))
+        #endif
+    }
+}
+
+enum Pasteboard {
+    static func copy(_ text: String) {
+        #if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        #else
+        UIPasteboard.general.string = text
+        #endif
+    }
+}
+
+#if os(iOS)
+extension LinkOpener {
+    /// Files picked on iPhone are opened by URL; there's no sandbox bookmark to keep.
+    static func bookmark(for url: URL) -> Data? { nil }
+
+    @MainActor
+    static func openFocusLinks(of goal: Goal) {}
+}
+#endif
+
+extension View {
+    /// A sheet's size on a Mac; on iPhone and iPad sheets size themselves.
+    @ViewBuilder
+    func sheetFrame(width: CGFloat, height: CGFloat? = nil) -> some View {
+        #if os(macOS)
+        frame(width: width, height: height)
+        #else
+        self
+        #endif
+    }
+}
+
+enum Metrics {
+    /// Space around a screen's content: roomy on a Mac, tighter on a phone.
+    static var screenPadding: CGFloat {
+        #if os(macOS)
+        28
+        #else
+        16
+        #endif
+    }
+
+    /// Whether screens show their own large title (the Mac), rather than the navigation bar's.
+    static var showsInlineTitles: Bool {
+        #if os(macOS)
+        true
+        #else
+        false
+        #endif
+    }
+}

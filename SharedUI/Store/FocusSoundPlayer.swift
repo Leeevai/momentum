@@ -63,6 +63,11 @@ final class FocusSoundPlayer {
             source = node
         }
         if !engine.isRunning {
+            #if os(iOS)
+            // Mixes with other audio, and keeps playing with the screen locked mid-session.
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try AVAudioSession.sharedInstance().setActive(true)
+            #endif
             try engine.start()
         }
     }

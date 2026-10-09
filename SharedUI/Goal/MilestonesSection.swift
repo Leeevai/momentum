@@ -91,7 +91,7 @@ private struct MilestoneRow: View {
                 TextField("Milestone", text: $title)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(commit)
-                    .onExitCommand { isEditing = false }
+                    .onEscape { isEditing = false }
             } else {
                 Text(milestone.title)
                     .strikethrough(milestone.isDone, color: .secondary)

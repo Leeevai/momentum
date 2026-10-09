@@ -1,9 +1,13 @@
-import AppKit
 import MomentumCore
 import Observation
 import OSLog
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
-/// Keeps this Mac's data in step with other devices through a folder the user picks, usually in
+/// Keeps this device's data in step with others through a folder the user picks, usually in
 /// iCloud Drive. See `SyncFolder` for how the folder is laid out and why it can't conflict.
 @MainActor
 @Observable
@@ -34,7 +38,7 @@ final class FolderSync {
     private static let bookmarkKey = "syncFolderBookmark"
     private static let deviceKey = "syncDeviceID"
 
-    /// A stable id for this Mac, made once.
+    /// A stable id for this device, made once.
     static var deviceID: String {
         if let id = UserDefaults.standard.string(forKey: deviceKey) { return id }
         let id = UUID().uuidString
@@ -49,6 +53,36 @@ final class FolderSync {
 
     // MARK: - Choosing the folder
 
+    /// Starts syncing through `url`, a folder the user picked, remembering it for next time.
+    func useFolder(_ url: URL) {
+        #if os(iOS)
+        // A folder from the document picker is reachable only inside this window.
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        #endif
+        do {
+            let bookmark = try url.bookmarkData(options: Self.bookmarkCreation, includingResourceValuesForKeys: nil, relativeTo: nil)
+            UserDefaults.standard.set(bookmark, forKey: Self.bookmarkKey)
+            open(url)
+            syncNow()
+        } catch {
+            lastError = "Could not remember the folder: \(error.localizedDescription)"
+        }
+    }
+
+    #if os(macOS)
+    private static let bookmarkCreation: URL.BookmarkCreationOptions = .withSecurityScope
+    private static let bookmarkResolution: URL.BookmarkResolutionOptions = .withSecurityScope
+    private static let platform = "macOS"
+    private static var deviceName: String { Host.current().localizedName ?? "Mac" }
+    #else
+    private static let bookmarkCreation: URL.BookmarkCreationOptions = []
+    private static let bookmarkResolution: URL.BookmarkResolutionOptions = []
+    private static let platform = "iOS"
+    private static var deviceName: String { UIDevice.current.name }
+    #endif
+
+    #if os(macOS)
     func chooseFolder() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
@@ -61,15 +95,9 @@ final class FolderSync {
         if FileManager.default.fileExists(atPath: iCloud.path) { panel.directoryURL = iCloud }
         NSApp.activate()
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-            UserDefaults.standard.set(bookmark, forKey: Self.bookmarkKey)
-            open(url)
-            syncNow()
-        } catch {
-            lastError = "Could not remember the folder: \(error.localizedDescription)"
-        }
+        useFolder(url)
     }
+    #endif
 
     func stop() {
         close()
@@ -83,8 +111,8 @@ final class FolderSync {
         guard let bookmark = UserDefaults.standard.data(forKey: Self.bookmarkKey) else { return }
         var stale = false
         do {
-            let url = try URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale)
-            if stale, let fresh = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
+            let url = try URL(resolvingBookmarkData: bookmark, options: Self.bookmarkResolution, relativeTo: nil, bookmarkDataIsStale: &stale)
+            if stale, let fresh = try? url.bookmarkData(options: Self.bookmarkCreation, includingResourceValuesForKeys: nil, relativeTo: nil) {
                 UserDefaults.standard.set(fresh, forKey: Self.bookmarkKey)
             }
             open(url)
@@ -158,8 +186,8 @@ final class FolderSync {
             guard !Task.isCancelled, let self, let store = self.store else { return }
             let data = store.data
             guard data != self.lastWritten else { return }
-            let envelope = SyncEnvelope(deviceID: Self.deviceID, deviceName: Host.current().localizedName ?? "Mac",
-                                        platform: "macOS", savedAt: .now, data: data)
+            let envelope = SyncEnvelope(deviceID: Self.deviceID, deviceName: Self.deviceName,
+                                        platform: Self.platform, savedAt: .now, data: data)
             let target = SyncFolder(url: folder, deviceID: Self.deviceID)
             do {
                 try await Task.detached(priority: .utility) { try target.write(envelope) }.value

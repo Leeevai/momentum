@@ -72,7 +72,7 @@ struct SymbolPicker: View {
                 .padding(12)
             }
         }
-        .frame(width: 400, height: 420)
+        .sheetFrame(width: 400, height: 420)
         .onAppear { searchFocused = true }
     }
 

@@ -60,9 +60,7 @@ private struct LinkRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(nsImage: LinkOpener.icon(for: link))
-                .resizable()
-                .frame(width: 28, height: 28)
+            LinkIcon(link: link)
             VStack(alignment: .leading, spacing: 1) {
                 Text(link.displayTitle)
                     .font(.body.weight(.medium))
@@ -98,10 +96,7 @@ private struct LinkRow: View {
         .contextMenu {
             Button("Open") { LinkOpener.open(link) }
             Button("Edit…") { store.sheet = .link(goalID: goal.id, link: link) }
-            Button("Copy Address") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(link.url.absoluteString, forType: .string)
-            }
+            Button("Copy Address") { Pasteboard.copy(link.url.absoluteString) }
             Divider()
             Button("Remove", role: .destructive) {
                 store.perform("Remove Link") { $0.removeLink(link.id, from: goal.id) }

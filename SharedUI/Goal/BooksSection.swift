@@ -7,6 +7,7 @@ struct BooksSection: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
     @State private var importMessage: String?
+    @State private var picksExport = false
 
     var body: some View {
         let reading = goal.books.filter { $0.status == .reading }
@@ -17,7 +18,7 @@ struct BooksSection: View {
         VStack(alignment: .leading, spacing: 16) {
             SectionTitle("Library", systemImage: "books.vertical", trailing: AnyView(
                 HStack(spacing: 8) {
-                    Button(action: importFromGoodreads) {
+                    Button { picksExport = true } label: {
                         Label("Import", systemImage: "square.and.arrow.down")
                     }
                     .secondaryActionStyle(goal.tint, compact: true)
@@ -46,15 +47,18 @@ struct BooksSection: View {
             shelf("Set aside", books: abandoned)
         }
         .glassCard(tint: goal.tint)
+        .fileImporter(isPresented: $picksExport, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
+            switch result {
+            case .success(let url): importFromGoodreads(url)
+            case .failure(let error): importMessage = "Couldn't open that file: \(error.localizedDescription)"
+            }
+        }
     }
 
     /// Goodreads: My Books → Import and export → Export library, then pick the CSV here.
-    private func importFromGoodreads() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.commaSeparatedText]
-        panel.prompt = "Import"
-        panel.message = "Choose the goodreads_library_export.csv file from Goodreads."
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+    private func importFromGoodreads(_ url: URL) {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         do {
             let text = try String(contentsOf: url, encoding: .utf8)
             let books = try GoodreadsImporter.books(fromCSV: text, existing: goal.books)
@@ -66,7 +70,7 @@ struct BooksSection: View {
                 for book in books { data.upsertBook(book, in: goal.id) }
             }
             let finished = books.filter { $0.status == .finished }.count
-            importMessage = "Imported \(books.count) \(books.count == 1 ? "book" : "books") (\(finished) finished). Undo with ⌘Z."
+            importMessage = "Imported \(books.count) \(books.count == 1 ? "book" : "books") (\(finished) finished)."
         } catch GoodreadsImporter.ImportError.notGoodreadsExport {
             importMessage = "That file isn't a Goodreads library export."
         } catch {
@@ -174,7 +178,7 @@ private struct BookRow: View {
     private var menu: some View {
         Button("Edit…") { store.sheet = .book(goalID: goal.id, book: book) }
         if let link = book.link {
-            Button("Open Link") { NSWorkspace.shared.open(link) }
+            Link("Open Link", destination: link)
         }
         Divider()
         if book.status != .reading {
@@ -205,7 +209,7 @@ struct BookCover: View {
     var body: some View {
         Group {
             if let cached = CoverCache.image(for: book) {
-                Image(nsImage: cached)
+                Image(platformImage: cached)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } else if let url = book.coverURL {

@@ -92,7 +92,7 @@ private struct TemplateGallery: View {
             }
             .padding(16)
         }
-        .frame(width: 640, height: 620)
+        .sheetFrame(width: 640, height: 620)
     }
 }
 

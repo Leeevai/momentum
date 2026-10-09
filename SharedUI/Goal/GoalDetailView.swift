@@ -8,14 +8,16 @@ struct GoalDetailView: View {
     var body: some View {
         ScrollView {
             GoalDetailContent(goal: goal)
-                .padding(28)
+                .padding(Metrics.screenPadding)
                 .frame(maxWidth: 980, alignment: .leading)
                 .frame(maxWidth: .infinity)
         }
         .scrollContentBackground(.hidden)
         .background(LivingBackdrop(primary: goal.tint, secondary: goal.color.highlight))
         .navigationTitle(goal.name)
+        #if os(macOS)
         .navigationSubtitle(goal.targetDescription)
+        #endif
         .toolbar {
             ToolbarItemGroup {
                 Button {
@@ -77,26 +79,16 @@ private struct GoalHeader: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            GoalIcon(goal: goal, size: 64)
+            GoalIcon(goal: goal, size: Metrics.showsInlineTitles ? 64 : 54)
                 .heroMatch("icon-\(goal.id)", in: hero)
             VStack(alignment: .leading, spacing: 6) {
                 Text(goal.name)
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(.system(size: Metrics.showsInlineTitles ? 30 : 26, weight: .bold, design: .rounded))
+                    .fixedSize(horizontal: false, vertical: true)
                     .heroMatch("title-\(goal.id)", in: hero)
-                HStack(spacing: 8) {
-                    if !goal.category.isEmpty {
-                        CategoryPill(text: goal.category, tint: goal.tint)
-                    }
-                    Label(goal.targetDescription, systemImage: goal.kind.symbolName)
-                    Text("·").foregroundStyle(.tertiary)
-                    Text(goal.scheduleDescription())
-                    if let reminder = goal.reminder, reminder.isEnabled {
-                        Text("·").foregroundStyle(.tertiary)
-                        Label(reminderTime(reminder), systemImage: "bell")
-                    }
-                }
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                FlowLayout(spacing: 8) { meta }
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                 if goal.isOnBreak(at: store.now) {
                     Label(breakText, systemImage: "pause.circle.fill")
                         .font(.callout.weight(.medium))
@@ -115,6 +107,19 @@ private struct GoalHeader: View {
                 }
             }
             Spacer(minLength: 0)
+        }
+    }
+
+    /// Category, target, schedule and reminder, wrapping onto a second line on a phone.
+    @ViewBuilder
+    private var meta: some View {
+        if !goal.category.isEmpty {
+            CategoryPill(text: goal.category, tint: goal.tint)
+        }
+        Label(goal.targetDescription, systemImage: goal.kind.symbolName)
+        Label(goal.scheduleDescription(), systemImage: "calendar")
+        if let reminder = goal.reminder, reminder.isEnabled {
+            Label(reminderTime(reminder), systemImage: "bell")
         }
     }
 
@@ -138,38 +143,49 @@ private struct HeroPanel: View {
     var hero: Namespace.ID?
 
     var body: some View {
-        let engine = store.engine
-        let running = engine.isRunning(goal)
-        HStack(alignment: .center, spacing: 28) {
-            LiveClock(isLive: running && store.data.session?.isRunning == true, fallback: store.now) { now in
-                let amount = engine.currentAmount(for: goal, now: now)
-                ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: 14) {
-                    VStack(spacing: 2) {
-                        Text(goal.formatShort(amount))
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                            .contentTransition(.numericText(value: amount))
-                            .minimumScaleFactor(0.6)
-                            .lineLimit(1)
-                        Text("of \(goal.formatShort(engine.target(for: goal)))\(goal.kind == .time ? "" : " \(goal.displayUnit)")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                        Text(goal.effectivePeriod.currentLabel)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(goal.tint)
-                            .textCase(.uppercase)
-                    }
-                    .padding(18)
-                }
+        let running = store.engine.isRunning(goal)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 28) {
+                ring
+                TrackingControls(goal: goal)
+                    .frame(minWidth: 300, maxWidth: .infinity, alignment: .leading)
             }
-            .frame(width: 168, height: 168)
-            .heroMatch("ring-\(goal.id)", in: hero)
-
-            TrackingControls(goal: goal)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .center, spacing: 20) {
+                ring
+                TrackingControls(goal: goal)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .glassCard(tint: goal.tint, cornerRadius: 24, padding: 22, highlighted: running)
+    }
+
+    private var ring: some View {
+        let engine = store.engine
+        let running = engine.isRunning(goal)
+        return LiveClock(isLive: running && store.data.session?.isRunning == true, fallback: store.now) { now in
+            let amount = engine.currentAmount(for: goal, now: now)
+            ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: 14) {
+                VStack(spacing: 2) {
+                    Text(goal.formatShort(amount))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: amount))
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                    Text("of \(goal.formatShort(engine.target(for: goal)))\(goal.kind == .time ? "" : " \(goal.displayUnit)")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text(goal.effectivePeriod.currentLabel)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(goal.tint)
+                        .textCase(.uppercase)
+                }
+                .padding(18)
+            }
+        }
+        .frame(width: 168, height: 168)
+        .heroMatch("ring-\(goal.id)", in: hero)
     }
 }
 

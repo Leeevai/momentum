@@ -1,11 +1,11 @@
 import MomentumCore
+import Observation
+import OSLog
 #if os(macOS)
 import AppKit
 #else
 import UIKit
 #endif
-import Observation
-import OSLog
 
 enum Route: Hashable {
     case today

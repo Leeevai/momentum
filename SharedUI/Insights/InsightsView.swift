@@ -11,23 +11,16 @@ struct InsightsView: View {
         let report = engine.insights(days: days, now: store.now)
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Insights")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                        Text("How the last \(days) days went.")
-                            .foregroundStyle(.secondary)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline) {
+                        titles
+                        Spacer()
+                        rangePicker.frame(width: 300)
                     }
-                    Spacer()
-                    Picker("Range", selection: $days.animation(.easeInOut)) {
-                        Text("7 days").tag(7)
-                        Text("30 days").tag(30)
-                        Text("90 days").tag(90)
-                        Text("Year").tag(365)
+                    VStack(alignment: .leading, spacing: 12) {
+                        titles
+                        rangePicker
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 300)
                 }
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 14)], spacing: 14) {
@@ -44,7 +37,7 @@ struct InsightsView: View {
 
                 if report.totalFocusSeconds > 0 {
                     FocusChart(report: report)
-                    HStack(alignment: .top, spacing: 16) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 320), spacing: 16, alignment: .top)], spacing: 16) {
                         WeekdayChart(report: report)
                         HourChart(report: report)
                     }
@@ -58,13 +51,36 @@ struct InsightsView: View {
                 }
                 ScoresCard(report: report)
             }
-            .padding(28)
+            .padding(Metrics.screenPadding)
             .frame(maxWidth: 1100, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
         .scrollContentBackground(.hidden)
         .background(LivingBackdrop(primary: .indigo, secondary: .pink))
         .navigationTitle("Insights")
+    }
+
+    @ViewBuilder
+    private var titles: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if Metrics.showsInlineTitles {
+                Text("Insights")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+            }
+            Text("How the last \(days) days went.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var rangePicker: some View {
+        Picker("Range", selection: $days.animation(.easeInOut)) {
+            Text("7 days").tag(7)
+            Text("30 days").tag(30)
+            Text("90 days").tag(90)
+            Text("Year").tag(365)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
     }
 
     /// "▲ 12% vs the 30 days before", or the daily average without a baseline.
@@ -202,7 +218,7 @@ private struct CategoryChart: View {
                 return angle <= running
             }
         }
-        HStack(alignment: .center, spacing: 28) {
+        let chart = Group {
             Chart(shares) { share in
                 SectorMark(
                     angle: .value("Time", share.seconds),
@@ -226,7 +242,8 @@ private struct CategoryChart: View {
                 }
             }
             .frame(width: 190, height: 190)
-
+        }
+        let legend = Group {
             VStack(alignment: .leading, spacing: 10) {
                 Label("By category", systemImage: "chart.pie.fill")
                     .font(.headline)
@@ -236,7 +253,7 @@ private struct CategoryChart: View {
                             .fill(Self.palette[index % Self.palette.count])
                             .frame(width: 9, height: 9)
                         Text(share.name)
-                            .frame(minWidth: 110, alignment: .leading)
+                            .frame(minWidth: 96, alignment: .leading)
                         Text(Formatting.duration(share.seconds))
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
@@ -247,7 +264,17 @@ private struct CategoryChart: View {
                     .font(.callout)
                 }
             }
-            Spacer(minLength: 0)
+        }
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 28) {
+                chart
+                legend
+                Spacer(minLength: 0)
+            }
+            VStack(alignment: .leading, spacing: 18) {
+                chart.frame(maxWidth: .infinity)
+                legend
+            }
         }
         .glassCard(tint: .indigo)
     }
@@ -264,34 +291,49 @@ private struct MoodCard: View {
                 .symbolRenderingMode(.multicolor)
             Text(headline)
                 .foregroundStyle(.secondary)
-            HStack(alignment: .bottom, spacing: 18) {
-                if let good = report.moodOnGoodDays {
-                    MoodColumn(title: "Days most goals were done", value: good)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .bottom, spacing: 18) {
+                    columns
+                    Divider().frame(height: 80)
+                    chart.frame(minWidth: 280)
                 }
-                if let other = report.moodOnOtherDays {
-                    MoodColumn(title: "Other days", value: other)
-                }
-                Divider().frame(height: 80)
-                Chart(Mood.allCases) { mood in
-                    BarMark(x: .value("Mood", mood.title), y: .value("Focus", (report.focusByMood[mood] ?? 0) / 3600))
-                        .foregroundStyle(mood.tint.gradient)
-                        .cornerRadius(5)
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        AxisGridLine()
-                        AxisValueLabel { Text("\(value.as(Double.self).map { Formatting.number($0) } ?? "")h") }
-                    }
-                }
-                .frame(height: 120)
-                .overlay(alignment: .topTrailing) {
-                    Text("Average focus by mood")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(alignment: .bottom, spacing: 18) { columns }
+                    chart
                 }
             }
         }
         .glassCard(cornerRadius: 22)
+    }
+
+    @ViewBuilder
+    private var columns: some View {
+        if let good = report.moodOnGoodDays {
+            MoodColumn(title: "Days most goals were done", value: good)
+        }
+        if let other = report.moodOnOtherDays {
+            MoodColumn(title: "Other days", value: other)
+        }
+    }
+
+    private var chart: some View {
+        Chart(Mood.allCases) { mood in
+            BarMark(x: .value("Mood", mood.title), y: .value("Focus", (report.focusByMood[mood] ?? 0) / 3600))
+                .foregroundStyle(mood.tint.gradient)
+                .cornerRadius(5)
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisGridLine()
+                AxisValueLabel { Text("\(value.as(Double.self).map { Formatting.number($0) } ?? "")h") }
+            }
+        }
+        .frame(height: 120)
+        .overlay(alignment: .topTrailing) {
+            Text("Average focus by mood")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var headline: String {
@@ -350,7 +392,7 @@ private struct ScoresCard: View {
                         GoalIcon(goal: goal, size: 30)
                         Text(goal.name)
                             .font(.body.weight(.medium))
-                            .frame(width: 180, alignment: .leading)
+                            .frame(minWidth: 80, maxWidth: 180, alignment: .leading)
                             .lineLimit(1)
                         ProgressBar(progress: score.completion ?? store.engine.progress(for: goal, now: store.now), color: goal.color, height: 8)
                         Text(score.completion.map { Formatting.percent($0) } ?? Formatting.percent(store.engine.progress(for: goal, now: store.now)))

@@ -1,9 +1,13 @@
-import AppKit
 import MomentumCore
 import Observation
 import OSLog
-import ServiceManagement
 import UserNotifications
+#if os(macOS)
+import AppKit
+import ServiceManagement
+#else
+import UIKit
+#endif
 
 /// Everything that happens outside the data file when data changes: notifications, opening a
 /// goal's links when a session starts, and the end-of-session sound.
@@ -41,7 +45,10 @@ final class SideEffects {
         guard isEnabled else { return }
         if let session = new.session, session.startedAt != lastSessionStart {
             lastSessionStart = session.startedAt
+            // On a Mac the goal's links open beside the timer; on iPhone that would leave the app.
+            #if os(macOS)
             if let goal = engine.goal(session.goalID) { LinkOpener.openFocusLinks(of: goal) }
+            #endif
         } else if new.session == nil {
             lastSessionStart = nil
         }
@@ -73,7 +80,7 @@ final class SideEffects {
                 defer { self?.downloadingCovers.remove(book.id) }
                 do {
                     let (bytes, response) = try await URLSession.shared.data(from: url)
-                    guard (response as? HTTPURLResponse)?.statusCode == 200, NSImage(data: bytes) != nil else { return }
+                    guard (response as? HTTPURLResponse)?.statusCode == 200, PlatformImage(data: bytes) != nil else { return }
                     try FileManager.default.createDirectory(at: CoverCache.directoryURL, withIntermediateDirectories: true)
                     try bytes.write(to: CoverCache.fileURL(for: book.id), options: .atomic)
                     SharedStore.reloadWidgets()
@@ -102,6 +109,7 @@ final class SideEffects {
 
     func play(_ sound: AppSound, preferences: Preferences) {
         guard isEnabled, preferences.playsSounds else { return }
+        #if os(macOS)
         let name = switch sound {
         case .goalCompleted: "Glass"
         case .blockCompleted: "Hero"
@@ -109,6 +117,13 @@ final class SideEffects {
         case .award: "Funk"
         }
         NSSound(named: name)?.play()
+        #else
+        switch sound {
+        case .goalCompleted, .award: UINotificationFeedbackGenerator().notificationOccurred(.success)
+        case .blockCompleted: UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        case .blockStarted: UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        }
+        #endif
     }
 
     func dayDidChange(engine: ProgressEngine) {
@@ -271,6 +286,13 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    /// Brings the app forward after a notification action; on iPhone, tapping already did.
+    private static func activateApp() {
+        #if os(macOS)
+        NSApp.activate()
+        #endif
+    }
+
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .sound, .list]
     }
@@ -284,7 +306,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             case Action.start:
                 if let goalID, let goal = store.goal(goalID) {
                     if goal.kind == .time { store.toggleFocus(goal) } else { store.select(goalID) }
-                    NSApp.activate()
+                    Self.activateApp()
                 }
             case Action.quickAdd:
                 if let goalID, let goal = store.goal(goalID) { store.quickAdd(goal) }
@@ -297,13 +319,15 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
                 store.startNextBlock()
             default:
                 if let goalID { store.select(goalID) }
-                NSApp.activate()
+                Self.activateApp()
             }
         }
     }
 }
 
 // MARK: - Links
+
+#if os(macOS)
 
 enum LinkOpener {
     private static let logger = Logger(subsystem: "dev.momentum.app", category: "Links")
@@ -359,9 +383,20 @@ enum LinkOpener {
 
     @MainActor private static var iconCache: [String: NSImage] = [:]
 }
+#else
+enum LinkOpener {
+    @MainActor
+    @discardableResult
+    static func open(_ link: GoalLink) -> Bool {
+        UIApplication.shared.open(link.url)
+        return true
+    }
+}
+#endif
 
 // MARK: - Login item
 
+#if os(macOS)
 enum LoginItem {
     static var isEnabled: Bool { SMAppService.mainApp.status == .enabled }
 
@@ -369,3 +404,4 @@ enum LoginItem {
         if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
     }
 }
+#endif
