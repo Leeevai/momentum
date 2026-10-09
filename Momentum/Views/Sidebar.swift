@@ -14,8 +14,13 @@ struct Sidebar: View {
                 Label("Today", systemImage: "sun.max.fill")
                     .badge(summary.total - summary.done)
                     .tag(Route.today)
+                Label("Journal", systemImage: "book.closed.fill")
+                    .tag(Route.journal)
                 Label("Insights", systemImage: "chart.bar.xaxis")
                     .tag(Route.insights)
+                Label("Awards", systemImage: "trophy.fill")
+                    .badge(earnedCount)
+                    .tag(Route.awards)
             }
 
             ForEach(groups, id: \.name) { group in
@@ -54,6 +59,10 @@ struct Sidebar: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: store.data.session?.goalID)
+    }
+
+    private var earnedCount: Int {
+        store.data.achievements.keys.filter { Achievement.with(id: $0) != nil }.count
     }
 
     private struct GoalGroup {

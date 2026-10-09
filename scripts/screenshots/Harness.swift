@@ -84,6 +84,8 @@ MainActor.assumeIsolated {
         render("goal-books", height: 1500, dark: dark) { store in store.data.goals.first { $0.kind == .books }.map { .goal($0.id) } }
         render("goal-milestones", height: 1100, dark: dark) { store in store.data.goals.first { $0.kind == .milestones }.map { .goal($0.id) } }
         render("insights", height: 1200, dark: dark) { _ in .insights }
+        render("journal", height: 960, dark: dark) { _ in .journal }
+        render("awards", height: 1300, dark: dark) { _ in .awards }
         let store = makeStore()
         snapshot(MenuBarPanel().environment(store).background(Color(nsColor: .windowBackgroundColor)), size: CGSize(width: 340, height: 560), dark: dark, name: "menubar")
     }
@@ -101,6 +103,8 @@ MainActor.assumeIsolated {
             ("sheet-book", AnyView(BookEditor(goalID: books.id, book: books.books.first { $0.status == .reading })), CGSize(width: 480, height: 600)),
             ("sheet-link", AnyView(LinkEditor(goalID: deepWork.id, link: deepWork.links.first)), CGSize(width: 460, height: 330)),
             ("settings", AnyView(SettingsView()), CGSize(width: 500, height: 600)),
+            ("sheet-plan", AnyView(PlanSheet(day: DayID(.now))), CGSize(width: 560, height: 620)),
+            ("sheet-reflect", AnyView(ReflectSheet(day: DayID(.now))), CGSize(width: 520, height: 720)),
         ]
         for goal in [deepWork, books] {
             if let image = ShareCard.image(for: goal, engine: store.engine), let tiff = image.tiffRepresentation,

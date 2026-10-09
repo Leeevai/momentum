@@ -29,6 +29,11 @@ struct GoalCard: View {
                             .font(.headline)
                             .lineLimit(1)
                             .heroMatch("title-\(goal.id)", in: hero)
+                        if let rank = store.data.journalEntry(for: DayID(now))?.priorities.firstIndex(of: goal.id) {
+                            Image(systemName: "\(rank + 1).circle.fill")
+                                .foregroundStyle(.orange)
+                                .help("Priority \(rank + 1) today")
+                        }
                         if complete {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
@@ -112,6 +117,8 @@ struct GoalCard: View {
         case .time, .count, .amount:
             if let pace = engine.pace(for: goal, now: now), pace.status != .done {
                 PaceLabel(goal: goal, pace: pace)
+            } else if let anchor = goal.stackAfter.flatMap(engine.goal), !anchor.isArchived {
+                Label("After \(anchor.name)", systemImage: "arrow.turn.down.right")
             } else {
                 Label(goal.scheduleDescription(), systemImage: "calendar")
             }

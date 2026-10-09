@@ -5,7 +5,9 @@ import OSLog
 
 enum Route: Hashable {
     case today
+    case journal
     case insights
+    case awards
     case goal(UUID)
 }
 
@@ -17,6 +19,9 @@ enum SheetRoute: Identifiable {
     case link(goalID: UUID, link: GoalLink?)
     case book(goalID: UUID, book: Book?)
     case share(Goal)
+    /// The morning plan, or the evening reflection, for a day.
+    case plan(DayID)
+    case reflect(DayID)
 
     var id: String {
         switch self {
@@ -27,6 +32,8 @@ enum SheetRoute: Identifiable {
         case .link(let goal, let link): "link-\(goal)-\(link?.id.uuidString ?? "new")"
         case .book(let goal, let book): "book-\(goal)-\(book?.id.uuidString ?? "new")"
         case .share(let goal): "share-\(goal.id)"
+        case .plan(let day): "plan-\(day)"
+        case .reflect(let day): "reflect-\(day)"
         }
     }
 }
@@ -35,6 +42,21 @@ enum SheetRoute: Identifiable {
 struct Celebration: Identifiable, Equatable {
     let id = UUID()
     let goal: Goal
+    /// The goal stacked after it, offered next.
+    var next: Goal?
+}
+
+/// A brief banner at the top of the window.
+struct Toast: Identifiable, Equatable {
+    enum Kind: Equatable {
+        case achievement(Achievement)
+        /// Several earned at once, as on first launch after an update.
+        case achievements(Int)
+        case message(title: String, detail: String, symbol: String)
+    }
+
+    let id = UUID()
+    let kind: Kind
 }
 
 /// The app's single source of truth.
@@ -52,6 +74,9 @@ final class GoalStore {
     var route: Route? = .today
     var sheet: SheetRoute?
     var celebration: Celebration?
+    var toast: Toast?
+    /// Coach tips dismissed today.
+    private(set) var dismissedTips: Set<String> = []
     /// A goal awaiting delete confirmation.
     var confirmingDelete: Goal?
     /// Text typed in the sidebar search field.
@@ -68,6 +93,9 @@ final class GoalStore {
     @ObservationIgnored private let persistence: DataPersistence
     @ObservationIgnored private var watcher: DispatchSourceFileSystemObject?
     @ObservationIgnored private var dayTimer: Timer?
+    @ObservationIgnored private var pomodoroTimer: Timer?
+    @ObservationIgnored private var toastQueue: [Toast] = []
+    @ObservationIgnored private var tipsCache: (key: String, tips: [CoachTip])?
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     /// The data file's modification date as of the last read or write by this app.
     @ObservationIgnored private var knownModification: Date?
@@ -84,8 +112,12 @@ final class GoalStore {
         self.focusFilter = persistence.watchedDirectory == nil ? nil : SharedStore.loadFocusFilter()
         self.effects.attach(to: self)
         self.effects.start(with: initial, engine: engine)
+        dismissedTips = Self.loadDismissedTips(on: .now)
         watchForExternalChanges()
         startDayTimer()
+        advancePomodoro()
+        schedulePomodoro()
+        recordAchievements()
         persistence.backUpDaily()
         observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.reload() }
@@ -163,9 +195,154 @@ final class GoalStore {
         let previousData = data
         data = newData
         engine = ProgressEngine(data: newData)
+        tipsCache = nil
         effects.dataDidChange(from: previousData, to: newData, engine: engine)
         if userInitiated { celebrateNewCompletions(from: previousData, to: newData) }
         if case .goal(let id) = route, newData.goal(id) == nil { route = .today }
+        if previousData.session != newData.session || previousData.rest != newData.rest
+            || previousData.preferences.pomodoro != newData.preferences.pomodoro {
+            schedulePomodoro()
+        }
+        recordAchievements()
+    }
+
+    // MARK: - Pomodoro
+
+    /// Wakes at the next Pomodoro boundary: the end of a block, or of a break.
+    private func schedulePomodoro() {
+        pomodoroTimer?.invalidate()
+        pomodoroTimer = nil
+        guard data.preferences.pomodoro.isEnabled else { return }
+        let next = data.session?.plannedEnd ?? data.rest.map(\.end)
+        guard let next else { return }
+        let timer = Timer(fire: max(next, .now.addingTimeInterval(0.2)), interval: 0, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.advancePomodoro() }
+        }
+        timer.tolerance = 0.2
+        RunLoop.main.add(timer, forMode: .common)
+        pomodoroTimer = timer
+    }
+
+    /// Saves a finished block and starts its break, or starts the next block after a break.
+    func advancePomodoro() {
+        var event: PomodoroEvent?
+        let settings = data.preferences.pomodoro
+        let breakEnded = data.rest.map { settings.autoStartsNextBlock && $0.isOver(at: .now) } == true
+        guard data.isBlockDue(at: .now) || breakEnded else { return }
+        perform { event = $0.advancePomodoro() }
+        guard let event, data.preferences.playsSounds else { return }
+        switch event {
+        case .blockCompleted: NSSound(named: "Hero")?.play()
+        case .blockStarted: NSSound(named: "Purr")?.play()
+        }
+    }
+
+    func startNextBlock() { perform("Start Next Block") { $0.startNextBlock() } }
+
+    func endRest() { perform("Skip Break") { $0.endRest() } }
+
+    // MARK: - Achievements
+
+    /// Records achievements the data has reached, announcing them.
+    private func recordAchievements() {
+        let earned = engine.newlyEarnedAchievements(now: .now)
+        guard !earned.isEmpty else { return }
+        perform { data in
+            for achievement in earned where data.achievements[achievement.id] == nil {
+                data.achievements[achievement.id] = .now
+            }
+        }
+        if earned.count > 2 {
+            show(Toast(kind: .achievements(earned.count)))
+        } else {
+            earned.forEach { show(Toast(kind: .achievement($0))) }
+        }
+        if data.preferences.playsSounds { NSSound(named: "Funk")?.play() }
+    }
+
+    // MARK: - Toasts
+
+    func show(_ toast: Toast) {
+        if self.toast == nil {
+            self.toast = toast
+        } else {
+            toastQueue.append(toast)
+        }
+    }
+
+    /// Hides the banner, then shows the next one waiting.
+    func dismissToast() {
+        toast = nil
+        guard !toastQueue.isEmpty else { return }
+        let next = toastQueue.removeFirst()
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            self.toast = next
+        }
+    }
+
+    // MARK: - Coach
+
+    /// Today's tips, minus those dismissed. Cached per data version and minute.
+    var coachTips: [CoachTip] {
+        let minute = Int(Date().timeIntervalSince1970 / 60)
+        let key = "\(minute)-\(dismissedTips.count)"
+        if let tipsCache, tipsCache.key == key { return tipsCache.tips }
+        let tips = engine.coachTips(now: .now, limit: 8).filter { !dismissedTips.contains($0.id) }.prefix(4)
+        tipsCache = (key, Array(tips))
+        return Array(tips)
+    }
+
+    func dismiss(_ tip: CoachTip) {
+        dismissedTips.insert(tip.id)
+        tipsCache = nil
+        Self.saveDismissedTips(dismissedTips, on: .now)
+    }
+
+    func run(_ tip: CoachTip) {
+        guard let action = tip.action else { return }
+        switch action {
+        case .startFocus(let id):
+            if let goal = goal(id), !engine.isRunning(goal) { toggleFocus(goal) }
+        case .log(let id):
+            if let goal = goal(id) { quickAdd(goal) }
+        case .open(let id):
+            select(id)
+        case .setTarget(let id, let target):
+            perform("Change Target") { data in data.updateGoal(id) { $0.target = target } }
+            dismiss(tip)
+        case .planDay:
+            sheet = .plan(DayID(.now))
+        case .reflect:
+            sheet = .reflect(DayID(.now))
+        }
+    }
+
+    private static func dismissedTipsKey(on date: Date) -> String {
+        "dismissedTips-\(DayID(date))"
+    }
+
+    private static func loadDismissedTips(on date: Date) -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: dismissedTipsKey(on: date)) ?? [])
+    }
+
+    private static func saveDismissedTips(_ tips: Set<String>, on date: Date) {
+        let defaults = UserDefaults.standard
+        // Only today's list is kept.
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("dismissedTips-") && key != dismissedTipsKey(on: date) {
+            defaults.removeObject(forKey: key)
+        }
+        defaults.set(Array(tips), forKey: dismissedTipsKey(on: date))
+    }
+
+    // MARK: - Journal
+
+    func updateJournal(_ day: DayID, _ name: String = "Edit Journal", _ change: (inout JournalEntry) -> Void) {
+        perform(name) { $0.updateJournal(for: day, change) }
+    }
+
+    func togglePriority(_ goal: Goal, on day: DayID = DayID(.now)) {
+        perform("Change Priorities") { $0.togglePriority(goal.id, on: day) }
     }
 
     private func registerUndo(_ patch: DataPatch, name: String) {
@@ -196,7 +373,10 @@ final class GoalStore {
         for goal in current.activeGoals where current.isComplete(goal, now: moment) {
             guard let earlier = previous.goal(goal.id), !previous.isComplete(earlier, now: moment) else { continue }
             if data.preferences.playsSounds { NSSound(named: "Glass")?.play() }
-            if data.preferences.celebratesCompletion { celebration = Celebration(goal: goal) }
+            if data.preferences.celebratesCompletion {
+                let next = current.activeGoals.first { $0.stackAfter == goal.id && !current.isComplete($0, now: moment) && current.isScheduled($0, on: moment) }
+                celebration = Celebration(goal: goal, next: next)
+            }
             return
         }
     }
@@ -233,6 +413,8 @@ final class GoalStore {
                 let current = Date()
                 if !self.engine.calendar.isDate(current, inSameDayAs: self.now) {
                     self.now = current
+                    self.dismissedTips = Self.loadDismissedTips(on: current)
+                    self.tipsCache = nil
                     self.effects.dayDidChange(engine: self.engine)
                     self.persistence.backUpDaily()
                 }

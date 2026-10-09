@@ -15,7 +15,10 @@ struct TodayView: View {
     var body: some View {
         let engine = store.engine
         let now = store.now
-        let today = store.filteredForFocus(engine.todayGoals(now: now))
+        let today = engine.stackOrdered(store.filteredForFocus(engine.todayGoals(now: now)))
+        let plan = store.data.journalEntry(for: DayID(now))
+        let tips = store.coachTips
+        let hasTimeline = !engine.timeline(on: now, now: now).isEmpty
         let upNext = today.filter { !engine.isComplete($0, now: now) }
         let done = today.filter { engine.isComplete($0, now: now) }
         let resting = store.filteredForFocus(engine.activeGoals.filter { $0.isOnBreak(at: now) && !engine.isRunning($0) })
@@ -36,6 +39,23 @@ struct TodayView: View {
                             // A new session gets a fresh banner, so the note field never carries over.
                             .id(session.startedAt)
                             .transition(.asymmetric(insertion: .scale(scale: 0.96).combined(with: .opacity), removal: .opacity))
+                    } else if let rest = store.data.rest, let goal = store.goal(rest.goalID) {
+                        RestBanner(rest: rest, goal: goal)
+                            .id(rest.start)
+                            .transition(.asymmetric(insertion: .scale(scale: 0.96).combined(with: .opacity), removal: .opacity))
+                    }
+
+                    if !tips.isEmpty && !engine.activeGoals.isEmpty {
+                        CoachStrip(tips: tips)
+                    }
+
+                    if let plan, plan.hasPlan {
+                        DayPlanCard(entry: plan)
+                            .transition(.scale(scale: 0.97).combined(with: .opacity))
+                    }
+
+                    if hasTimeline {
+                        FocusTimeline()
                     }
 
                     if engine.activeGoals.isEmpty {
@@ -68,6 +88,8 @@ struct TodayView: View {
                 .frame(maxWidth: .infinity)
                 .animation(.spring(response: 0.45, dampingFraction: 0.85), value: done.map(\.id))
                 .animation(.spring(response: 0.45, dampingFraction: 0.85), value: store.data.session?.goalID)
+                .animation(.spring(response: 0.45, dampingFraction: 0.85), value: store.data.rest)
+                .animation(.spring(response: 0.45, dampingFraction: 0.85), value: plan)
             }
             .scrollContentBackground(.hidden)
             .scrollDisabled(expanded != nil)

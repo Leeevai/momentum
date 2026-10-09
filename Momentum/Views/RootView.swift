@@ -33,6 +33,12 @@ struct RootView: View {
                     .id(celebration.id)
             }
         }
+        .overlay {
+            if let toast = store.toast {
+                ToastBanner(toast: toast)
+                    .id(toast.id)
+            }
+        }
         .confirmationDialog(
             "Delete \(store.confirmingDelete?.name ?? "goal")?",
             isPresented: Binding(get: { store.confirmingDelete != nil }, set: { if !$0 { store.confirmingDelete = nil } }),
@@ -59,6 +65,10 @@ struct RootView: View {
             }
         case .insights:
             InsightsView()
+        case .journal:
+            JournalView()
+        case .awards:
+            AwardsView()
         case .today, nil:
             TodayView()
         }
@@ -85,6 +95,10 @@ private struct SheetContent: View {
             BookEditor(goalID: goalID, book: book)
         case .share(let goal):
             ShareCardSheet(goal: goal)
+        case .plan(let day):
+            PlanSheet(day: day)
+        case .reflect(let day):
+            ReflectSheet(day: day)
         }
     }
 }
