@@ -190,6 +190,18 @@ struct GoalEditor: View {
             if draft.kind != .milestones {
                 QuickStepField(goal: $draft)
             }
+            let anchors = store.engine.possibleAnchors(for: draft)
+            if !anchors.isEmpty {
+                Picker(selection: $draft.stackAfter) {
+                    Text("Nothing").tag(UUID?.none)
+                    ForEach(anchors) { goal in
+                        Label(goal.name, systemImage: goal.symbol).tag(UUID?.some(goal.id))
+                    }
+                } label: {
+                    Text("Do it right after")
+                    Text("Habit stacking: Today lists it after that goal, and finishing that goal suggests this one.")
+                }
+            }
             Toggle("Daily reminder", isOn: $hasReminder.animation())
             if hasReminder {
                 DatePicker(reminderRepeat == nil ? "Remind me at" : "First reminder", selection: $reminderTime, displayedComponents: .hourAndMinute)
