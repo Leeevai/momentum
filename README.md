@@ -46,6 +46,13 @@ Every goal can be **daily** (on the weekdays you choose), **weekly**, **monthly*
 - **Time's up notifications** with *Stop and save* and *5 more minutes* buttons.
 - A **live timer in the menu bar**, and a mini player in the sidebar.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/menubar-dark.png">
+    <img src="docs/images/menubar-light.png" alt="The menu bar panel: the running session with pause and stop, and today's goals with one-click actions" width="340">
+  </picture>
+</p>
+
 ### Reading, properly
 A books goal is a small library: *reading*, *up next*, *finished* and *set aside*. Find books in the
 Open Library catalog (title, author, page count and cover filled in for you), log pages with one
