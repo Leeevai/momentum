@@ -72,6 +72,8 @@ struct PlanningTests {
         #expect(Formatting.unit("glasses", for: 1) == "glass")
         #expect(Formatting.unit("stories", for: 1) == "story")
         #expect(Formatting.unit("pages", for: 2) == "pages")
+        #expect(Formatting.number(12.5) == 12.5.formatted(.number.precision(.fractionLength(0...1))))
+        #expect(Formatting.number(109.8) == 110.0.formatted(.number.precision(.fractionLength(0))))
 
         let workouts = Goal(name: "Gym", kind: .count, unit: "workouts", period: .weekly, target: 4)
         #expect(workouts.targetDescription == "4 workouts a week")

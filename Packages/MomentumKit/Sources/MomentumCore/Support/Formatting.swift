@@ -22,9 +22,11 @@ public enum Formatting {
             : String(format: "%d:%02d", minutes, secs)
     }
 
-    /// "1,250" or "12.5", trimming a trailing ".0".
+    /// "1,250" or "12.5", trimming a trailing ".0". From 100 up, decimals are noise and are dropped.
     public static func number(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...1)))
+        abs(value) >= 100
+            ? value.formatted(.number.precision(.fractionLength(0)))
+            : value.formatted(.number.precision(.fractionLength(0...1)))
     }
 
     /// Picks the singular of a plural unit for a value of one: "pages" -> "page".
