@@ -1,9 +1,16 @@
 import Foundation
 
 public enum Formatting {
+    /// A whole number from any double: anything not a number reads as zero and anything out of
+    /// range is held at the edge, where `Int(_:)` would stop the app.
+    static func whole(_ value: Double) -> Int {
+        guard value.isFinite else { return 0 }
+        return Int(min(max(value, -1e15), 1e15))
+    }
+
     /// "45m", "1h 30m", "2h"; seconds under a minute read as "<1m" unless zero.
     public static func duration(_ seconds: Double) -> String {
-        let totalMinutes = Int((seconds / 60).rounded(.down))
+        let totalMinutes = whole((seconds / 60).rounded(.down))
         if totalMinutes == 0 { return seconds > 0 ? "<1m" : "0m" }
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
@@ -13,7 +20,7 @@ public enum Formatting {
 
     /// A stopwatch reading: "4:07" or "1:02:09".
     public static func clock(_ seconds: Double) -> String {
-        let total = max(0, Int(seconds.rounded(.down)))
+        let total = max(0, whole(seconds.rounded(.down)))
         let hours = total / 3600
         let minutes = (total % 3600) / 60
         let secs = total % 60

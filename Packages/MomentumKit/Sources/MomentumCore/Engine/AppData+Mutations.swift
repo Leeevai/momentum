@@ -87,10 +87,15 @@ extension AppData {
 // MARK: - Logging
 
 extension AppData {
-    /// Records progress. Zero amounts are ignored; negative ones are corrections.
+    /// The most one entry can record, either way: far beyond any real amount, and small enough
+    /// that every sum and display of it stays a valid number.
+    public static let entryLimit: Double = 1_000_000_000
+
+    /// Records progress. Zero amounts are ignored; negative ones are corrections. An amount that
+    /// isn't a number, or is beyond `entryLimit`, is refused.
     @discardableResult
     public mutating func log(_ amount: Double, for goalID: UUID, at date: Date = .now, note: String = "", source: LogEntry.Source = .manual, bookID: UUID? = nil) -> LogEntry? {
-        guard amount != 0, goal(goalID) != nil else { return nil }
+        guard amount != 0, amount.isFinite, abs(amount) <= Self.entryLimit, goal(goalID) != nil else { return nil }
         let entry = LogEntry(goalID: goalID, date: date, amount: amount, source: source, note: note, bookID: bookID)
         entries.append(entry)
         return entry
@@ -367,7 +372,7 @@ extension AppData {
     /// on reaching the last page.
     public mutating func logPages(_ pages: Int, in bookID: UUID, of goalID: UUID, at now: Date = .now, note: String = "") {
         guard pages != 0, let book = goal(goalID)?.books.first(where: { $0.id == bookID }) else { return }
-        let target = max(0, book.currentPage + pages)
+        let target = max(0, book.currentPage + min(max(pages, -1_000_000), 1_000_000))
         let newPage = book.totalPages.map { min($0, target) } ?? target
         let delta = newPage - book.currentPage
         guard delta != 0 else { return }

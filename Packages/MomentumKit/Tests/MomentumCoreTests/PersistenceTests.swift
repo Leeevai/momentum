@@ -205,3 +205,19 @@ struct WriteTrackingTests {
         #expect(second.before == second.after)
     }
 }
+
+@Suite("Out-of-range amounts")
+struct AmountLimitTests {
+    @Test("Amounts that aren't numbers or are beyond any real one are refused, and display never traps")
+    func limits() {
+        let goal = checkInGoal()
+        var data = AppData(goals: [goal])
+        #expect(data.log(.infinity, for: goal.id) == nil)
+        #expect(data.log(.nan, for: goal.id) == nil)
+        #expect(data.log(1e300, for: goal.id) == nil)
+        #expect(data.log(5, for: goal.id) != nil)
+        #expect(Formatting.duration(1e300) == Formatting.duration(1e15 * 60))
+        #expect(Formatting.duration(.nan) == "0m")
+        #expect(Formatting.clock(.infinity) == "0:00")
+    }
+}

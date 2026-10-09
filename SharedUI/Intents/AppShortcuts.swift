@@ -60,18 +60,22 @@ struct LogProgressIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let data = SharedStore.load()
         guard let stored = data.goal(goal.id) else { throw MomentumIntentError.goalNotFound }
+        // Whatever Shortcuts passes in: a day's worth of minutes, or a library's worth of pages, at most.
+        func bounded(_ value: Double, _ limit: Double) -> Double {
+            value.isFinite ? min(max(value, -limit), limit) : 0
+        }
         let updated = SharedStore.update { data in
             switch stored.kind {
             case .time:
-                data.log((amount ?? stored.quickAddStep / 60) * 60, for: stored.id)
+                data.log(bounded(amount ?? stored.quickAddStep / 60, 24 * 60) * 60, for: stored.id)
             case .books:
                 if let book = stored.currentBook {
-                    data.logPages(Int(amount ?? stored.quickAddStep), in: book.id, of: stored.id)
+                    data.logPages(Int(bounded(amount ?? stored.quickAddStep, 100_000)), in: book.id, of: stored.id)
                 }
             case .milestones:
                 data.completeNextMilestone(in: stored.id)
             case .count, .amount:
-                data.log(amount ?? stored.quickAddStep, for: stored.id)
+                data.log(bounded(amount ?? stored.quickAddStep, AppData.entryLimit), for: stored.id)
             }
         }
         let engine = ProgressEngine(data: updated)
