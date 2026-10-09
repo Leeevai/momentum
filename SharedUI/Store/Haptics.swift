@@ -59,15 +59,18 @@ struct HapticEvent: Equatable {
 }
 
 extension View {
-    /// Haptics for the user's changes, for reaching a goal, and for earning an award.
+    /// Haptics for the user's changes, for reaching a goal, and for earning an award, unless
+    /// they're turned off in Settings.
     func appHaptics(_ store: GoalStore) -> some View {
-        self
-            .sensoryFeedback(trigger: store.haptic) { _, event in event?.feedback }
-            .sensoryFeedback(trigger: store.celebration?.id) { _, id in id == nil ? nil : .success }
+        let enabled = store.data.preferences.playsSounds
+        return self
+            .sensoryFeedback(trigger: store.haptic) { _, event in enabled ? event?.feedback : nil }
+            .sensoryFeedback(trigger: store.celebration?.id) { _, id in enabled && id != nil ? .success : nil }
             .sensoryFeedback(trigger: store.toast?.id) { _, _ in
+                guard enabled else { return nil }
                 switch store.toast?.kind {
-                case .achievement, .achievements: .success
-                case .message, nil: nil
+                case .achievement, .achievements: return .success
+                case .message, nil: return nil
                 }
             }
     }
