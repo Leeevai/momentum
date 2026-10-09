@@ -22,6 +22,8 @@ struct ProgressRing<Center: View>: View {
         }
         .padding(lineWidth / 2)
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progress)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(Text(min(max(progress, 0), 1), format: .percent.precision(.fractionLength(0))))
     }
 }
 
