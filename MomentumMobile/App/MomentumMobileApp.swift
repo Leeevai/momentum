@@ -32,13 +32,18 @@ struct MomentumMobileApp: App {
     }
 
     /// The real store; in debug builds, `MOMENTUM_DEMO=1` swaps in demo data held in memory (`empty`
-    /// for none), and
+    /// for none), `MOMENTUM_DEMO=seed` writes the demo data to the real data file (for the watch
+    /// and the widgets, which read that file), and
     /// `MOMENTUM_TAB` opens a tab and `MOMENTUM_SHEET` a sheet, for screenshots and simulator runs.
     private static func makeStore() -> GoalStore {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
         if environment["MOMENTUM_DEMO"] == "empty" {
             return GoalStore.preview(AppData())
+        }
+        if environment["MOMENTUM_DEMO"] == "seed" {
+            SharedStore.fileStore.replace(with: AppData.demo())
+            return GoalStore()
         }
         if environment["MOMENTUM_DEMO"] == "1" {
             var data = AppData.demo()
