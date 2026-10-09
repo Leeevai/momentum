@@ -22,6 +22,8 @@ struct TodayView: View {
 
                 if let session = store.data.session, let goal = store.goal(session.goalID) {
                     FocusBanner(goal: goal, session: session)
+                        // A new session gets a fresh banner, so the note field never carries over.
+                        .id(session.startedAt)
                         .transition(.asymmetric(insertion: .scale(scale: 0.96).combined(with: .opacity), removal: .opacity))
                 }
 

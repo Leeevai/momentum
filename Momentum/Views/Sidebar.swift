@@ -56,13 +56,13 @@ struct Sidebar: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: store.data.session?.goalID)
     }
 
-    private struct Group {
+    private struct GoalGroup {
         var name: String
         var goals: [Goal]
     }
 
     /// Active goals grouped by category, in the order their first goal appears.
-    private var groups: [Group] {
+    private var groups: [GoalGroup] {
         var order: [String] = []
         var byName: [String: [Goal]] = [:]
         for goal in filter(store.engine.activeGoals) {
@@ -70,7 +70,7 @@ struct Sidebar: View {
             if byName[name] == nil { order.append(name) }
             byName[name, default: []].append(goal)
         }
-        return order.map { Group(name: $0, goals: byName[$0] ?? []) }
+        return order.map { GoalGroup(name: $0, goals: byName[$0] ?? []) }
     }
 
     private func filter(_ goals: [Goal]) -> [Goal] {

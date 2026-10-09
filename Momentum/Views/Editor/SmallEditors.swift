@@ -249,7 +249,7 @@ struct BookEditor: View {
                     ForEach(BookStatus.allCases) { Label($0.title, systemImage: $0.symbolName).tag($0) }
                 }
                 if draft.status == .reading {
-                    Stepper(value: $draft.currentPage, in: 0...(Int(pagesText) ?? 10_000), step: 1) {
+                    Stepper(value: $draft.currentPage, in: 0...max(1, Int(pagesText) ?? 10_000), step: 1) {
                         LabeledContent("Current page", value: "\(draft.currentPage)")
                     }
                 }
@@ -322,6 +322,7 @@ struct BookEditor: View {
         updated.title = updated.title.trimmingCharacters(in: .whitespacesAndNewlines)
         updated.author = updated.author.trimmingCharacters(in: .whitespacesAndNewlines)
         updated.totalPages = Int(pagesText.trimmingCharacters(in: .whitespaces)).flatMap { $0 > 0 ? $0 : nil }
+        if let total = updated.totalPages { updated.currentPage = min(updated.currentPage, total) }
         let trimmedLink = linkText.trimmingCharacters(in: .whitespaces)
         updated.link = trimmedLink.isEmpty ? nil : URL(string: trimmedLink.contains("://") ? trimmedLink : "https://\(trimmedLink)")
         let previousStatus = book?.status
