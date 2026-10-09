@@ -3,12 +3,20 @@ import SwiftUI
 /// The app's mark, as on its icon: a ring sweeping from orange through pink to violet around a
 /// dark glass disc with an arrow. It draws itself in when it appears.
 struct MomentumMark: View {
-    var size: CGFloat = 120
-    var animated = true
+    var size: CGFloat
+    var animated: Bool
 
-    @State private var sweep: Double = 0
-    @State private var showsArrow = false
+    @State private var sweep: Double
+    @State private var showsArrow: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// A still mark starts drawn, so it shows in an image rendered off screen too.
+    init(size: CGFloat = 120, animated: Bool = true) {
+        self.size = size
+        self.animated = animated
+        _sweep = State(initialValue: animated ? 0 : 1)
+        _showsArrow = State(initialValue: !animated)
+    }
 
     /// How much of the circle the ring covers, leaving the icon's gap at the top left.
     private static let arc = 0.81

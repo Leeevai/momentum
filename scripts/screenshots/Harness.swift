@@ -114,6 +114,11 @@ MainActor.assumeIsolated {
                 print("wrote share-\(goal.kind.rawValue).png")
             }
         }
+        if let image = WeekShareCard.image(review: store.engine.weekReview(endingAt: .now), goals: store.data.goals),
+           let tiff = image.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+            try? png.write(to: extras.appendingPathComponent("share-week.png"))
+            print("wrote share-week.png")
+        }
         withExtrasOutput(extras) {
             render("goal-challenge", height: 1300, dark: true) { store in store.data.goals.first { $0.challenge != nil }.map { .goal($0.id) } }
             let rated = makeStore()

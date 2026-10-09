@@ -6,6 +6,7 @@ import SwiftUI
 struct WeekReviewSheet: View {
     @Environment(GoalStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @State private var shareImage: PlatformImage?
 
     var body: some View {
         let review = store.engine.weekReview(endingAt: store.now)
@@ -86,6 +87,13 @@ struct WeekReviewSheet: View {
                     }
                 }
                 HStack {
+                    if let shareImage {
+                        ShareLink(item: Image(platformImage: shareImage),
+                                  preview: SharePreview("My week", image: Image(platformImage: shareImage))) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        .secondaryActionStyle(.teal)
+                    }
                     Spacer()
                     Button("Done") { dismiss() }
                         .keyboardShortcut(.cancelAction)
@@ -105,6 +113,9 @@ struct WeekReviewSheet: View {
             .padding(26)
         }
         .sheetFrame(width: 560, height: 680)
+        .task {
+            shareImage = WeekShareCard.image(review: store.engine.weekReview(endingAt: store.now), goals: store.data.goals)
+        }
     }
 
     private func record(_ week: WeekReview.GoalWeek, goal: Goal) -> String {
