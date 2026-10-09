@@ -52,5 +52,20 @@ public struct GoalTemplate: Identifiable, Sendable {
         GoalTemplate(id: "learn-course", subtitle: "3 hours of study a week", prototype: Goal(
             name: "Online course", symbol: "graduationcap.fill", color: .blue, category: "Learning", kind: .time, period: .weekly,
             target: 3 * 3600, focusMinutes: 45)),
+        GoalTemplate(id: "steps", subtitle: "8,000 steps a day, 4,000 still counts", prototype: Goal(
+            name: "Walk", symbol: "figure.walk", color: .green, category: "Fitness", kind: .amount, unit: "steps",
+            period: .daily, target: 8_000, streakMinimum: 4_000, quickAddStep: 1_000)),
+        GoalTemplate(id: "instrument", subtitle: "20 minutes of practice a day", prototype: Goal(
+            name: "Practice guitar", symbol: "guitars.fill", color: .orange, category: "Creative", kind: .time, period: .daily,
+            target: 20 * 60, quickAddStep: 5 * 60, focusMinutes: 20)),
+        GoalTemplate(id: "yoga", subtitle: "15 minutes of stretching, 5 days a week", prototype: Goal(
+            name: "Yoga", symbol: "figure.yoga", color: .purple, category: "Fitness", kind: .time, period: .daily,
+            target: 15 * 60, weekdays: Set(2...6), quickAddStep: 5 * 60, focusMinutes: 15)),
+        GoalTemplate(id: "sleep", subtitle: "In bed by 11, with a reminder at 10:30", prototype: Goal(
+            name: "Sleep on time", symbol: "bed.double.fill", color: .indigo, category: "Health", kind: .count, unit: "nights",
+            period: .daily, target: 1, reminder: ReminderSchedule(hour: 22, minute: 30))),
+        GoalTemplate(id: "code", subtitle: "An hour of building, every day", prototype: Goal(
+            name: "Code every day", symbol: "chevron.left.forwardslash.chevron.right", color: .gray, category: "Work", kind: .time,
+            period: .daily, target: 3600, streakMinimum: 15 * 60, focusMinutes: 50)),
     ]
 }
