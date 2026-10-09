@@ -198,6 +198,12 @@ final class GoalStore {
         }
         knownModification = result.modification
         apply(result.after, userInitiated: false, fromAnotherDevice: true)
+        // A merge can leave a timer on a goal that's gone, or a session and a break at once;
+        // settling that is a change of this device's own, so it syncs back out.
+        if result.after.session != nil || result.after.rest != nil {
+            var probe = result.after
+            if probe.settleTimer() { perform { $0.settleTimer() } }
+        }
     }
 
     /// Replaces all data, e.g. from an import. The previous file is kept as a backup.

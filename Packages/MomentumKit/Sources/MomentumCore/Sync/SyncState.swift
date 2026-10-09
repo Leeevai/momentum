@@ -12,18 +12,15 @@ public struct SyncState: Codable, Equatable, Sendable {
     public var stamps: [String: Date]
     /// Record key -> when it was deleted.
     public var tombstones: [String: Date]
-    /// The starts of the last sessions this data saw end, so a merge can tell "that session was
-    /// stopped" from "this device never saw that session": only the first lets no session win.
-    public var endedSessions: [Date]
+    /// The goal order as last arranged (by a reorder, an add or a delete), stamped as "order".
+    /// Nil until the first such change; the goals' own order stands in for it.
+    public var order: [UUID]?
 
-    public init(stamps: [String: Date] = [:], tombstones: [String: Date] = [:], endedSessions: [Date] = []) {
+    public init(stamps: [String: Date] = [:], tombstones: [String: Date] = [:], order: [UUID]? = nil) {
         self.stamps = stamps
         self.tombstones = tombstones
-        self.endedSessions = endedSessions
+        self.order = order
     }
-
-    /// How many ended sessions are remembered.
-    public static let endedSessionLimit = 50
 
     /// Deletions are remembered this long, so a device that was away for months still learns of
     /// them; after that, a copy that never heard of one could bring the record back.
@@ -31,7 +28,9 @@ public struct SyncState: Codable, Equatable, Sendable {
 
     /// A device's file older than this is no longer merged. It's shorter than the life of a
     /// tombstone, so every file still merged has heard of every deletion it could undo: a device
-    /// retired, or reinstalled under a new id, can't bring deleted records back.
+    /// retired, or reinstalled under a new id, can't bring deleted records back. Only when no file
+    /// in the folder is fresher, and this device has nothing yet, are stale files read: then there
+    /// is no newer copy whose deletions they could undo.
     public static let peerLifetime: TimeInterval = 150 * 86_400
 
     public static func goal(_ id: UUID) -> String { "goal:\(id.uuidString)" }
@@ -50,13 +49,13 @@ public struct SyncState: Codable, Equatable, Sendable {
         return deleted >= date
     }
 
-    private enum CodingKeys: String, CodingKey { case stamps, tombstones, endedSessions }
+    private enum CodingKeys: String, CodingKey { case stamps, tombstones, order }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         stamps = try c.decode(.stamps, default: [:])
         tombstones = try c.decode(.tombstones, default: [:])
-        endedSessions = try c.decode(.endedSessions, default: [])
+        order = try c.decodeIfPresent([UUID].self, forKey: .order)
     }
 }
 
@@ -80,7 +79,10 @@ public enum SyncStamper {
             let new = Dictionary(after.goals.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             for (id, goal) in new where old[id] != goal { changed(SyncState.goal(id)) }
             for id in old.keys where new[id] == nil { removed(SyncState.goal(id)) }
-            if before.goals.map(\.id) != after.goals.map(\.id) { sync.stamps[SyncState.order] = now }
+            if before.goals.map(\.id) != after.goals.map(\.id) {
+                sync.stamps[SyncState.order] = now
+                sync.order = after.goals.map(\.id)
+            }
         }
 
         if before.entries != after.entries {
@@ -110,9 +112,6 @@ public enum SyncStamper {
         }
 
         if before.session != after.session { sync.stamps[SyncState.session] = now }
-        if let ended = before.session, after.session.map({ !$0.isSameSession(as: ended) }) ?? true {
-            sync.endedSessions = Array((sync.endedSessions + [ended.startedAt]).uniqued().suffix(SyncState.endedSessionLimit))
-        }
         if before.rest != after.rest { sync.stamps[SyncState.rest] = now }
         if before.preferences != after.preferences { sync.stamps[SyncState.preferences] = now }
 

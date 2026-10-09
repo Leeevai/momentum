@@ -41,24 +41,30 @@ public enum SyncMerge {
         for id in Set(localGoals.keys).union(remoteGoals.keys) {
             goals[id] = pick(localGoals[id], remoteGoals[id], key: SyncState.goal(id), stampsA: local.sync, stampsB: remote.sync)
         }
-        let localOrder = local.goals.map(\.id)
-        let remoteOrder = remote.goals.map(\.id)
-        let localFirst = local.sync.stamp(SyncState.order) > remote.sync.stamp(SyncState.order)
-            || (local.sync.stamp(SyncState.order) == remote.sync.stamp(SyncState.order) && localOrder.map(\.uuidString).lexicographicallyPrecedes(remoteOrder.map(\.uuidString)))
-        let order = (localFirst ? localOrder + remoteOrder : remoteOrder + localOrder).uniqued()
-
+        // The order is the list as last arranged on any device; goals it doesn't mention follow
+        // in a fixed order, so the result is the same however merges are grouped.
+        let order = single(local.sync.order ?? local.goals.map(\.id), remote.sync.order ?? remote.goals.map(\.id),
+                           key: SyncState.order, local.sync, remote.sync) ?? []
+        sync.order = order
+        let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
         var merged = local
-        merged.goals = order.compactMap { goals[$0] }
-        let goalIDs = Set(merged.goals.map(\.id))
+        merged.goals = goals.values.sorted { lhs, rhs in
+            switch (rank[lhs.id], rank[rhs.id]) {
+            case (let a?, let b?): a < b
+            case (.some, nil): true
+            case (nil, .some): false
+            case (nil, nil): (lhs.createdAt, lhs.id.uuidString) < (rhs.createdAt, rhs.id.uuidString)
+            }
+        }
 
-        // Entries: the union, minus deletions; an entry whose goal is gone goes with it.
+        // Entries: the union, minus deletions. An entry whose goal is gone is kept, unseen (the
+        // engine skips it): dropping it here would depend on the order copies are merged in.
         let localEntries = Dictionary(local.entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let remoteEntries = Dictionary(remote.entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var entries: [LogEntry] = []
         entries.reserveCapacity(max(localEntries.count, remoteEntries.count))
         for id in Set(localEntries.keys).union(remoteEntries.keys) {
-            if let entry = pick(localEntries[id], remoteEntries[id], key: SyncState.entry(id), stampsA: local.sync, stampsB: remote.sync),
-               goalIDs.contains(entry.goalID) {
+            if let entry = pick(localEntries[id], remoteEntries[id], key: SyncState.entry(id), stampsA: local.sync, stampsB: remote.sync) {
                 entries.append(entry)
             }
         }
@@ -72,15 +78,12 @@ public enum SyncMerge {
         }
 
         // Single values.
-        // The session: the same session on both sides takes its latest state; no session wins
-        // over a session only where that session was seen to end; of two different sessions the
-        // later one wins, since starting it ended the other there. A running session then
-        // supersedes a break, as starting one always ends the break.
-        merged.session = mergeSession(local, remote).flatMap { goalIDs.contains($0.goalID) ? $0 : nil }
+        // The session and the break each take their latest change. Plain last-writer-wins is what
+        // keeps the merge associative: a copy merged in any grouping or order comes out the
+        // same. Data that ends up with both a running session and a break, or a timer on a goal that
+        // is gone, is settled by the app as a change of its own (`settleTimer`), which syncs.
+        merged.session = single(local.session, remote.session, key: SyncState.session, local.sync, remote.sync)
         merged.rest = single(local.rest, remote.rest, key: SyncState.rest, local.sync, remote.sync)
-            .flatMap { goalIDs.contains($0.goalID) ? $0 : nil }
-        if merged.session != nil { merged.rest = nil }
-        sync.endedSessions = Array(Set(local.sync.endedSessions + remote.sync.endedSessions).sorted().suffix(SyncState.endedSessionLimit))
         merged.preferences = single(local.preferences, remote.preferences, key: SyncState.preferences, local.sync, remote.sync) ?? local.preferences
 
         // Achievements stay earned, at the earliest date either side earned them.
@@ -94,30 +97,6 @@ public enum SyncMerge {
         sync.stamps = sync.stamps.filter { key, stamped in sync.tombstones[key].map { stamped > $0 } ?? true }
         merged.sync = sync
         return merged
-    }
-
-    /// Whether `ender` saw `session` end, after the other side last changed it: a stop that
-    /// happened before a resume (an undo, say) mustn't stop it again.
-    private static func endedLater(_ session: FocusSession, by ender: AppData, than holder: AppData) -> Bool {
-        ender.sync.endedSessions.contains(session.startedAt)
-            && ender.sync.stamp(SyncState.session) >= holder.sync.stamp(SyncState.session)
-    }
-
-    private static func mergeSession(_ local: AppData, _ remote: AppData) -> FocusSession? {
-        switch (local.session, remote.session) {
-        case (nil, nil):
-            return nil
-        case (let only?, nil):
-            return endedLater(only, by: remote, than: local) ? nil : only
-        case (nil, let only?):
-            return endedLater(only, by: local, than: remote) ? nil : only
-        case (let a?, let b?):
-            if a.isSameSession(as: b) {
-                return single(a, b, key: SyncState.session, local.sync, remote.sync)
-            }
-            if a.startedAt != b.startedAt { return a.startedAt > b.startedAt ? a : b }
-            return tieBreak(a, b)
-        }
     }
 
     /// The side whose single value changed last; nil values (no session) count as values.

@@ -92,7 +92,7 @@ struct SyncMergeTests {
         #expect(SyncMerge.merge(mac.data, phone.data).goals.first?.target == 4.0)
     }
 
-    @Test("Entries for a goal deleted elsewhere go with it")
+    @Test("Entries for a goal deleted elsewhere count for nothing, and come back with it")
     func orphans() {
         let goal = checkInGoal()
         let shared = AppData(goals: [goal])
@@ -102,7 +102,27 @@ struct SyncMergeTests {
         phone.change(at: at(2)) { $0.log(1, for: goal.id, at: referenceNow) }
         let merged = SyncMerge.merge(mac.data, phone.data)
         #expect(merged.goals.isEmpty)
-        #expect(merged.entries.isEmpty)
+        #expect(ProgressEngine(data: merged, calendar: testCalendar).data.entries.isEmpty)
+        // An edit on the phone after the delete brings the goal back, with what was logged.
+        phone.change(at: at(3)) { $0.updateGoal(goal.id) { $0.target = 2 } }
+        let revived = ProgressEngine(data: SyncMerge.merge(mac.data, phone.data), calendar: testCalendar)
+        #expect(revived.data.entries.count == 1)
+    }
+
+    @Test("A timer on a goal deleted elsewhere is settled away")
+    func orphanTimer() {
+        let work = timeGoal()
+        let shared = AppData(goals: [work])
+        var mac = Device(data: shared)
+        var phone = Device(data: shared)
+        mac.change(at: at(1)) { $0.deleteGoal(work.id) }
+        phone.change(at: at(2)) { $0.startFocus(on: work.id, at: at(2), calendar: testCalendar) }
+        var merged = SyncMerge.merge(mac.data, phone.data)
+        let changed = merged.settleTimer()
+        #expect(changed)
+        #expect(merged.session == nil)
+        let changedAgain = merged.settleTimer()
+        #expect(!changedAgain)
     }
 
     @Test("The session, preferences and journal take the latest change")
@@ -147,7 +167,7 @@ struct SyncMergeTests {
         #expect(SyncMerge.merge(ab, mac.data) == ab)
     }
 
-    @Test("Three devices editing at random converge once they've all synced", arguments: [1, 2, 3, 4, 5])
+    @Test("Three devices editing at random converge once they've all synced", arguments: Array(UInt64(1)...40))
     func convergence(seed: UInt64) {
         var random = SeededRandom(seed: seed)
         let goals = (0..<3).map { index in Goal(name: "G\(index)", kind: .count, target: 2) }
@@ -195,6 +215,9 @@ struct SyncMergeTests {
                 devices[index].sync(with: devices[other].data)
             }
         }
+        // Merging is associative: the same three copies in either grouping.
+        let (a, b, c) = (devices[0].data, devices[1].data, devices[2].data)
+        #expect(SyncMerge.merge(SyncMerge.merge(a, b), c) == SyncMerge.merge(a, SyncMerge.merge(b, c)))
         // Everyone syncs with everyone, twice round.
         for _ in 0..<2 {
             for i in 0..<3 { for j in 0..<3 where i != j { devices[i].sync(with: devices[j].data) } }

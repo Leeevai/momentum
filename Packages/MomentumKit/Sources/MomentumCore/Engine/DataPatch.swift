@@ -142,7 +142,7 @@ public struct DataPatch: Sendable {
     private static func sameSession(_ lhs: FocusSession?, _ rhs: FocusSession?) -> Bool {
         switch (lhs, rhs) {
         case (nil, nil): true
-        case (let a?, let b?): a.goalID == b.goalID && a.startedAt == b.startedAt
+        case (let a?, let b?): a.isSameSession(as: b)
         default: false
         }
     }

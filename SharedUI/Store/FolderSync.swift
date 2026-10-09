@@ -226,9 +226,9 @@ final class FolderSync {
         guard let folder, !isSyncing else { return }
         let source = SyncFolder(url: folder, deviceID: Self.deviceID)
         let known = peerDates
-        // With nothing here yet (a new device, a reinstall) no deletion can be undone, so even a
-        // folder untouched for months is read.
-        let includeStale = store.map { $0.data.goals.isEmpty && $0.data.entries.isEmpty && $0.data.sync.tombstones.isEmpty } ?? false
+        // With nothing here yet (a new device, a reinstall), a folder whose files are all stale is
+        // read anyway: no fresher copy holds a deletion they could undo.
+        let startingFresh = store.map { $0.data.goals.isEmpty && $0.data.entries.isEmpty && $0.data.sync.tombstones.isEmpty } ?? false
         isSyncing = true
         Task { [weak self] in
             // Only files changed since they were last read are read; a file that couldn't be
@@ -236,23 +236,25 @@ final class FolderSync {
             let (dates, envelopes) = await Task.detached(priority: .utility) { () -> ([String: Date], [SyncEnvelope]) in
                 var dates: [String: Date] = [:]
                 var envelopes: [SyncEnvelope] = []
+                var stale: [SyncEnvelope] = []
                 for file in source.peerFiles() {
                     let name = file.url.lastPathComponent
                     if known[name] == file.modified {
                         dates[name] = file.modified
                         continue
                     }
-                    switch source.read(file.url, includeStale: includeStale) {
+                    switch source.read(file.url) {
                     case .read(let envelope):
                         envelopes.append(envelope)
                         dates[name] = file.modified
-                    case .stale:
+                    case .stale(let envelope):
+                        stale.append(envelope)
                         dates[name] = file.modified
                     case .unreadable:
                         break
                     }
                 }
-                return (dates, envelopes)
+                return (dates, startingFresh && envelopes.isEmpty && known.isEmpty ? stale : envelopes)
             }.value
             guard let self else { return }
             self.isSyncing = false

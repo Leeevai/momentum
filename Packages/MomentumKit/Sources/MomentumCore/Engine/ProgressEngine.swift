@@ -20,6 +20,13 @@ public struct ProgressEngine: Sendable {
     private let entryIndex = EntryIndex()
 
     public init(data: AppData, calendar: Calendar = .current) {
+        // Entries for a goal that's gone (logged on another device after it was deleted here)
+        // stay in the file for syncing, but count for nothing.
+        let goalIDs = Set(data.goals.map(\.id))
+        var data = data
+        if data.entries.contains(where: { !goalIDs.contains($0.goalID) }) {
+            data.entries.removeAll { !goalIDs.contains($0.goalID) }
+        }
         self.data = data
         self.calendar = calendar
         var totals: [UUID: [Int: Double]] = [:]

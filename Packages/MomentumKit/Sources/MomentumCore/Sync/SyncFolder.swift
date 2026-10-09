@@ -84,15 +84,14 @@ public struct SyncFolder: Sendable {
     public enum PeerRead: Sendable {
         case read(SyncEnvelope)
         /// Not saved for `SyncState.peerLifetime`: left out, so a long-gone device can't bring
-        /// back what was deleted since.
-        case stale
+        /// back what was deleted since (see `SyncState.peerLifetime` for when it's still used).
+        case stale(SyncEnvelope)
         /// Not readable now (still downloading, half written); worth trying again later.
         case unreadable
     }
 
-    /// Reads one device's file. `includeStale` reads a long-unsaved file too, which is safe when
-    /// this device has nothing it could have deleted (a fresh install).
-    public func read(_ file: URL, now: Date = .now, includeStale: Bool = false) -> PeerRead {
+    /// Reads one device's file.
+    public func read(_ file: URL, now: Date = .now) -> PeerRead {
         var envelope: SyncEnvelope?
         var coordinationError: NSError?
         NSFileCoordinator().coordinate(readingItemAt: file, options: [], error: &coordinationError) { source in
@@ -103,16 +102,23 @@ public struct SyncFolder: Sendable {
             }
         }
         guard let envelope else { return .unreadable }
-        return includeStale || now.timeIntervalSince(envelope.savedAt) < SyncState.peerLifetime ? .read(envelope) : .stale
+        return now.timeIntervalSince(envelope.savedAt) < SyncState.peerLifetime ? .read(envelope) : .stale(envelope)
     }
 
-    /// Reads the other devices' copies, leaving out unreadable files and, unless `includeStale`,
-    /// stale ones.
-    public func readPeers(now: Date = .now, includeStale: Bool = false) -> [SyncEnvelope] {
-        peerFiles().compactMap { file in
-            if case .read(let envelope) = read(file.url, now: now, includeStale: includeStale) { return envelope }
-            return nil
+    /// Reads the other devices' copies, leaving out unreadable files and stale ones. With
+    /// `startingFresh` (this device has no data yet), a folder holding only stale files is read
+    /// anyway: with no fresher copy anywhere, there's no deletion they could undo.
+    public func readPeers(now: Date = .now, startingFresh: Bool = false) -> [SyncEnvelope] {
+        var fresh: [SyncEnvelope] = []
+        var stale: [SyncEnvelope] = []
+        for file in peerFiles() {
+            switch read(file.url, now: now) {
+            case .read(let envelope): fresh.append(envelope)
+            case .stale(let envelope): stale.append(envelope)
+            case .unreadable: break
+            }
         }
+        return startingFresh && fresh.isEmpty ? stale : fresh
     }
 
     public static func encode(_ envelope: SyncEnvelope) throws -> Data {

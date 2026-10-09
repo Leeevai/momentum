@@ -19,15 +19,28 @@ extension AppData {
         return end <= now
     }
 
+    /// Settles what only merging two devices' copies can produce: a timer on a goal that's gone
+    /// (it ends), and a running session alongside a break (the session wins, as starting one ends
+    /// the break). Returns whether anything changed.
+    @discardableResult
+    public mutating func settleTimer() -> Bool {
+        let before = (session, rest)
+        if let session, goal(session.goalID) == nil { self.session = nil }
+        if let rest, goal(rest.goalID) == nil { self.rest = nil }
+        if session != nil { rest = nil }
+        return before.0 != session || before.1 != rest
+    }
+
     /// Moves the Pomodoro rhythm along: saves a block that reached its length and starts its
-    /// break, or starts the next block when a break ends and auto-start is on.
+    /// break, or starts the next block when a break ends and auto-start is on. A break under a
+    /// running session is left for `settleTimer`.
     @discardableResult
     public mutating func advancePomodoro(at now: Date = .now, calendar: Calendar = .current) -> PomodoroEvent? {
         if isBlockDue(at: now), let goalID = session?.goalID {
             completeFocusBlock(at: now, calendar: calendar)
             if let rest { return .blockCompleted(goalID: goalID, rest: rest) }
         }
-        if let rest, preferences.pomodoro.isEnabled, preferences.pomodoro.autoStartsNextBlock, rest.isOver(at: now),
+        if session == nil, let rest, preferences.pomodoro.isEnabled, preferences.pomodoro.autoStartsNextBlock, rest.isOver(at: now),
            now.timeIntervalSince(rest.end) <= Self.autoStartGrace {
             startNextBlock(at: rest.end, calendar: calendar)
             if let session { return .blockStarted(goalID: session.goalID, block: session.block) }

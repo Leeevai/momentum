@@ -62,8 +62,9 @@ struct SyncReviewFixTests {
         before = b
         b.toggleFocus(on: second.id, at: referenceNow.addingTimeInterval(1800), calendar: testCalendar)
         SyncStamper.stamp(&b, from: before, at: referenceNow.addingTimeInterval(1800))
-        let merged = SyncMerge.merge(a, b)
+        var merged = SyncMerge.merge(a, b)
         #expect(merged.session?.goalID == second.id)
+        merged.settleTimer()
         #expect(merged.rest == nil)
         #expect(SyncMerge.merge(b, a).session?.goalID == second.id)
     }
@@ -248,7 +249,9 @@ struct SyncReviewFixTests {
         stamped(&phone, at: 1700) { $0.endRest() }
         #expect(SyncMerge.merge(mac, phone).session?.goalID == second.id)
         #expect(SyncMerge.merge(phone, mac).session?.goalID == second.id)
-        #expect(SyncMerge.merge(mac, phone).rest == nil)
+        var merged = SyncMerge.merge(mac, phone)
+        merged.settleTimer()
+        #expect(merged.rest == nil)
     }
 
     @Test("A session resumed by undo survives a device that saw it stop earlier")
@@ -292,7 +295,11 @@ struct SyncReviewFixTests {
             savedAt: referenceNow.addingTimeInterval(-200 * 86_400), data: AppData(goals: [checkInGoal()])))
         let fresh = SyncFolder(url: dir, deviceID: "new")
         #expect(fresh.readPeers(now: referenceNow).isEmpty)
-        #expect(fresh.readPeers(now: referenceNow, includeStale: true).count == 1)
+        #expect(fresh.readPeers(now: referenceNow, startingFresh: true).count == 1)
+        // Once any device's file is fresh, the stale ones stay out even for a new device.
+        try SyncFolder(url: dir, deviceID: "mac").write(SyncEnvelope(deviceID: "mac", deviceName: "Mac", platform: "macOS",
+            savedAt: referenceNow, data: AppData()))
+        #expect(fresh.readPeers(now: referenceNow, startingFresh: true).map(\.deviceID) == ["mac"])
     }
 
     @Test("Timer entry ids are well-formed version 4 UUIDs")
@@ -302,6 +309,43 @@ struct SyncReviewFixTests {
             let characters = Array(id)
             #expect(characters[14] == "4")
             #expect("89AB".contains(characters[19]))
+        }
+    }
+
+    // MARK: - Third review
+
+    @Test("Undoing a start that switched goals survives sync")
+    func undoSwitchSurvives() {
+        let first = timeGoal(minutes: nil)
+        let second = Goal(name: "Spanish", kind: .time, target: 900)
+        var mac = AppData(goals: [first, second])
+        stamped(&mac, at: 0) { $0.startFocus(on: first.id, at: referenceNow, calendar: testCalendar) }
+        let beforeSwitch = mac
+        stamped(&mac, at: 600) { $0.startFocus(on: second.id, at: referenceNow.addingTimeInterval(600), calendar: testCalendar) }
+        let phone = mac
+        let afterSwitch = mac
+        stamped(&mac, at: 660) { DataPatch(from: beforeSwitch, to: afterSwitch).undo(on: &$0) }
+        for merged in [SyncMerge.merge(mac, phone), SyncMerge.merge(phone, mac)] {
+            #expect(merged.session?.goalID == first.id)
+            #expect(merged.entries.isEmpty)
+        }
+    }
+
+    @Test("A device that missed a stop doesn't bring the session back")
+    func staleSessionStaysStopped() {
+        let goal = timeGoal(minutes: nil)
+        var mac = AppData(goals: [goal])
+        stamped(&mac, at: 0) { $0.startFocus(on: goal.id, at: referenceNow, calendar: testCalendar) }
+        let phone = mac
+        stamped(&mac, at: 1500) { $0.stopFocus(at: referenceNow.addingTimeInterval(1500), calendar: testCalendar) }
+        for index in 0..<60 {
+            let start = 2000.0 + Double(index) * 1000
+            stamped(&mac, at: start) { $0.startFocus(on: goal.id, at: referenceNow.addingTimeInterval(start), calendar: testCalendar) }
+            stamped(&mac, at: start + 600) { $0.stopFocus(at: referenceNow.addingTimeInterval(start + 600), calendar: testCalendar) }
+        }
+        for merged in [SyncMerge.merge(mac, phone), SyncMerge.merge(phone, mac)] {
+            #expect(merged.session == nil)
+            #expect(merged.entries.reduce(0) { $0 + $1.amount } == 1500.0 + 60 * 600)
         }
     }
 }
