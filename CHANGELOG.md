@@ -6,6 +6,11 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Mac desktop widgets showed only grey placeholders when another build of the app with a
+  different version was on record, which every Xcode build leaves behind. `install.sh` now
+  keeps the installed copy as the only one, and opening the app redraws the widgets.
+
 ## [2.1.1] - 2026-10-09
 
 ### Added

@@ -204,6 +204,11 @@ cp Config/Local.xcconfig.example Config/Local.xcconfig   # then set your team ID
 `install.sh` builds a Release copy, installs it to `/Applications` and launches it. Then
 right-click the desktop → **Edit Widgets…** → search for **Momentum**.
 
+If the desktop widgets show only grey placeholder bars, macOS has another copy of the app on
+record (every Xcode build registers one) with a different version, and it refuses to draw the
+installed widgets. Run `./scripts/install.sh` again: it keeps the installed copy as the only one
+on record, and opening the app redraws the widgets.
+
 ### iPhone and iPad
 
 Open `Momentum.xcodeproj`, choose the **MomentumMobile** scheme and your device, and run. To run
