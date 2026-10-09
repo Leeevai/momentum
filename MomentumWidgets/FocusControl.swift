@@ -50,7 +50,8 @@ struct SetFocusRunningIntent: SetValueIntent {
     var value: Bool
 
     func perform() async throws -> some IntentResult {
-        SharedStore.update { data in
+        LiveActivitySync.catchUp()
+        let data = SharedStore.update { data in
             if value {
                 guard data.session == nil, let goal = data.suggestedFocusGoal else { return }
                 let minutes = goal.focusMinutes ?? data.preferences.defaultFocusMinutes
@@ -59,6 +60,7 @@ struct SetFocusRunningIntent: SetValueIntent {
                 data.stopFocus()
             }
         }
+        await LiveActivitySync.after(data)
         ControlCenter.shared.reloadAllControls()
         return .result()
     }

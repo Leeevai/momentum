@@ -105,8 +105,10 @@ struct WidgetActionButton: View {
     var body: some View {
         Group {
             if goal.kind == .time {
-                Button(intent: ToggleFocusIntent(goalID: goal.id)) {
-                    icon(engine.isRunning(goal) ? "stop.fill" : "play.fill")
+                if engine.isRunning(goal) {
+                    Button(intent: StopSessionIntent(goalID: goal.id)) { icon("stop.fill") }
+                } else {
+                    Button(intent: StartSessionIntent(goalID: goal.id)) { icon("play.fill") }
                 }
             } else if goal.kind == .books && goal.currentBook == nil {
                 Link(destination: DeepLink.goal(goal.id).url) { icon("plus") }
@@ -146,9 +148,12 @@ struct WidgetWideButton: View {
         Group {
             switch goal.kind {
             case .time:
-                let running = engine.isRunning(goal)
-                Button(intent: ToggleFocusIntent(goalID: goal.id)) {
-                    label(running ? "Stop" : (goal.focusMinutes.map { "\($0)m focus" } ?? "Start"), running ? "stop.fill" : "play.fill")
+                if engine.isRunning(goal) {
+                    Button(intent: StopSessionIntent(goalID: goal.id)) { label("Stop", "stop.fill") }
+                } else {
+                    Button(intent: StartSessionIntent(goalID: goal.id)) {
+                        label(goal.focusMinutes.map { "\($0)m focus" } ?? "Start", "play.fill")
+                    }
                 }
             case .books:
                 if goal.currentBook != nil {

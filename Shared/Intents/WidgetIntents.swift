@@ -38,6 +38,58 @@ struct PauseResumeFocusIntent: AppIntent {
     }
 }
 
+/// Starts a session on the goal at its default length, unless it's already running: a start,
+/// never a stop. Widgets show Start or Stop from what they last saw, and the data may have moved
+/// on since (a session stopped on another device), so each button does exactly what it said.
+struct StartSessionIntent: AppIntent {
+    static let title: LocalizedStringResource = "Start Session"
+    static let isDiscoverable = false
+
+    @Parameter(title: "Goal ID")
+    var goalID: String
+
+    init() {}
+
+    init(goalID: UUID) {
+        self.goalID = goalID.uuidString
+    }
+
+    func perform() async throws -> some IntentResult {
+        guard let id = UUID(uuidString: goalID) else { return .result() }
+        LiveActivitySync.catchUp()
+        let data = SharedStore.update { data in
+            guard data.session?.goalID != id else { return }
+            data.startFocus(on: id, planned: data.defaultFocusLength(for: id))
+        }
+        await LiveActivitySync.after(data)
+        return .result()
+    }
+}
+
+/// Pauses or resumes, as the button said: pausing a session already paused does nothing.
+struct SetPausedIntent: AppIntent {
+    static let title: LocalizedStringResource = "Pause or Resume Session"
+    static let isDiscoverable = false
+
+    @Parameter(title: "Paused")
+    var paused: Bool
+
+    init() {}
+
+    init(paused: Bool) {
+        self.paused = paused
+    }
+
+    func perform() async throws -> some IntentResult {
+        LiveActivitySync.catchUp()
+        let data = SharedStore.update { data in
+            if paused { data.pauseFocus() } else { data.resumeFocus() }
+        }
+        await LiveActivitySync.after(data)
+        return .result()
+    }
+}
+
 /// Stops the session if it's still the one on the given goal: a stop, never a start, so a
 /// second tap (or a tap on a timer already stopped elsewhere) does nothing.
 struct StopSessionIntent: AppIntent {
@@ -113,6 +165,8 @@ extension ToggleFocusIntent: LiveActivityIntent {}
 extension PauseResumeFocusIntent: LiveActivityIntent {}
 extension StartNextBlockIntent: LiveActivityIntent {}
 extension StopSessionIntent: LiveActivityIntent {}
+extension StartSessionIntent: LiveActivityIntent {}
+extension SetPausedIntent: LiveActivityIntent {}
 extension EndBreakIntent: LiveActivityIntent {}
 #endif
 

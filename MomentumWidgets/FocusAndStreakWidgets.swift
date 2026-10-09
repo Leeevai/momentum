@@ -50,13 +50,13 @@ struct FocusWidgetView: View {
             }
             Spacer(minLength: 0)
             HStack(spacing: 8) {
-                Button(intent: PauseResumeFocusIntent()) {
+                Button(intent: SetPausedIntent(paused: session.isRunning)) {
                     Label(session.isRunning ? "Pause" : "Resume", systemImage: session.isRunning ? "pause.fill" : "play.fill")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
                         .background(Capsule().fill(goal.tint.opacity(0.18)))
                 }
-                Button(intent: ToggleFocusIntent(goalID: goal.id)) {
+                Button(intent: StopSessionIntent(goalID: goal.id)) {
                     Label("Stop", systemImage: "stop.fill")
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -90,7 +90,7 @@ struct FocusWidgetView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 ForEach(goals.prefix(family == .systemSmall ? 2 : 3)) { goal in
-                    Button(intent: ToggleFocusIntent(goalID: goal.id)) {
+                    Button(intent: StartSessionIntent(goalID: goal.id)) {
                         HStack(spacing: 8) {
                             GoalGlyph(goal: goal, size: 13)
                             Text(goal.name)
