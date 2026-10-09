@@ -47,6 +47,8 @@ All notable changes to Momentum are recorded here. The format follows
 - **Home Screen quick actions** on iPhone: open the running timer, focus on a goal that still
   needs it today, plan or reflect on the day, or add a goal.
 - **Goals in Spotlight** (iOS 18, macOS 15), opening straight to the goal.
+- **Challenge and Mood widgets**: a challenge's day and dots (also on the Lock Screen), and
+  today's mood and energy in one tap.
 - **Haptics** on iPhone that match what happened: start, pause, stop, a break, logging up or
   down, reaching a goal, earning an award.
 - **A quick panel from any app** on the Mac, with a global shortcut (Control-Option-M by default).

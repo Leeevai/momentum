@@ -130,7 +130,8 @@ keeps the watch up to date; taps made out of its reach are delivered when it's b
 
 ### Widgets everywhere
 Interactive widgets on the Mac desktop and the iPhone Home Screen: **start and stop timers, check
-in and log pages without opening the app**. On iPhone, Lock Screen widgets show today's progress,
+in and log pages without opening the app**, follow a **challenge** day by day, and rate today's
+**mood and energy** in one tap. On iPhone, Lock Screen widgets show today's progress,
 and Control Center gets a focus toggle on iOS 18 and macOS 26.
 
 <picture>
