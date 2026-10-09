@@ -41,6 +41,8 @@ All notable changes to Momentum are recorded here. The format follows
 - **A week in review**: focus against the week before, perfect days, each goal's record, the
   wins from the journal and awards earned, from the Journal or the weekly recap notification.
 - **Year in pixels**: every day of the past year, colored by progress or by mood.
+- **On this day**: the Journal brings back the wins and reflections from the same date a week, a
+  month and a year ago.
 - **Siri and Shortcuts**: log today's mood (and a win), and hear your week in review.
 - Templates for steps, an instrument, yoga, sleep and coding every day.
 - On iPad, the tabs become a sidebar.

@@ -86,7 +86,8 @@ the anchor celebrates with a **Next up** button, and the coach suggests it.
 Plan the morning with an intention and up to three priorities; Today shows them, ticking each one
 off as its goal is done. Reflect in the evening: mood as weather, energy as a battery, a win, a few
 lines. The **Journal** is a month calendar with every day ringed by how much got done, a **year
-in pixels**, and a **week in review** with your wins; **Insights** shows how your mood lines up
+in pixels**, **on this day** (what you wrote a week, a month and a year ago), and a **week in
+review** with your wins; **Insights** shows how your mood lines up
 with your progress.
 
 ### Challenges
