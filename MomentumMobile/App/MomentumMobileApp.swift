@@ -21,7 +21,7 @@ struct MomentumMobileApp: App {
     }
 
     /// The real store; in debug builds, `MOMENTUM_DEMO=1` swaps in demo data held in memory, and
-    /// `MOMENTUM_TAB` opens a tab, for screenshots and simulator runs.
+    /// `MOMENTUM_TAB` opens a tab and `MOMENTUM_SHEET` a sheet, for screenshots and simulator runs.
     private static func makeStore() -> GoalStore {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
@@ -36,6 +36,13 @@ struct MomentumMobileApp: App {
             case "insights": store.route = .insights
             case "awards": store.route = .awards
             case "goal": if let first = data.goals.first { store.route = .goal(first.id) }
+            default: break
+            }
+            switch environment["MOMENTUM_SHEET"] {
+            case "new": store.sheet = .newGoal
+            case "plan": store.sheet = .plan(DayID(.now))
+            case "reflect": store.sheet = .reflect(DayID(.now))
+            case "edit": if let first = data.goals.first { store.sheet = .editGoal(first) }
             default: break
             }
             return store
