@@ -35,19 +35,28 @@ struct MoodWidgetView: View {
         .widgetBackground(today?.mood?.tint ?? .teal)
     }
 
-    /// The question, and five mood buttons in two rows.
+    /// The question on one line, and five mood buttons in two rows: short enough for the
+    /// smallest widget (an iPhone SE's is 148 points tall).
     private var small: some View {
         let mood = today?.mood
         return VStack(alignment: .leading, spacing: 6) {
-            header
+            HStack(spacing: 6) {
+                Image(systemName: mood?.symbolName ?? "cloud.sun.fill")
+                    .symbolRenderingMode(.multicolor)
+                    .font(.headline)
+                Text(mood.map { "A \($0.title.lowercased()) day" } ?? "How's today?")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
             Spacer(minLength: 0)
             // Sized for the narrowest small widget (an iPhone SE's, about 116 points inside).
             VStack(spacing: 6) {
                 HStack(spacing: 6) {
-                    ForEach(Mood.allCases.prefix(3)) { moodButton($0, selected: mood, size: 34) }
+                    ForEach(Mood.allCases.prefix(3)) { moodButton($0, selected: mood, size: 32) }
                 }
                 HStack(spacing: 6) {
-                    ForEach(Mood.allCases.suffix(2)) { moodButton($0, selected: mood, size: 34) }
+                    ForEach(Mood.allCases.suffix(2)) { moodButton($0, selected: mood, size: 32) }
                 }
             }
             .frame(maxWidth: .infinity)
