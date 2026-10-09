@@ -47,6 +47,12 @@ struct MobileTodayView: View {
                 .animation(.spring(response: 0.45, dampingFraction: 0.85), value: store.data.rest)
             }
             .scrollContentBackground(.hidden)
+            // Pull down to bring in what other devices did.
+            .refreshable {
+                store.reload()
+                store.sync?.syncNow()
+                try? await Task.sleep(for: .milliseconds(600))
+            }
             .background(LivingBackdrop(primary: .accentColor, secondary: .purple))
             .navigationTitle("Today")
             .navigationBarTitleDisplayMode(.inline)
