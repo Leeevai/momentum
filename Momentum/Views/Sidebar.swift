@@ -180,6 +180,7 @@ struct GoalContextMenu: View {
             .disabled(goal.kind == .milestones || goal.kind == .books)
         Divider()
         Button("Edit…") { store.sheet = .editGoal(goal) }
+        Button("Share Progress…") { store.sheet = .share(goal) }
         Button("Duplicate") { store.duplicate(goal) }
         if goal.isOnBreak(at: .now) {
             Button("End Break") { store.endBreak(goal) }

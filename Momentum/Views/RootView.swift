@@ -83,6 +83,8 @@ private struct SheetContent: View {
             LinkEditor(goalID: goalID, link: link)
         case .book(let goalID, let book):
             BookEditor(goalID: goalID, book: book)
+        case .share(let goal):
+            ShareCardSheet(goal: goal)
         }
     }
 }

@@ -16,6 +16,7 @@ enum SheetRoute: Identifiable {
     case log(goalID: UUID, entry: LogEntry? = nil)
     case link(goalID: UUID, link: GoalLink?)
     case book(goalID: UUID, book: Book?)
+    case share(Goal)
 
     var id: String {
         switch self {
@@ -25,6 +26,7 @@ enum SheetRoute: Identifiable {
         case .log(let id, let entry): "log-\(id)-\(entry?.id.uuidString ?? "new")"
         case .link(let goal, let link): "link-\(goal)-\(link?.id.uuidString ?? "new")"
         case .book(let goal, let book): "book-\(goal)-\(book?.id.uuidString ?? "new")"
+        case .share(let goal): "share-\(goal.id)"
         }
     }
 }
