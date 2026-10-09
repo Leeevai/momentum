@@ -17,6 +17,8 @@
 	<false/>
 	<key>MomentumAppGroupID</key>
 	<string>$(IOS_APP_GROUP_ID)</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Momentum saves the images you share, like your progress on a goal or your week, to your photo library when you choose Save Image.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIBackgroundModes</key>

@@ -5,10 +5,14 @@ Momentum for iPhone, iPad and Mac.
 
 ## Already in place
 
-- **Privacy manifests** (`PrivacyInfo.xcprivacy`) in both apps and the widgets: no tracking, no
-  data collected, and the reasons for the two required-reason APIs used (user defaults: `CA92.1`;
-  file dates of the app's own files `C617.1` and of the sync folder the user picks `3B52.1`).
-- **Export compliance**: `ITSAppUsesNonExemptEncryption` is `false` (no encryption beyond HTTPS).
+- **Privacy manifests** (`PrivacyInfo.xcprivacy`) in the apps, the widgets and the watch app and
+  its complications: no tracking, no data collected, and the reasons for the two required-reason
+  APIs used (user defaults: `CA92.1`, and `1C8F.1` for the watch's app-group defaults; file dates
+  of the app's own files `C617.1` and of the sync folder the user picks `3B52.1`).
+- **Export compliance**: `ITSAppUsesNonExemptEncryption` is `false` on Mac and iOS (no encryption
+  beyond HTTPS).
+- **Photo library**: saving a shared image asks with `NSPhotoLibraryAddUsageDescription`; nothing
+  else needs a permission but notifications.
 - **Opaque iOS icon** at 1024 px, generated with the Mac icon by `swift scripts/make_icon.swift`.
 - **One bundle ID across platforms** (`$(BUNDLE_ID_PREFIX).Momentum`), so the iPhone, iPad and
   Mac apps can be one universal purchase.
