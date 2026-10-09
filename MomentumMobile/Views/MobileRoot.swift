@@ -8,8 +8,13 @@ struct MobileRoot: View {
     @State private var tab: MobileTab = .today
     @State private var todayPath: [UUID] = []
 
+    // The body is split up so the compiler checks each part on its own: as one long chain it
+    // gives up ("unable to type-check this expression in reasonable time") on Xcode 26.
     var body: some View {
-        @Bindable var store = store
+        routing(presentations(tabs))
+    }
+
+    private var tabs: some View {
         TabView(selection: $tab) {
             MobileTodayView(path: $todayPath)
                 .tabItem { Label("Today", systemImage: "sun.max.fill") }
@@ -26,50 +31,74 @@ struct MobileRoot: View {
                 .tag(MobileTab.awards)
         }
         .sidebarOnWideScreens()
-        .sheet(item: $store.sheet) { route in
-            MobileSheet(route: route)
-        }
-        .fullScreenCover(isPresented: $store.isFocusModePresented) {
-            FocusModeView { store.isFocusModePresented = false }
-                .environment(store)
-        }
-        .overlay {
-            if let celebration = store.celebration {
-                CelebrationOverlay(celebration: celebration) { store.celebration = nil }
-                    .id(celebration.id)
+    }
+
+    /// Sheets, the Focus cover, celebrations, toasts and the delete confirmation.
+    private func presentations(_ content: some View) -> some View {
+        let bindable = Bindable(store)
+        return content
+            .sheet(item: bindable.sheet) { route in
+                MobileSheet(route: route)
             }
-        }
-        .overlay {
-            if let toast = store.toast {
-                ToastBanner(toast: toast)
-                    .id(toast.id)
+            .fullScreenCover(isPresented: bindable.isFocusModePresented) {
+                FocusModeView { store.isFocusModePresented = false }
+                    .environment(store)
             }
+            .overlay { celebrationOverlay }
+            .overlay { toastOverlay }
+            .confirmationDialog(deleteTitle, isPresented: isConfirmingDelete, titleVisibility: .visible,
+                                presenting: store.confirmingDelete) { goal in
+                Button("Delete Goal", role: .destructive) { store.delete(goal) }
+                Button("Archive Instead") { store.archive(goal) }
+            } message: { _ in
+                Text("This removes the goal and all of its history. Archive it instead to keep its history.")
+            }
+    }
+
+    /// Keeps the selected tab, the Today path and the store's route in step both ways.
+    private func routing(_ content: some View) -> some View {
+        content
+            .onAppear {
+                store.undoManager = undoManager
+                follow(store.route)
+            }
+            .onChange(of: undoManager) { _, manager in store.undoManager = manager }
+            .onChange(of: store.route) { _, route in follow(route) }
+            .onChange(of: tab) { _, tab in
+                // Keep the store's idea of where we are in step, so routes set elsewhere still fire.
+                store.route = route(for: tab)
+            }
+            .onChange(of: todayPath) { _, path in
+                guard tab == .today else { return }
+                store.route = path.last.map(Route.goal) ?? .today
+            }
+    }
+
+    @ViewBuilder private var celebrationOverlay: some View {
+        if let celebration = store.celebration {
+            CelebrationOverlay(celebration: celebration) { store.celebration = nil }
+                .id(celebration.id)
         }
-        .onAppear {
-            store.undoManager = undoManager
-            follow(store.route)
+    }
+
+    @ViewBuilder private var toastOverlay: some View {
+        if let toast = store.toast {
+            ToastBanner(toast: toast)
+                .id(toast.id)
         }
-        .onChange(of: undoManager) { _, manager in store.undoManager = manager }
-        .onChange(of: store.route) { _, route in follow(route) }
-        .onChange(of: tab) { _, tab in
-            // Keep the store's idea of where we are in step, so routes set elsewhere still fire.
-            store.route = tab == .today ? todayPath.last.map(Route.goal) ?? .today : tab.route
-        }
-        .onChange(of: todayPath) { _, path in
-            guard tab == .today else { return }
-            store.route = path.last.map(Route.goal) ?? .today
-        }
-        .confirmationDialog(
-            "Delete \(store.confirmingDelete?.name ?? "goal")?",
-            isPresented: Binding(get: { store.confirmingDelete != nil }, set: { if !$0 { store.confirmingDelete = nil } }),
-            titleVisibility: .visible,
-            presenting: store.confirmingDelete
-        ) { goal in
-            Button("Delete Goal", role: .destructive) { store.delete(goal) }
-            Button("Archive Instead") { store.archive(goal) }
-        } message: { _ in
-            Text("This removes the goal and all of its history. Archive it instead to keep its history.")
-        }
+    }
+
+    private var deleteTitle: String {
+        "Delete \(store.confirmingDelete?.name ?? "goal")?"
+    }
+
+    private var isConfirmingDelete: Binding<Bool> {
+        Binding(get: { store.confirmingDelete != nil }, set: { if !$0 { store.confirmingDelete = nil } })
+    }
+
+    private func route(for tab: MobileTab) -> Route {
+        guard tab == .today else { return tab.route }
+        return todayPath.last.map(Route.goal) ?? .today
     }
 
     /// Awards earned in the last day, as a badge on the tab.
