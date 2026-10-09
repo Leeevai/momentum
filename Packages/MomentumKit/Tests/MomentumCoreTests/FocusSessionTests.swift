@@ -80,4 +80,17 @@ struct FocusSessionTests {
         data.log(-1200, for: goal.id, at: referenceNow)
         #expect(engine(data).amount(for: goal, on: referenceNow, now: referenceNow) == 0)
     }
+
+    @Test("Session stats count timer sessions only")
+    func sessionStats() throws {
+        var data = AppData(goals: [goal])
+        #expect(engine(data).sessionStats(for: goal) == nil)
+        data.log(1200, for: goal.id, at: date(2026, 10, 7, 9), source: .timer)
+        data.log(3600, for: goal.id, at: date(2026, 10, 8, 9), source: .timer)
+        data.log(900, for: goal.id, at: date(2026, 10, 8, 12))  // logged by hand
+        let stats = try #require(engine(data).sessionStats(for: goal))
+        #expect(stats.count == 2)
+        #expect(stats.average == 2400)
+        #expect(stats.longest == 3600)
+    }
 }

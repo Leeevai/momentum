@@ -483,6 +483,23 @@ public struct ProgressEngine: Sendable {
         return Pace(status: onTrack ? .onTrack : .behind, remaining: remaining, deadline: deadline, daysLeft: daysLeft, neededPerDay: needed, recentPerDay: recent, projectedFinish: projected)
     }
 
+    // MARK: - Sessions
+
+    public struct SessionStats: Equatable, Sendable {
+        public var count: Int
+        public var average: TimeInterval
+        public var longest: TimeInterval
+    }
+
+    /// Timer sessions logged for a goal. A session across midnight is logged per day, so it
+    /// counts once per day it touched.
+    public func sessionStats(for goal: Goal) -> SessionStats? {
+        let sessions = data.entries.filter { $0.goalID == goal.id && $0.source == .timer && $0.amount > 0 }
+        guard !sessions.isEmpty else { return nil }
+        let total = sessions.reduce(0) { $0 + $1.amount }
+        return SessionStats(count: sessions.count, average: total / Double(sessions.count), longest: sessions.map(\.amount).max() ?? 0)
+    }
+
     // MARK: - History
 
     public func entries(for goal: Goal) -> [LogEntry] {

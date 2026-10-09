@@ -249,6 +249,10 @@ private struct StatsRow: View {
                          caption: rateCaption)
                 StatTile(title: "All time", value: goal.format(engine.lifetimeAmount(for: goal, now: now)), systemImage: "sum", tint: .secondary,
                          caption: "Since \(engine.firstDay(of: goal).formatted(.dateTime.month(.abbreviated).day().year()))")
+                if goal.kind == .time, let sessions = engine.sessionStats(for: goal) {
+                    StatTile(title: "Sessions", value: "\(sessions.count)", systemImage: "timer", tint: goal.tint,
+                             caption: "avg \(Formatting.duration(sessions.average)) · longest \(Formatting.duration(sessions.longest))")
+                }
             }
         }
     }
