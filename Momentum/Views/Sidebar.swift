@@ -31,7 +31,7 @@ struct Sidebar: View {
                             .contextMenu { GoalContextMenu(goal: goal) }
                     }
                     .onMove { source, destination in
-                        move(in: group.goals, from: source, to: destination)
+                        store.reorder(group.goals, from: source, to: destination)
                     }
                 }
             }
@@ -92,18 +92,6 @@ struct Sidebar: View {
     }
 
     /// Reorders within one category section by rewriting those goals' slots in the full list.
-    private func move(in section: [Goal], from source: IndexSet, to destination: Int) {
-        var reordered = section
-        reordered.move(fromOffsets: source, toOffset: destination)
-        let sectionIDs = Set(section.map(\.id))
-        let all = store.data.goals
-        let slots = all.indices.filter { sectionIDs.contains(all[$0].id) }
-        store.perform("Reorder Goals") { data in
-            for (slot, goal) in zip(slots, reordered) {
-                if let current = data.goal(goal.id) { data.goals[slot] = current }
-            }
-        }
-    }
 }
 
 private struct SidebarGoalRow: View {

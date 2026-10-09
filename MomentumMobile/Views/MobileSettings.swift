@@ -15,6 +15,19 @@ struct MobileSettings: View {
         let pomodoro = preferences.pomodoro
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink {
+                        ManageGoalsView()
+                    } label: {
+                        LabeledContent {
+                            Text("\(store.engine.activeGoals.count)")
+                        } label: {
+                            Label("Goals", systemImage: "list.bullet")
+                        }
+                    }
+                } footer: {
+                    Text("Reorder, archive and restore goals.")
+                }
                 Section("Focus") {
                     Picker("Default session length", selection: binding(\.defaultFocusMinutes, preferences)) {
                         ForEach(FocusLengthMenu.lengths, id: \.self) { Text("\($0) minutes").tag($0) }

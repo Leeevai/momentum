@@ -624,6 +624,21 @@ extension GoalStore {
 
     func endBreak(_ goal: Goal) { perform("End Break") { $0.endBreak(for: goal.id) } }
 
+    /// Reorders some of the goals (a sidebar section, the active ones) by a list move, keeping
+    /// the rest where they are.
+    func reorder(_ section: [Goal], from source: IndexSet, to destination: Int) {
+        var reordered = section
+        reordered.move(fromOffsets: source, toOffset: destination)
+        let sectionIDs = Set(section.map(\.id))
+        perform("Reorder Goals") { data in
+            let slots = data.goals.indices.filter { sectionIDs.contains(data.goals[$0].id) }
+            let byID = Dictionary(data.goals.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            for (slot, goal) in zip(slots, reordered.compactMap { byID[$0.id] }) {
+                data.goals[slot] = goal
+            }
+        }
+    }
+
     func moveGoals(from source: IndexSet, to destination: Int) {
         perform("Reorder Goals") { $0.moveGoals(fromOffsets: source, toOffset: destination) }
     }
