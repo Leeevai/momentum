@@ -41,18 +41,12 @@ enum WidgetTimeline {
         MomentumEntry(date: .now, engine: ProgressEngine(data: data(preview: preview)), goalID: goalID)
     }
 
-    /// Counters tick on their own (`Text` timer styles); rings only move when an entry renders.
-    /// So a running session gets a frame every five minutes and one at its planned end;
-    /// otherwise nothing changes until midnight.
+    /// Entries at the moments rings need to move; see `WidgetSchedule`.
     static func timeline(goalID: UUID? = nil, now: Date = .now) -> Timeline<MomentumEntry> {
         let engine = ProgressEngine(data: SharedStore.load())
-        var dates = [now]
-        if let session = engine.data.session, session.isRunning {
-            dates += (1..<12).map { now.addingTimeInterval(Double($0) * 300) }
-            if let end = session.plannedEnd, end > now { dates.append(end) }
+        let entries = WidgetSchedule.entryDates(for: engine.data, now: now).map {
+            MomentumEntry(date: $0, engine: engine, goalID: goalID)
         }
-        dates.append(engine.day(1, from: now))
-        let entries = Set(dates).sorted().map { MomentumEntry(date: $0, engine: engine, goalID: goalID) }
         return Timeline(entries: entries, policy: .atEnd)
     }
 }
