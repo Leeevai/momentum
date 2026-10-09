@@ -15,6 +15,8 @@ MainActor.assumeIsolated {
     let books = data.goals.first { $0.kind == .books }?.id
     let entry = MomentumEntry(date: .now, engine: engine)
     let bookEntry = MomentumEntry(date: .now, engine: engine, goalID: books)
+    let spanish = data.goals.first { $0.challenge != nil }?.id
+    let challengeEntry = MomentumEntry(date: .now, engine: engine, goalID: spanish)
     let small = CGSize(width: 170, height: 170), medium = CGSize(width: 364, height: 170), large = CGSize(width: 364, height: 382)
 
     func tile<V: View>(_ view: V, _ size: CGSize, tint: Color) -> some View {
@@ -50,6 +52,11 @@ MainActor.assumeIsolated {
                 tile(GoalWidgetView(family: .systemSmall, entry: bookEntry), small, tint: .orange)
                 tile(FocusWidgetView(family: .systemMedium, entry: entry), medium, tint: .indigo)
                 tile(StreaksWidgetView(family: .systemSmall, entry: entry), small, tint: .orange)
+            }
+            HStack(alignment: .top, spacing: 22) {
+                tile(ChallengeWidgetView(family: .systemSmall, entry: challengeEntry), small, tint: .red)
+                tile(ChallengeWidgetView(family: .systemMedium, entry: challengeEntry), medium, tint: .red)
+                tile(GoalWidgetView(family: .systemSmall, entry: challengeEntry), small, tint: .red)
             }
         }
         .padding(34)
