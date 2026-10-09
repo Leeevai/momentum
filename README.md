@@ -28,10 +28,11 @@ on your desktop, your Home Screen and your Lock Screen, so starting is always on
 watches your history and tells you what's worth doing next.
 
 <p align="center">
-  <img src="docs/images/iphone-today.png" alt="Today on iPhone" width="200">
-  <img src="docs/images/iphone-goal.png" alt="A goal's page on iPhone" width="200">
-  <img src="docs/images/iphone-journal.png" alt="The journal calendar on iPhone" width="200">
-  <img src="docs/images/iphone-awards.png" alt="Awards on iPhone" width="200">
+  <img src="docs/images/iphone-today.png" alt="Today on iPhone" width="170">
+  <img src="docs/images/iphone-focus.png" alt="Focus mode on iPhone: a full-screen timer over a breathing glow" width="170">
+  <img src="docs/images/iphone-goal.png" alt="A goal's page on iPhone" width="170">
+  <img src="docs/images/iphone-journal.png" alt="The journal calendar on iPhone" width="170">
+  <img src="docs/images/iphone-awards.png" alt="Awards on iPhone" width="170">
 </p>
 
 ## Features
@@ -66,6 +67,8 @@ the anchor celebrates with a **Next up** button, and the coach suggests it.
 
 ### Focus that gets you started
 - **One-tap focus sessions** with pause and resume and a note for what you're working on.
+- **Focus mode**: the session full screen, a big ring and clock over a glow that breathes about
+  six times a minute, and nothing else in sight.
 - **Pomodoro cycles**: a block that reaches its length is saved and a short break begins, with a
   long break after every few blocks; the next block can start by itself.
 - **On the Lock Screen and in the Dynamic Island**: a Live Activity counts down the block or the
@@ -79,8 +82,9 @@ the anchor celebrates with a **Next up** button, and the coach suggests it.
 ### A daily journal
 Plan the morning with an intention and up to three priorities; Today shows them, ticking each one
 off as its goal is done. Reflect in the evening: mood as weather, energy as a battery, a win, a few
-lines. The **Journal** is a month calendar with every day ringed by how much got done, and
-**Insights** shows how your mood lines up with your progress.
+lines. The **Journal** is a month calendar with every day ringed by how much got done, a **year
+in pixels**, and a **week in review** with your wins; **Insights** shows how your mood lines up
+with your progress.
 
 ### Awards
 Forty achievements in bronze, silver, gold and platinum, from *First Step* to *Year of Momentum*:
