@@ -127,8 +127,17 @@ and no sync service has a conflict to resolve.
   idempotent: devices converge whatever order they sync in. A randomized three-device test checks it.
 - **Merges keep their stamps.** A merge is written with stamping off, so a change keeps the time
   it was really made and can't outrank a newer one from a third device.
+- **The timer is about sessions, not just stamps.** Each copy remembers which sessions it saw
+  end. No session beats a running one only where that session ended after it last changed
+  elsewhere; of two different sessions, the later one wins; a running session ends any break.
+  Entries a session logs have ids derived from the session, so two devices stopping the same
+  session log it once.
 - **When.** A device writes its file a moment after each change, and merges others' files when
-  the folder changes, every minute, and when the app comes forward.
+  the folder changes, every minute, when the app comes forward, and before a Lock Screen or
+  widget button acts.
+- **Known limit.** Deletions are remembered for 180 days, and files not saved for 150 days aren't
+  merged (unless this device has no data yet). A device that comes back after more than 180 days
+  away can still bring back records deleted elsewhere in the meantime.
 
 ## The Live Activity
 

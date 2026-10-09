@@ -62,9 +62,11 @@ All notable changes to Momentum are recorded here. The format follows
   finished on two devices was logged twice; a session from one device and a break from another
   could both stay active; files from devices gone for months could bring back deleted goals; a
   file still downloading wasn't read again once it arrived.
-- Lock Screen and Live Activity buttons first catch up with other devices, so pausing a session
-  stopped on the Mac no longer brings it back; Stop no longer starts a new session on a second
-  tap; a paused block shows the time left, and the clock counts overtime past the planned end.
+- Lock Screen, widget and Live Activity buttons first catch up with other devices, and each does
+  exactly what it showed: a stale Stop or Pause no longer starts or resumes a session. A paused
+  block shows the time left, and the clock counts overtime past the planned end.
+- Sync no longer drops a session started on one device when another skips a break, and a stop
+  undone on one device no longer erases the same session's stop on another.
 - Undo: undoing a journal edit kept nothing written since, and undoing a skipped break could put
   it back over a running session.
 - A cached streak could stay stale after entries moved between days.
