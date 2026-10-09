@@ -20,7 +20,7 @@ public enum ReminderPlanner {
     public static func plan(_ engine: ProgressEngine, now: Date, days: Int = 7, limit: Int = 60) -> [PlannedReminder] {
         guard engine.data.preferences.remindersEnabled else { return [] }
         let calendar = engine.calendar
-        var planned: [PlannedReminder] = []
+        var planned = streakNudges(engine, now: now)
         for goal in engine.activeGoals {
             guard let reminder = goal.reminder, reminder.isEnabled else { continue }
             let streak = engine.streak(for: goal, now: now)
@@ -42,6 +42,35 @@ public enum ReminderPlanner {
             }
         }
         return Array(planned.sorted { $0.fireDate < $1.fireDate }.prefix(limit))
+    }
+
+    /// Tonight's "your streak ends at midnight" nudges: for each goal whose streak is at least two
+    /// periods long and would break if the current period ended unmet tonight.
+    static func streakNudges(_ engine: ProgressEngine, now: Date) -> [PlannedReminder] {
+        let preferences = engine.data.preferences
+        guard preferences.streakNudgesEnabled else { return [] }
+        let calendar = engine.calendar
+        let today = engine.startOfDay(now)
+        guard let fire = calendar.date(byAdding: .minute, value: preferences.streakNudgeMinute, to: today), fire > now else { return [] }
+        let tomorrow = engine.day(1, from: now)
+        return engine.activeGoals.compactMap { goal in
+            guard goal.kind != .milestones, goal.kind != .books, goal.effectivePeriod != .total,
+                  !goal.isOnBreak(at: fire), !engine.isComplete(goal, now: now) else { return nil }
+            // Only the period's last day puts the streak at risk tonight.
+            let period = engine.interval(of: goal.effectivePeriod, containing: now)
+            guard period.end <= tomorrow, engine.isRequired(goal, on: today) || goal.effectivePeriod != .daily else { return nil }
+            let streak = engine.streak(for: goal, now: now)
+            guard streak.current >= 2 else { return nil }
+            let done = engine.currentAmount(for: goal, now: now)
+            let left = goal.format(max(0, engine.target(for: goal) - done))
+            return PlannedReminder(
+                identifier: "\(identifierPrefix)nudge.\(goal.id.uuidString).\(engine.dayKey(today))",
+                goalID: goal.id,
+                fireDate: fire,
+                title: "\(goal.icon) Your \(Goal.streakText(streak.current, unit: streak.unit)) ends at midnight",
+                body: "\(left) of \(goal.name) to go. You've got this."
+            )
+        }
     }
 
     private static func body(for goal: Goal, engine: ProgressEngine, streak: ProgressEngine.Streak, isToday: Bool, now: Date) -> String {

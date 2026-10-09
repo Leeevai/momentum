@@ -108,6 +108,15 @@ extension Goal {
         return order.filter(weekdays.contains).map { symbols[$0 - 1] }.joined(separator: ", ")
     }
 
+    /// A rate of progress: per day for most goals, per month for books, which move slowly.
+    public func rateText(perDay: Double) -> String {
+        if kind == .books {
+            let perMonth = perDay * 30
+            return "\(Formatting.number(perMonth)) \(Formatting.unit("books", for: perMonth)) a month"
+        }
+        return "\(format(perDay)) a day"
+    }
+
     /// "12-day streak", "3-week streak".
     public static func streakText(_ count: Int, unit: String) -> String {
         "\(count)-\(unit) streak"

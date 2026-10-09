@@ -118,16 +118,25 @@ public struct Preferences: Codable, Hashable, Sendable {
     public var playsSounds: Bool
     public var remindersEnabled: Bool
     public var showsTimerInMenuBar: Bool
+    /// An evening nudge when a streak would break at midnight.
+    public var streakNudgesEnabled: Bool
+    /// Minutes after midnight for the streak nudge (20:00 by default).
+    public var streakNudgeMinute: Int
 
-    public init(defaultFocusMinutes: Int = 25, celebratesCompletion: Bool = true, playsSounds: Bool = true, remindersEnabled: Bool = true, showsTimerInMenuBar: Bool = true) {
+    public init(defaultFocusMinutes: Int = 25, celebratesCompletion: Bool = true, playsSounds: Bool = true, remindersEnabled: Bool = true,
+                showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
         self.remindersEnabled = remindersEnabled
         self.showsTimerInMenuBar = showsTimerInMenuBar
+        self.streakNudgesEnabled = streakNudgesEnabled
+        self.streakNudgeMinute = streakNudgeMinute
     }
 
-    private enum CodingKeys: String, CodingKey { case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar }
+    private enum CodingKeys: String, CodingKey {
+        case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar, streakNudgesEnabled, streakNudgeMinute
+    }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -136,6 +145,8 @@ public struct Preferences: Codable, Hashable, Sendable {
         playsSounds = try c.decode(.playsSounds, default: true)
         remindersEnabled = try c.decode(.remindersEnabled, default: true)
         showsTimerInMenuBar = try c.decode(.showsTimerInMenuBar, default: true)
+        streakNudgesEnabled = try c.decode(.streakNudgesEnabled, default: true)
+        streakNudgeMinute = try c.decode(.streakNudgeMinute, default: 20 * 60)
     }
 }
 

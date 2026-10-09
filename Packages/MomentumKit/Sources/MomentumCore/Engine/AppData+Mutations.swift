@@ -185,6 +185,14 @@ extension AppData {
         }
     }
 
+    /// The time goal a one-tap "focus" should start: the one timed most recently,
+    /// else the first active time goal.
+    public var suggestedFocusGoal: Goal? {
+        let timeGoals = goals.filter { $0.kind == .time && !$0.isArchived }
+        let lastTimed = entries.filter { $0.source == .timer }.max { $0.date < $1.date }?.goalID
+        return timeGoals.first { $0.id == lastTimed } ?? timeGoals.first
+    }
+
     public mutating func setSessionNote(_ note: String) {
         session?.note = note
     }

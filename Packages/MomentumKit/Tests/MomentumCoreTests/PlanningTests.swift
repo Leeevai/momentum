@@ -106,3 +106,65 @@ struct PlanningTests {
         #expect(data.goals.first { $0.kind == .books }?.currentBook?.title == "Dune")
     }
 }
+
+@Suite("Streak nudges")
+struct StreakNudgeTests {
+    /// A daily goal with a streak through yesterday, unfinished today.
+    func atRisk() -> (AppData, Goal) {
+        let goal = checkInGoal()
+        var data = AppData(goals: [goal])
+        for offset in -4...(-1) { data.log(1, for: goal.id, at: dayOffset(offset)) }
+        return (data, goal)
+    }
+
+    @Test("An unfinished streak gets one nudge at the evening time")
+    func nudgesTonight() throws {
+        let (data, goal) = atRisk()
+        let nudges = ReminderPlanner.streakNudges(engine(data), now: referenceNow)
+        let nudge = try #require(nudges.first)
+        #expect(nudges.count == 1)
+        #expect(nudge.goalID == goal.id)
+        #expect(nudge.fireDate == date(2026, 10, 8, 20))
+        #expect(nudge.title.contains("4-day streak"))
+        #expect(nudge.identifier.hasPrefix(ReminderPlanner.identifierPrefix))
+    }
+
+    @Test("No nudge once done, for short streaks, after the time, or when turned off")
+    func skips() {
+        var (data, goal) = atRisk()
+        data.log(1, for: goal.id, at: referenceNow)
+        #expect(ReminderPlanner.streakNudges(engine(data), now: referenceNow).isEmpty)
+
+        let fresh = checkInGoal()
+        var short = AppData(goals: [fresh])
+        short.log(1, for: fresh.id, at: dayOffset(-1))
+        #expect(ReminderPlanner.streakNudges(engine(short), now: referenceNow).isEmpty)
+
+        (data, goal) = atRisk()
+        #expect(ReminderPlanner.streakNudges(engine(data), now: date(2026, 10, 8, 21)).isEmpty)
+
+        data.preferences.streakNudgesEnabled = false
+        #expect(ReminderPlanner.streakNudges(engine(data), now: referenceNow).isEmpty)
+    }
+
+    @Test("Weekly goals are nudged only on the week's last day")
+    func weeklyLastDay() {
+        let goal = checkInGoal(createdDaysAgo: 60, period: .weekly, target: 1)
+        var data = AppData(goals: [goal])
+        for weeksAgo in 1...3 { data.log(1, for: goal.id, at: dayOffset(-7 * weeksAgo)) }
+        // Thursday: the week isn't over.
+        #expect(ReminderPlanner.streakNudges(engine(data), now: referenceNow).isEmpty)
+        // Sunday 11 October, 3 pm: last day of the week, still unmet.
+        #expect(ReminderPlanner.streakNudges(engine(data), now: date(2026, 10, 11, 15)).count == 1)
+    }
+
+    @Test("A one-tap focus picks the goal timed most recently")
+    func suggestedFocusGoal() {
+        let first = Goal(name: "First", kind: .time, target: 600)
+        let recent = Goal(name: "Recent", kind: .time, target: 600)
+        var data = AppData(goals: [first, recent])
+        #expect(data.suggestedFocusGoal?.id == first.id)
+        data.entries.append(LogEntry(goalID: recent.id, date: referenceNow, amount: 60, source: .timer))
+        #expect(data.suggestedFocusGoal?.id == recent.id)
+    }
+}
