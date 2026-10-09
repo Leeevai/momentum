@@ -193,3 +193,26 @@ struct SyncMergeTests {
         #expect(devices[1].data == devices[2].data)
     }
 }
+
+@Suite("Sync folder")
+struct SyncFolderTests {
+    @Test("Each device writes its own file and reads everyone else's")
+    func roundTrip() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let goal = checkInGoal()
+        let mac = SyncFolder(url: folder, deviceID: "mac")
+        let phone = SyncFolder(url: folder, deviceID: "phone")
+        try mac.write(SyncEnvelope(deviceID: "mac", deviceName: "Studio", platform: "macOS", savedAt: referenceNow, data: AppData(goals: [goal])))
+        try phone.write(SyncEnvelope(deviceID: "phone", deviceName: "iPhone", platform: "iOS", savedAt: referenceNow, data: AppData()))
+        try Data("not json".utf8).write(to: folder.appendingPathComponent("broken.momentum-sync"))
+        try Data().write(to: folder.appendingPathComponent("notes.txt"))
+
+        let seenByPhone = phone.readPeers()
+        #expect(seenByPhone.map(\.deviceName) == ["Studio"])
+        #expect(seenByPhone.first?.data.goals.map(\.id) == [goal.id])
+        #expect(mac.readPeers().map(\.deviceID) == ["phone"])
+        #expect(mac.peerFiles().count == 2)
+    }
+}
