@@ -192,6 +192,19 @@ public struct ProgressEngine: Sendable {
         return target > 0 && progressAmount(for: goal, periodContaining: date, now: now) >= target
     }
 
+    /// The amount that keeps a streak alive: the goal's minimum when it has one, else its target.
+    public func streakThreshold(for goal: Goal) -> Double {
+        let target = target(for: goal)
+        guard goal.kind != .milestones, goal.kind != .books, let minimum = goal.streakMinimum, minimum > 0 else { return target }
+        return min(minimum, target)
+    }
+
+    /// Whether the period did enough to keep the streak, which may be less than its target.
+    public func keepsStreak(_ goal: Goal, periodContaining date: Date, now: Date) -> Bool {
+        let threshold = streakThreshold(for: goal)
+        return threshold > 0 && progressAmount(for: goal, periodContaining: date, now: now) >= threshold
+    }
+
     /// Activity shade for a heatmap cell, from 0 to 1.
     public func intensity(for goal: Goal, on day: Date, now: Date) -> Double {
         let amount = amount(for: goal, on: day, now: now)
@@ -269,7 +282,7 @@ public struct ProgressEngine: Sendable {
         var run = 0
         var best = 0
         while day <= today {
-            if isMet(goal, periodContaining: day, now: now) {
+            if keepsStreak(goal, periodContaining: day, now: now) {
                 run += 1
                 best = max(best, run)
             } else if isRequired(goal, on: day) && day != today {
@@ -291,7 +304,7 @@ public struct ProgressEngine: Sendable {
         while start <= current.start && guardCount < 600 {
             guardCount += 1
             let periodInterval = interval(of: period, containing: start)
-            if isMet(goal, periodContaining: start, now: now) {
+            if keepsStreak(goal, periodContaining: start, now: now) {
                 run += 1
                 best = max(best, run)
             } else if periodInterval.start != current.start && !goal.isOnBreak(at: periodInterval.start) {
@@ -350,6 +363,33 @@ public struct ProgressEngine: Sendable {
             if wasMet { met += 1 }
         }
         return due == 0 ? nil : Double(met) / Double(due)
+    }
+
+    /// Whether a repeating goal is on target this week: a weekly goal that met its target, or a
+    /// daily goal that met it on at least 70% of the week's due days so far. Nil for goals
+    /// without a weekly rhythm (monthly, yearly, overall, books, milestones).
+    public func isOnTargetThisWeek(_ goal: Goal, now: Date) -> Bool? {
+        guard goal.kind != .milestones, goal.kind != .books else { return nil }
+        switch goal.effectivePeriod {
+        case .weekly:
+            return isMet(goal, periodContaining: now, now: now)
+        case .daily:
+            let week = interval(of: .weekly, containing: now)
+            var day = startOfDay(week.start)
+            let today = startOfDay(now)
+            var due = 0
+            var met = 0
+            while day <= today {
+                if isRequired(goal, on: day) && day >= startOfDay(firstDay(of: goal)) {
+                    due += 1
+                    if isMet(goal, periodContaining: day, now: now) { met += 1 }
+                }
+                day = self.day(1, from: day)
+            }
+            return due == 0 ? nil : Double(met) / Double(due) >= 0.7
+        default:
+            return nil
+        }
     }
 
     // MARK: - Today

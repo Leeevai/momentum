@@ -122,9 +122,12 @@ public struct Preferences: Codable, Hashable, Sendable {
     public var streakNudgesEnabled: Bool
     /// Minutes after midnight for the streak nudge (20:00 by default).
     public var streakNudgeMinute: Int
+    /// A summary notification on the last evening of each week.
+    public var weeklyRecapEnabled: Bool
 
     public init(defaultFocusMinutes: Int = 25, celebratesCompletion: Bool = true, playsSounds: Bool = true, remindersEnabled: Bool = true,
-                showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60) {
+                showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60,
+                weeklyRecapEnabled: Bool = true) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
@@ -132,10 +135,12 @@ public struct Preferences: Codable, Hashable, Sendable {
         self.showsTimerInMenuBar = showsTimerInMenuBar
         self.streakNudgesEnabled = streakNudgesEnabled
         self.streakNudgeMinute = streakNudgeMinute
+        self.weeklyRecapEnabled = weeklyRecapEnabled
     }
 
     private enum CodingKeys: String, CodingKey {
         case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar, streakNudgesEnabled, streakNudgeMinute
+        case weeklyRecapEnabled
     }
 
     public init(from decoder: Decoder) throws {
@@ -147,6 +152,7 @@ public struct Preferences: Codable, Hashable, Sendable {
         showsTimerInMenuBar = try c.decode(.showsTimerInMenuBar, default: true)
         streakNudgesEnabled = try c.decode(.streakNudgesEnabled, default: true)
         streakNudgeMinute = try c.decode(.streakNudgeMinute, default: 20 * 60)
+        weeklyRecapEnabled = try c.decode(.weeklyRecapEnabled, default: true)
     }
 }
 

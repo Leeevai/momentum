@@ -226,6 +226,9 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
     public var period: GoalPeriod
     /// Target per period in base units (seconds for time goals). Milestone goals use their checklist.
     public var target: Double
+    /// A smaller amount that still keeps the streak alive on a hard day (the "two-minute rule").
+    /// The ring and "done" still use the full target. Nil means only the full target counts.
+    public var streakMinimum: Double?
     /// Weekdays a daily goal is scheduled on (1 = Sunday ... 7 = Saturday).
     public var weekdays: Set<Int>
     /// Optional deadline for an overall target.
@@ -254,6 +257,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         unit: String = "",
         period: GoalPeriod = .daily,
         target: Double,
+        streakMinimum: Double? = nil,
         weekdays: Set<Int> = Set(1...7),
         deadline: Date? = nil,
         quickAddStep: Double? = nil,
@@ -276,6 +280,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         self.unit = unit
         self.period = period
         self.target = target
+        self.streakMinimum = streakMinimum
         self.weekdays = weekdays
         self.deadline = deadline
         self.quickAddStep = quickAddStep ?? kind.defaultStep
@@ -309,7 +314,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, icon, color, category, details, kind, unit, period, target, weekdays, deadline
+        case id, name, icon, color, category, details, kind, unit, period, target, streakMinimum, weekdays, deadline
         case quickAddStep, focusMinutes, links, milestones, books, reminder, breaks, createdAt, archivedAt
     }
 
@@ -325,6 +330,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         unit = try c.decode(.unit, default: "")
         period = try c.decode(.period, default: .daily)
         target = try c.decode(.target, default: 0)
+        streakMinimum = try c.decodeIfPresent(Double.self, forKey: .streakMinimum)
         weekdays = try c.decode(.weekdays, default: Set(1...7))
         deadline = try c.decodeIfPresent(Date.self, forKey: .deadline)
         quickAddStep = try c.decode(.quickAddStep, default: kind.defaultStep)

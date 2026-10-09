@@ -113,3 +113,37 @@ struct PeriodSumTests {
         #expect(e.amount(for: goal, on: date(2026, 11, 2), now: later) == 1)
     }
 }
+
+@Suite("Streak minimums")
+struct StreakMinimumTests {
+    @Test("A day that reaches only the minimum keeps the streak but isn't complete")
+    func minimumKeepsStreak() {
+        var goal = Goal(name: "Deep work", kind: .time, target: 2 * 3600, streakMinimum: 20 * 60, createdAt: dayOffset(-3))
+        var data = AppData(goals: [goal])
+        data.log(2 * 3600, for: goal.id, at: dayOffset(-3))
+        data.log(25 * 60, for: goal.id, at: dayOffset(-2))  // a hard day: only the minimum
+        data.log(2 * 3600, for: goal.id, at: dayOffset(-1))
+        data.log(25 * 60, for: goal.id, at: referenceNow)
+        let e = engine(data)
+        #expect(e.streak(for: goal, now: referenceNow).current == 4)
+        #expect(!e.isComplete(goal, now: referenceNow))
+        #expect(e.completionRate(for: goal, now: referenceNow) == 2.0 / 3.0)
+
+        goal.streakMinimum = nil
+        data.upsert(goal)
+        #expect(engine(data).streak(for: goal, now: referenceNow).current == 1)
+    }
+
+    @Test("A minimum above the target is capped at the target")
+    func cappedAtTarget() {
+        let goal = Goal(name: "Gym", kind: .count, target: 1, streakMinimum: 5)
+        #expect(engine(AppData(goals: [goal])).streakThreshold(for: goal) == 1)
+    }
+
+    @Test("Older files without a minimum decode as none")
+    func decodesWithoutMinimum() throws {
+        let json = #"{"version": 2, "goals": [{"name": "Old", "kind": "time", "target": 600}]}"#
+        let goal = try #require(FileStore.decode(Data(json.utf8)).goals.first)
+        #expect(goal.streakMinimum == nil)
+    }
+}

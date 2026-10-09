@@ -21,6 +21,7 @@ public enum ReminderPlanner {
         guard engine.data.preferences.remindersEnabled else { return [] }
         let calendar = engine.calendar
         var planned = streakNudges(engine, now: now)
+        planned += weeklyRecap(engine, now: now).map { [$0] } ?? []
         for goal in engine.activeGoals {
             guard let reminder = goal.reminder, reminder.isEnabled else { continue }
             let streak = engine.streak(for: goal, now: now)
@@ -55,14 +56,14 @@ public enum ReminderPlanner {
         let tomorrow = engine.day(1, from: now)
         return engine.activeGoals.compactMap { goal in
             guard goal.kind != .milestones, goal.kind != .books, goal.effectivePeriod != .total,
-                  !goal.isOnBreak(at: fire), !engine.isComplete(goal, now: now) else { return nil }
+                  !goal.isOnBreak(at: fire), !engine.keepsStreak(goal, periodContaining: now, now: now) else { return nil }
             // Only the period's last day puts the streak at risk tonight.
             let period = engine.interval(of: goal.effectivePeriod, containing: now)
             guard period.end <= tomorrow, engine.isRequired(goal, on: today) || goal.effectivePeriod != .daily else { return nil }
             let streak = engine.streak(for: goal, now: now)
             guard streak.current >= 2 else { return nil }
             let done = engine.currentAmount(for: goal, now: now)
-            let left = goal.format(max(0, engine.target(for: goal) - done))
+            let left = goal.format(max(0, engine.streakThreshold(for: goal) - done))
             return PlannedReminder(
                 identifier: "\(identifierPrefix)nudge.\(goal.id.uuidString).\(engine.dayKey(today))",
                 goalID: goal.id,
@@ -71,6 +72,33 @@ public enum ReminderPlanner {
                 body: "\(left) of \(goal.name) to go. You've got this."
             )
         }
+    }
+
+    /// A summary on the last evening of the week, an hour after the streak-nudge time.
+    static func weeklyRecap(_ engine: ProgressEngine, now: Date) -> PlannedReminder? {
+        let preferences = engine.data.preferences
+        guard preferences.weeklyRecapEnabled, let anyGoal = engine.activeGoals.first else { return nil }
+        let week = engine.interval(of: .weekly, containing: now)
+        let lastDay = engine.day(-1, from: week.end)
+        let minute = min(23 * 60, preferences.streakNudgeMinute + 60)
+        guard let fire = engine.calendar.date(byAdding: .minute, value: minute, to: lastDay), fire > now else { return nil }
+
+        let report = engine.insights(days: 7, now: now)
+        let scores = engine.activeGoals.compactMap { engine.isOnTargetThisWeek($0, now: now) }
+        var parts: [String] = []
+        if report.totalFocusSeconds > 0 { parts.append("\(Formatting.duration(report.totalFocusSeconds)) focused") }
+        parts.append("active \(report.activeDays) of 7 days")
+        if !scores.isEmpty { parts.append("\(scores.filter { $0 }.count) of \(scores.count) goals on target") }
+        let best = engine.longestCurrentStreak(now: now)
+        if best > 1 { parts.append("best streak \(best)") }
+        let summary = parts.joined(separator: " · ")
+        return PlannedReminder(
+            identifier: "\(identifierPrefix)recap.\(engine.dayKey(lastDay))",
+            goalID: anyGoal.id,
+            fireDate: fire,
+            title: "Your week in Momentum",
+            body: summary.prefix(1).uppercased() + summary.dropFirst() + "."
+        )
     }
 
     private static func body(for goal: Goal, engine: ProgressEngine, streak: ProgressEngine.Streak, isToday: Bool, now: Date) -> String {

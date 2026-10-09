@@ -14,6 +14,7 @@ struct PlanningTests {
     func skipsCompletedToday() {
         let goal = remindedGoal()
         var data = AppData(goals: [goal])
+        data.preferences.weeklyRecapEnabled = false
         let pending = ReminderPlanner.plan(engine(data), now: referenceNow, days: 3)
         #expect(pending.count == 3)
         #expect(pending.first?.fireDate == date(2026, 10, 8, 18))
@@ -28,6 +29,7 @@ struct PlanningTests {
         // Thursday reference: Fri due, Sat/Sun off for a weekdays goal.
         var goal = remindedGoal(weekdays: Set(2...6))
         var data = AppData(goals: [goal])
+        data.preferences.weeklyRecapEnabled = false
         let plan = ReminderPlanner.plan(engine(data), now: referenceNow, days: 4)
         #expect(plan.map(\.fireDate) == [date(2026, 10, 8, 18), date(2026, 10, 9, 18)])
 
@@ -166,5 +168,35 @@ struct StreakNudgeTests {
         #expect(data.suggestedFocusGoal?.id == first.id)
         data.entries.append(LogEntry(goalID: recent.id, date: referenceNow, amount: 60, source: .timer))
         #expect(data.suggestedFocusGoal?.id == recent.id)
+    }
+}
+
+@Suite("Weekly recap")
+struct WeeklyRecapTests {
+    @Test("The recap fires on the week's last evening and summarizes it")
+    func recap() throws {
+        // Weeks start Monday in the test calendar, so the last day is Sunday 11 October.
+        let goal = Goal(name: "Focus", kind: .time, target: 1800, createdAt: date(2026, 9, 1))
+        var data = AppData(goals: [goal])
+        for offset in -3...0 { data.log(1800, for: goal.id, at: dayOffset(offset)) }
+        let recap = try #require(ReminderPlanner.weeklyRecap(engine(data), now: referenceNow))
+        #expect(recap.fireDate == date(2026, 10, 11, 21))
+        #expect(recap.body.hasPrefix("2h focused"))
+        #expect(recap.body.contains("1 of 1 goals on target"))
+        #expect(recap.identifier.hasPrefix(ReminderPlanner.identifierPrefix))
+
+        data.preferences.weeklyRecapEnabled = false
+        #expect(ReminderPlanner.weeklyRecap(engine(data), now: referenceNow) == nil)
+    }
+
+    @Test("Daily goals are on target at 70% of the week's due days")
+    func onTarget() {
+        let goal = checkInGoal(createdDaysAgo: 30)
+        var data = AppData(goals: [goal])
+        // Mon to Thu due (4 days): 3 met is 75%.
+        for offset in [-3, -2, -1] { data.log(1, for: goal.id, at: dayOffset(offset)) }
+        #expect(engine(data).isOnTargetThisWeek(goal, now: referenceNow) == true)
+        data.entries.removeAll { testCalendar.isDate($0.date, inSameDayAs: dayOffset(-1)) }
+        #expect(engine(data).isOnTargetThisWeek(goal, now: referenceNow) == false)
     }
 }

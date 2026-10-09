@@ -15,7 +15,7 @@ extension AppData {
         var deepWork = Goal(
             name: "Deep work", icon: "💻", color: .indigo, category: "Work",
             details: "Two protected hours a day on the thing that matters most.",
-            kind: .time, period: .daily, target: 2 * 3600, weekdays: Set(2...6), focusMinutes: 50,
+            kind: .time, period: .daily, target: 2 * 3600, streakMinimum: 30 * 60, weekdays: Set(2...6), focusMinutes: 50,
             reminder: ReminderSchedule(hour: 9, minute: 30), createdAt: created)
         deepWork.links = [
             GoalLink(title: "Momentum repo", url: URL(string: "https://github.com/Leeevai/momentum")!, opensWithFocus: true),
