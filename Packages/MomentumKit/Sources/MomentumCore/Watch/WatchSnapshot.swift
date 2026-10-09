@@ -44,6 +44,23 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     public static let itemLimit = 12
 
     public func item(_ id: UUID) -> Item? { items.first { $0.id == id } }
+
+    /// The snapshot as sent: dates exact, like the data file.
+    public func encoded() throws -> Data { try DateCoding.encoder().encode(self) }
+
+    public init(encoded: Data) throws {
+        self = try DateCoding.decoder().decode(Self.self, from: encoded)
+    }
+}
+
+/// The keys of the messages between the iPhone and the watch.
+public enum WatchMessageKey {
+    /// An encoded `WatchSnapshot`, in the application context and in replies.
+    public static let snapshot = "snapshot"
+    /// An encoded `WatchAction`.
+    public static let action = "action"
+    /// Asks for a fresh snapshot.
+    public static let refresh = "refresh"
 }
 
 /// Something done on the watch, carried out on the iPhone.
@@ -54,6 +71,12 @@ public enum WatchAction: Codable, Equatable, Sendable {
     case quickAdd(goal: UUID)
     case startNextBlock
     case endRest
+
+    public func encoded() throws -> Data { try JSONEncoder().encode(self) }
+
+    public init(encoded: Data) throws {
+        self = try JSONDecoder().decode(Self.self, from: encoded)
+    }
 }
 
 extension ProgressEngine {

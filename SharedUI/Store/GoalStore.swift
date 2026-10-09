@@ -99,6 +99,9 @@ final class GoalStore {
     /// A Focus filter the user chose to see past ("Show all") until it changes.
     var ignoredFocusFilter: FocusFilter?
 
+    /// Told about every change, with the rebuilt engine: the iPhone app passes it on to the watch.
+    @ObservationIgnored var onChange: ((ProgressEngine) -> Void)?
+
     /// The main window's undo manager, attached by the root view.
     @ObservationIgnored weak var undoManager: UndoManager?
 
@@ -254,6 +257,7 @@ final class GoalStore {
         if case .goal(let id) = route, newData.goal(id) == nil { route = .today }
         sync?.localDataDidChange()
         GoalSpotlight.update(from: newData)
+        onChange?(engine)
         if previousData.session != newData.session || previousData.rest != newData.rest
             || previousData.preferences.pomodoro != newData.preferences.pomodoro {
             schedulePomodoro()
