@@ -81,6 +81,17 @@ struct MobileSettings: View {
                     Toggle("Haptics", isOn: binding(\.playsSounds, preferences))
                 }
                 Section {
+                    HStack(spacing: 14) {
+                        MomentumMark(size: 44, animated: false)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Momentum")
+                                .font(.headline)
+                            Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
                     Link(destination: URL(string: "https://github.com/Leeevai/momentum")!) {
                         Label("Momentum on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
                     }

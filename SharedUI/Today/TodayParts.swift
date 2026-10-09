@@ -289,18 +289,26 @@ struct WelcomeView: View {
 
     var body: some View {
         VStack(spacing: 22) {
-            EmptyStateView(
-                systemImage: "sparkles",
-                title: "Show up for what matters",
-                message: "Momentum turns big intentions into small daily wins. Track focus time, habits, books, savings, or a project's milestones, and watch your streaks grow \(Self.whereWidgetsLive)."
-            ) {
+            VStack(spacing: 16) {
+                MomentumMark(size: 112)
+                    .padding(.bottom, 6)
+                Text("Show up for what matters")
+                    .font(.system(.title, design: .rounded, weight: .bold))
+                    .multilineTextAlignment(.center)
+                Text("Momentum turns big intentions into small daily wins. Track focus time, habits, books, savings, or a project's milestones, and watch your streaks grow \(Self.whereWidgetsLive).")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: 440)
                 Button {
                     store.sheet = .newGoal
                 } label: {
                     Label("Create your first goal", systemImage: "plus")
                 }
                 .primaryActionStyle(.accentColor)
+                .padding(.top, 6)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
             Text("Or start from a template")
                 .font(.headline)
                 .foregroundStyle(.secondary)
