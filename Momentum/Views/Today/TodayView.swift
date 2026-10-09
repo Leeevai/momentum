@@ -209,7 +209,6 @@ struct FocusBanner: View {
                         .frame(minWidth: 96)
                 }
                 .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false))
-                .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button {
                     store.setSessionNote(note)
                     store.stopFocus()

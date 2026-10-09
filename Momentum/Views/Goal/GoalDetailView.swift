@@ -217,9 +217,8 @@ private struct PaceCard: View {
             : date.formatted(.dateTime.month(.wide).day().year())
     }
 
-    /// Books move slowly, so their rate reads per month; everything else per day.
     private func rateText(_ perDay: Double) -> String {
-        goal.kind == .books ? "\(Formatting.number(perDay * 30)) books a month" : "\(goal.format(perDay)) a day"
+        goal.rateText(perDay: perDay)
     }
 }
 

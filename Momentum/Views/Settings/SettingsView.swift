@@ -79,6 +79,26 @@ private struct NotificationSettings: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section("Streak protection") {
+                Toggle("Nudge me when a streak would end at midnight", isOn: Binding(
+                    get: { store.data.preferences.streakNudgesEnabled },
+                    set: { value in store.updatePreferences { $0.streakNudgesEnabled = value } }
+                ))
+                DatePicker("Nudge at", selection: Binding(
+                    get: {
+                        let minute = store.data.preferences.streakNudgeMinute
+                        return Calendar.current.date(bySettingHour: minute / 60, minute: minute % 60, second: 0, of: .now) ?? .now
+                    },
+                    set: { date in
+                        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                        store.updatePreferences { $0.streakNudgeMinute = (parts.hour ?? 20) * 60 + (parts.minute ?? 0) }
+                    }
+                ), displayedComponents: .hourAndMinute)
+                .disabled(!store.data.preferences.streakNudgesEnabled)
+                Text("Only for goals with a streak of two or more, on the last day of their period, if they're not done yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Permission") {
                 LabeledContent("Status") {
                     Text(scheduler.authorization.text)
@@ -112,7 +132,7 @@ private struct NotificationSettings: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 380)
+        .frame(height: 520)
         .task { await scheduler.refreshAuthorization() }
     }
 }

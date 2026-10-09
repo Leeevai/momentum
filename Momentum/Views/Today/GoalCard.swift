@@ -115,10 +115,10 @@ struct PaceLabel: View {
         case .done:
             Label("Target reached", systemImage: "checkmark.seal")
         case .onTrack:
-            Label("On track\(pace.neededPerDay.map { " · \(goal.format($0)) a day" } ?? "")", systemImage: "chart.line.uptrend.xyaxis")
+            Label("On track\(pace.neededPerDay.map { " · \(goal.rateText(perDay: $0))" } ?? "")", systemImage: "chart.line.uptrend.xyaxis")
                 .foregroundStyle(.green)
         case .behind:
-            Label("Behind · need \(goal.format(pace.neededPerDay ?? 0)) a day", systemImage: "exclamationmark.triangle")
+            Label("Behind · need \(goal.rateText(perDay: pace.neededPerDay ?? 0))", systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.orange)
         case .noDeadline:
             Label("\(goal.format(pace.remaining)) to go", systemImage: "flag")
