@@ -39,7 +39,9 @@ The first public release: a full rebuild of the 0.1 prototype.
 - The data file moved to a versioned format. 0.1 data migrates automatically on first launch, and
   the original file is kept as `data.v1-backup.json`.
 
-## [0.1.0] - 2026-10-08
+## 0.1.0 - 2026-10-08
+
+An unpublished prototype.
 
 ### Added
 - Daily goals tracked by focus time or check-ins, with streaks and an activity heatmap.
@@ -47,4 +49,3 @@ The first public release: a full rebuild of the 0.1 prototype.
 - Menu bar timer.
 
 [1.0.0]: https://github.com/Leeevai/momentum/releases/tag/v1.0.0
-[0.1.0]: https://github.com/Leeevai/momentum/commit/HEAD
