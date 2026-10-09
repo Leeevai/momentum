@@ -84,7 +84,7 @@ private struct CoachCard: View {
         switch tip.tone {
         case .urgent: .orange
         case .positive: .green
-        case .neutral: tip.goalID.flatMap(store.goal)?.tint ?? .accentColor
+        case .neutral: tip.goalID.flatMap(store.goal)?.tint ?? .accent
         }
     }
 }
@@ -114,7 +114,7 @@ struct DayPlanCard: View {
                 }
                 Spacer()
                 Button("Edit") { store.sheet = .plan(entry.day) }
-                    .secondaryActionStyle(.accentColor, compact: true)
+                    .secondaryActionStyle(.accent, compact: true)
             }
             if !entry.intention.isEmpty {
                 Text(entry.intention)
@@ -205,7 +205,7 @@ struct FocusTimeline: View {
                         ForEach(blocks) { block in
                             let x = position(block.interval.start, in: range, width: width)
                             let end = position(block.interval.end, in: range, width: width)
-                            let color = store.goal(block.goalID).map { AnyShapeStyle($0.color.linear) } ?? AnyShapeStyle(Color.accentColor)
+                            let color = store.goal(block.goalID).map { AnyShapeStyle($0.color.linear) } ?? AnyShapeStyle(Color.accent)
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .fill(color)
                                 .overlay {
@@ -216,7 +216,7 @@ struct FocusTimeline: View {
                                 }
                                 .frame(width: max(4, end - x))
                                 .offset(x: x)
-                                .shadow(color: (store.goal(block.goalID)?.tint ?? .accentColor).opacity(hovered == block ? 0.5 : 0.2), radius: hovered == block ? 6 : 3)
+                                .shadow(color: (store.goal(block.goalID)?.tint ?? .accent).opacity(hovered == block ? 0.5 : 0.2), radius: hovered == block ? 6 : 3)
                                 .scaleEffect(y: hovered == block ? 1.15 : 1)
                                 .onHover { inside in
                                     withAnimation(.easeOut(duration: 0.15)) { hovered = inside ? block : (hovered == block ? nil : hovered) }

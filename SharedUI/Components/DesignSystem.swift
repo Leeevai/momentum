@@ -3,12 +3,15 @@ import SwiftUI
 
 // MARK: - Surfaces
 
-/// A rounded content card: Liquid Glass on macOS 26 and later, a material on earlier systems.
+/// A pane of glass, glasscn's surface. Liquid Glass on macOS 26 and iOS 26, tinted so it reads on
+/// the aurora; a frosted material before, under glasscn's fill, sheen, rim, highlight and shadow.
+/// Highlighted panes (a running timer) take a wash and a rim of their tint.
 struct GlassCard: ViewModifier {
     var tint: Color?
-    var cornerRadius: CGFloat = 18
+    var cornerRadius: CGFloat = GlassTokens.surfaceRadius
     var padding: CGFloat = 18
     var isHighlighted = false
+    @Environment(\.colorScheme) private var colorScheme
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -17,10 +20,10 @@ struct GlassCard: ViewModifier {
         if #available(macOS 26.0, iOS 26.0, *) {
             glass(content)
         } else {
-            material(content)
+            frosted(content)
         }
         #else
-        material(content)
+        frosted(content)
         #endif
     }
 
@@ -28,93 +31,108 @@ struct GlassCard: ViewModifier {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
+    private var highlightRim: some View {
+        shape.strokeBorder((tint ?? .accent).opacity(isHighlighted ? 0.7 : 0), lineWidth: 1.5)
+    }
+
     #if compiler(>=6.2)
     @available(macOS 26.0, iOS 26.0, *)
     private func glass(_ content: Content) -> some View {
-        content
+        let tokens = GlassTokens(colorScheme)
+        return content
             .padding(padding)
-            .glassEffect(.regular.tint(tint?.opacity(isHighlighted ? 0.22 : 0.08)), in: shape)
-            .overlay(shape.strokeBorder(tint?.opacity(isHighlighted ? 0.7 : 0) ?? .clear, lineWidth: 1.5))
+            .glassEffect(.regular.tint(isHighlighted ? (tint ?? .accent).opacity(0.22) : tokens.liquidTint), in: shape)
+            .overlay(highlightRim)
     }
     #endif
 
-    private func material(_ content: Content) -> some View {
-        content
+    private func frosted(_ content: Content) -> some View {
+        let tokens = GlassTokens(colorScheme)
+        return content
             .padding(padding)
-            .background(.regularMaterial, in: shape)
-            .background(shape.fill((tint ?? .clear).opacity(isHighlighted ? 0.12 : 0.04)))
-            .overlay(shape.strokeBorder(isHighlighted ? (tint ?? .accentColor).opacity(0.7) : Color.primary.opacity(0.07), lineWidth: isHighlighted ? 1.5 : 1))
-            .shadow(color: .black.opacity(0.06), radius: 10, y: 4)
+            .background {
+                ZStack {
+                    shape.fill(.ultraThinMaterial)
+                    shape.fill(isHighlighted ? (tint ?? .accent).opacity(0.16) : tokens.fill)
+                    // glasscn's sheen: a 160-degree wash of white, gone halfway down.
+                    shape.fill(LinearGradient(stops: [.init(color: .white.opacity(tokens.sheen), location: 0),
+                                                      .init(color: .white.opacity(0), location: 0.55)],
+                                              startPoint: UnitPoint(x: 0.33, y: 0.03), endPoint: UnitPoint(x: 0.67, y: 0.97)))
+                }
+                .compositingGroup()
+                .shadow(color: tokens.shadow, radius: GlassTokens.shadowRadius, y: GlassTokens.shadowY)
+            }
+            .overlay {
+                // The rim, brightest along the top edge where the light catches it.
+                shape.strokeBorder(LinearGradient(colors: [tokens.highlight, tokens.rim], startPoint: .top,
+                                                  endPoint: UnitPoint(x: 0.5, y: 0.15)), lineWidth: 1)
+            }
+            .overlay(highlightRim)
     }
 }
 
 extension View {
-    func glassCard(tint: Color? = nil, cornerRadius: CGFloat = 18, padding: CGFloat = 18, highlighted: Bool = false) -> some View {
+    func glassCard(tint: Color? = nil, cornerRadius: CGFloat = GlassTokens.surfaceRadius, padding: CGFloat = 18, highlighted: Bool = false) -> some View {
         modifier(GlassCard(tint: tint, cornerRadius: cornerRadius, padding: padding, isHighlighted: highlighted))
     }
 }
 
 // MARK: - Buttons
 
-/// A capsule button. Prominent buttons fill with the tint's gradient; others are tinted glass.
-struct PillButtonStyle: ButtonStyle {
-    var tint: Color = .accentColor
+/// A round icon button: glasscn's icon button. Prominent ones fill with the tint, under a lit top
+/// edge and a glow of the tint; others are a soft tinted well. Presses squash a touch.
+struct CircleButtonStyle: ButtonStyle {
+    var tint: Color = .accent
+    var size: CGFloat = 32
     var prominent = true
-    var compact = false
 
     func makeBody(configuration: Configuration) -> some View {
-        PillButton(configuration: configuration, tint: tint, prominent: prominent, compact: compact)
+        CircleButton(configuration: configuration, tint: tint, size: size, prominent: prominent)
     }
 
-    private struct PillButton: View {
+    private struct CircleButton: View {
         let configuration: ButtonStyleConfiguration
         let tint: Color
+        let size: CGFloat
         let prominent: Bool
-        let compact: Bool
+        @Environment(\.self) private var environment
+        @Environment(\.colorScheme) private var colorScheme
         @Environment(\.isEnabled) private var isEnabled
         @State private var isHovered = false
 
         var body: some View {
             configuration.label
-                .font((compact ? Font.callout : Font.body).weight(.semibold))
-                .labelStyle(.titleAndIcon)
-                .padding(.horizontal, compact ? 12 : 16)
-                .padding(.vertical, compact ? 6 : 9)
-                .foregroundStyle(prominent ? Color.white : tint)
+                .font(.system(size: size * 0.4, weight: .bold))
+                .foregroundStyle(prominent ? tint.foreground(in: environment) : tint)
+                .frame(width: size, height: size)
                 .background {
-                    Capsule().fill(prominent
-                        ? AnyShapeStyle(LinearGradient(colors: [tint.blended(with: .white, by: 0.18), tint], startPoint: .top, endPoint: .bottom))
-                        : AnyShapeStyle(tint.opacity(isHovered ? 0.2 : 0.13)))
+                    if prominent {
+                        Circle().fill(tint)
+                            .overlay(Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0)], startPoint: .top, endPoint: .center), lineWidth: 1))
+                            .shadow(color: tint.opacity(isHovered ? 0.45 : 0.32), radius: size * 0.22, y: size * 0.12)
+                    } else {
+                        Circle().fill(tint.opacity(colorScheme == .dark ? 0.22 : 0.16))
+                            .overlay(Circle().fill(tint.opacity(isHovered ? 0.08 : 0)))
+                    }
                 }
-                .overlay(Capsule().strokeBorder(.white.opacity(prominent ? 0.18 : 0), lineWidth: 1))
-                .shadow(color: prominent ? tint.opacity(isHovered ? 0.45 : 0.28) : .clear, radius: isHovered ? 10 : 6, y: 3)
                 .brightness(isHovered && prominent ? 0.04 : 0)
-                .scaleEffect(configuration.isPressed ? 0.96 : 1)
-                .opacity(isEnabled ? 1 : 0.45)
-                .contentShape(Capsule())
+                .scaleEffect(configuration.isPressed ? GlassTokens.pressScale : 1)
+                .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
+                .contentShape(Circle())
                 .onHover { isHovered = $0 }
-                .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+                .animation(GlassTokens.motion, value: configuration.isPressed)
                 .animation(.easeOut(duration: 0.15), value: isHovered)
         }
     }
 }
 
-/// A round icon button.
-struct CircleButtonStyle: ButtonStyle {
-    var tint: Color = .accentColor
-    var size: CGFloat = 32
-    var prominent = true
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: size * 0.4, weight: .bold))
-            .foregroundStyle(prominent ? Color.white : tint)
-            .frame(width: size, height: size)
-            .background(Circle().fill(prominent ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(tint.opacity(0.14))))
-            .shadow(color: prominent ? tint.opacity(0.3) : .clear, radius: 5, y: 2)
-            .scaleEffect(configuration.isPressed ? 0.9 : 1)
-            .contentShape(Circle())
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+extension Color {
+    /// Text and icons on a fill of this color: white, or near-black on the lightest fills (the
+    /// Graphite accent in dark mode, yellows) where white would wash out.
+    func foreground(in environment: EnvironmentValues) -> Color {
+        let resolved = resolve(in: environment)
+        let luminance = 0.2126 * Double(resolved.linearRed) + 0.7152 * Double(resolved.linearGreen) + 0.0722 * Double(resolved.linearBlue)
+        return luminance > 0.45 ? Color(white: 0.08) : .white
     }
 }
 
@@ -191,7 +209,7 @@ struct StatTile: View {
     let title: String
     let value: String
     let systemImage: String
-    var tint: Color = .accentColor
+    var tint: Color = .accent
     var caption: String?
 
     var body: some View {

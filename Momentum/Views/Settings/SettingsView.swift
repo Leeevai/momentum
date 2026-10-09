@@ -145,7 +145,7 @@ private struct SyncSettings: View {
                         Image(systemName: sync.isEnabled ? "checkmark.icloud.fill" : "icloud.slash")
                             .font(.system(size: 30))
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(sync.isEnabled ? Color.accentColor : .secondary)
+                            .foregroundStyle(sync.isEnabled ? Color.accent : .secondary)
                             .contentTransition(.symbolEffect(.replace))
                         VStack(alignment: .leading, spacing: 3) {
                             Text(sync.isEnabled ? "Syncing" : "Not syncing")

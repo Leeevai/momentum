@@ -13,7 +13,7 @@ struct GoalDetailView: View {
                 .frame(maxWidth: .infinity)
         }
         .scrollContentBackground(.hidden)
-        .background(LivingBackdrop(primary: goal.tint, secondary: goal.color.highlight))
+        .background(Aurora(accent: goal.tint))
         .navigationTitle(goal.name)
         #if os(macOS)
         .navigationSubtitle(goal.targetDescription)

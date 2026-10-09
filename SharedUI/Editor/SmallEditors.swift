@@ -110,7 +110,7 @@ struct LogProgressSheet: View {
             .padding(16)
         }
         .sheetFrame(width: 440, height: 400)
-        .background(LivingBackdrop(primary: goal.tint))
+        .background(Aurora(accent: goal.tint))
     }
 
     private func save() {
@@ -192,13 +192,13 @@ struct LinkEditor: View {
                     .keyboardShortcut(.cancelAction)
                 Button(link == nil ? "Add" : "Save") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .primaryActionStyle(goal?.tint ?? .accentColor)
+                    .primaryActionStyle(goal?.tint ?? .accent)
                     .disabled(url == nil)
             }
             .padding(16)
         }
         .sheetFrame(width: 460, height: 330)
-        .background(LivingBackdrop(primary: goal?.tint ?? .accentColor))
+        .background(Aurora(accent: goal?.tint))
     }
 
     #if os(macOS)
@@ -256,7 +256,7 @@ struct BookEditor: View {
         let goal = store.goal(goalID)
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 14) {
-                BookCover(book: draft.title.isEmpty ? Book(title: "?") : draft, tint: goal?.tint ?? .accentColor, height: 58)
+                BookCover(book: draft.title.isEmpty ? Book(title: "?") : draft, tint: goal?.tint ?? .accent, height: 58)
                 VStack(alignment: .leading) {
                     Text(book == nil ? "Add book" : "Edit book").font(.title3.weight(.bold))
                     Text(draft.title.isEmpty ? "Title, author and pages" : draft.title)
@@ -310,13 +310,13 @@ struct BookEditor: View {
                     .keyboardShortcut(.cancelAction)
                 Button(book == nil ? "Add Book" : "Save") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .primaryActionStyle(goal?.tint ?? .accentColor)
+                    .primaryActionStyle(goal?.tint ?? .accent)
                     .disabled(draft.title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(16)
         }
         .sheetFrame(width: 480, height: 640)
-        .background(LivingBackdrop(primary: goal?.tint ?? .accentColor))
+        .background(Aurora(accent: goal?.tint))
         .task(id: query) { await search() }
     }
 
@@ -408,7 +408,7 @@ private struct SearchResultRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            BookCover(book: result.makeBook(), tint: .accentColor, height: 44)
+            BookCover(book: result.makeBook(), tint: .accent, height: 44)
             VStack(alignment: .leading, spacing: 2) {
                 Text(result.title).font(.callout.weight(.semibold)).lineLimit(1)
                 Text([result.author, result.year.map(String.init), result.pages.map { "\($0) pages" }].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
@@ -418,7 +418,7 @@ private struct SearchResultRow: View {
             }
             Spacer(minLength: 0)
             Image(systemName: "plus.circle.fill")
-                .foregroundStyle(isHovered ? Color.accentColor : Color.secondary)
+                .foregroundStyle(isHovered ? Color.accent : Color.secondary)
         }
         .padding(.vertical, 2)
         .contentShape(Rectangle())

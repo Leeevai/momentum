@@ -304,7 +304,7 @@ struct WelcomeView: View {
                 } label: {
                     Label("Create your first goal", systemImage: "plus")
                 }
-                .primaryActionStyle(.accentColor)
+                .primaryActionStyle(.accent)
                 .padding(.top, 6)
             }
             .frame(maxWidth: .infinity)

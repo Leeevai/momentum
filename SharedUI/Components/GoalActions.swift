@@ -132,7 +132,7 @@ struct FocusLengthMenu: View {
 /// A clickable link with the icon of the app that opens it.
 struct LinkChip: View {
     let link: GoalLink
-    var tint: Color = .accentColor
+    var tint: Color = .accent
     @State private var isHovered = false
 
     var body: some View {

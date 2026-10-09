@@ -76,7 +76,7 @@ struct AwardsView: View {
                     .zIndex(1)
             }
         }
-        .background(LivingBackdrop(primary: .yellow, secondary: .purple))
+        .background(Aurora())
         .navigationTitle("Awards")
         .onEscape { close() }
     }

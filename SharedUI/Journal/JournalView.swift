@@ -29,7 +29,7 @@ struct JournalView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(LivingBackdrop(primary: .orange, secondary: .indigo))
+        .background(Aurora())
         .navigationTitle("Journal")
         .toolbar {
             ToolbarItem {
@@ -167,7 +167,7 @@ private struct DayCell: View {
                     .stroke(.primary.opacity(isFuture ? 0.04 : 0.08), lineWidth: 3)
                 Circle()
                     .trim(from: 0, to: completion)
-                    .stroke(summary.isPerfect ? AnyShapeStyle(Color.green.gradient) : AnyShapeStyle(Color.accentColor.gradient),
+                    .stroke(summary.isPerfect ? AnyShapeStyle(Color.green.gradient) : AnyShapeStyle(Color.accent.gradient),
                             style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 if summary.isPerfect {
@@ -175,7 +175,7 @@ private struct DayCell: View {
                 }
                 Text(summary.day, format: .dateTime.day())
                     .font(.system(.callout, design: .rounded, weight: isToday ? .bold : .medium))
-                    .foregroundStyle(isFuture ? AnyShapeStyle(.tertiary) : (isToday ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary)))
+                    .foregroundStyle(isFuture ? AnyShapeStyle(.tertiary) : (isToday ? AnyShapeStyle(Color.accent) : AnyShapeStyle(.primary)))
             }
             .frame(width: 32, height: 32)
             Group {
@@ -198,8 +198,8 @@ private struct DayCell: View {
         .background {
             if isSelected {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.16))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.accentColor.opacity(0.55), lineWidth: 1.5))
+                    .fill(Color.accent.opacity(0.16))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.accent.opacity(0.55), lineWidth: 1.5))
                     .matchedGeometryEffect(id: "selection", in: marker)
             } else if isHovered {
                 RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.primary.opacity(0.05))

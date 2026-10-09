@@ -70,7 +70,7 @@ struct InsightsView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollContentBackground(.hidden)
-        .background(LivingBackdrop(primary: .indigo, secondary: .pink))
+        .background(Aurora())
         .navigationTitle("Insights")
     }
 
@@ -115,7 +115,7 @@ private struct FocusChart: View {
         let goals = Dictionary(store.data.goals.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let names = report.focusByDay.compactMap { goals[$0.goalID]?.name }
         let order = Array(NSOrderedSet(array: names)) as? [String] ?? []
-        let colors = order.map { name in store.data.goals.first { $0.name == name }?.tint ?? .accentColor }
+        let colors = order.map { name in store.data.goals.first { $0.name == name }?.tint ?? .accent }
         VStack(alignment: .leading, spacing: 12) {
             Label("Focus time per day", systemImage: "chart.bar.fill")
                 .font(.headline)
@@ -476,6 +476,6 @@ private struct ScoresCard: View {
                 }
             }
         }
-        .glassCard(tint: .accentColor)
+        .glassCard(tint: .accent)
     }
 }

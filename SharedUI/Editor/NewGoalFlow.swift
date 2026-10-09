@@ -47,8 +47,8 @@ private struct TemplateGallery: View {
                             Image(systemName: "plus")
                                 .font(.title2.weight(.semibold))
                                 .frame(width: 44, height: 44)
-                                .background(Circle().fill(Color.accentColor.opacity(0.15)))
-                                .foregroundStyle(Color.accentColor)
+                                .background(Circle().fill(Color.accent.opacity(0.15)))
+                                .foregroundStyle(Color.accent)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Blank goal").font(.headline)
                                 Text("Time, count, amount, books or milestones: you choose.")
@@ -58,7 +58,7 @@ private struct TemplateGallery: View {
                             Spacer()
                             Image(systemName: "chevron.right").foregroundStyle(.tertiary)
                         }
-                        .glassCard(tint: .accentColor, padding: 14)
+                        .glassCard(tint: .accent, padding: 14)
                     }
                     .buttonStyle(.plain)
 

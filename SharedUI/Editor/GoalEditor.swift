@@ -53,7 +53,7 @@ struct GoalEditor: View {
             footer
         }
         .sheetFrame(width: 580, height: 720)
-        .background(LivingBackdrop(primary: draft.tint, secondary: draft.color.highlight))
+        .background(Aurora(accent: draft.tint))
         .onChange(of: draft.kind) { old, kind in
             guard isNew, old != kind else { return }
             applyDefaults(for: kind)
@@ -483,7 +483,7 @@ struct ColorChooser: View {
 
 struct WeekdayChooser: View {
     @Binding var selection: Set<Int>
-    var tint: Color = .accentColor
+    var tint: Color = .accent
 
     var body: some View {
         let calendar = Calendar.current

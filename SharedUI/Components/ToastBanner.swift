@@ -76,7 +76,7 @@ struct ToastBanner: View {
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 48, height: 48)
-                .background(Circle().fill(Color.accentColor.gradient))
+                .background(Circle().fill(Color.accent.gradient))
         }
     }
 
@@ -108,7 +108,7 @@ struct ToastBanner: View {
         switch toast.kind {
         case .achievement(let achievement): achievement.family.tint
         case .achievements: .yellow
-        case .message: .accentColor
+        case .message: .accent
         }
     }
 

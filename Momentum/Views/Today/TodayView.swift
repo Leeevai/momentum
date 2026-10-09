@@ -106,7 +106,7 @@ struct TodayView: View {
                 .zIndex(1)
             }
         }
-        .background(LivingBackdrop(primary: .accentColor, secondary: .purple))
+        .background(Aurora())
         .navigationTitle("Today")
         .onChange(of: store.route) { _, _ in expanded = nil }
     }
@@ -173,7 +173,7 @@ private struct ExpandedGoal: View {
         .background {
             ZStack {
                 Color(nsColor: .windowBackgroundColor)
-                LivingBackdrop(primary: goal.tint, secondary: goal.color.highlight)
+                Aurora(accent: goal.tint)
             }
             .clipShape(shape)
             .heroMatch("card-\(goal.id)", in: hero)

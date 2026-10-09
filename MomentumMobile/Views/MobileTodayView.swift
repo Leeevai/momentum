@@ -53,7 +53,7 @@ struct MobileTodayView: View {
                 store.sync?.syncNow()
                 try? await Task.sleep(for: .milliseconds(600))
             }
-            .background(LivingBackdrop(primary: .accentColor, secondary: .purple))
+            .background(Aurora())
             .navigationTitle("Today")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -104,7 +104,7 @@ struct MobileGoalPage: View {
                 .padding(.bottom, 24)
         }
         .scrollContentBackground(.hidden)
-        .background(LivingBackdrop(primary: goal.tint, secondary: goal.color.highlight))
+        .background(Aurora(accent: goal.tint))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
