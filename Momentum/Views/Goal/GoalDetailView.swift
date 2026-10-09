@@ -6,36 +6,14 @@ struct GoalDetailView: View {
     let goal: Goal
 
     var body: some View {
-        let engine = store.engine
-        let now = store.now
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                GoalHeader(goal: goal)
-                HeroPanel(goal: goal)
-                if let pace = engine.pace(for: goal, now: now), pace.status != .done {
-                    PaceCard(goal: goal, pace: pace)
-                }
-                StatsRow(goal: goal)
-                if goal.kind == .books {
-                    BooksSection(goal: goal)
-                }
-                if goal.kind == .milestones || !goal.milestones.isEmpty {
-                    MilestonesSection(goal: goal)
-                }
-                ActivityChartCard(goal: goal)
-                HeatmapCard(goal: goal)
-                LinksSection(goal: goal)
-                if goal.kind != .milestones && goal.milestones.isEmpty {
-                    MilestonesSection(goal: goal, collapsedWhenEmpty: true)
-                }
-                HistorySection(goal: goal)
-            }
-            .padding(28)
-            .frame(maxWidth: 980, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            GoalDetailContent(goal: goal)
+                .padding(28)
+                .frame(maxWidth: 980, alignment: .leading)
+                .frame(maxWidth: .infinity)
         }
         .scrollContentBackground(.hidden)
-        .background(AmbientBackground(primary: goal.tint, secondary: goal.color.highlight))
+        .background(LivingBackdrop(primary: goal.tint, secondary: goal.color.highlight))
         .navigationTitle(goal.name)
         .navigationSubtitle(goal.targetDescription)
         .toolbar {
@@ -58,16 +36,53 @@ struct GoalDetailView: View {
     }
 }
 
+/// Everything on a goal's page. Shown as a page from the sidebar, or inside a Today card that
+/// morphs open, in which case `hero` ties its icon, title and ring to the card's.
+struct GoalDetailContent: View {
+    @Environment(GoalStore.self) private var store
+    let goal: Goal
+    var hero: Namespace.ID?
+
+    var body: some View {
+        let engine = store.engine
+        let now = store.now
+        VStack(alignment: .leading, spacing: 22) {
+            GoalHeader(goal: goal, hero: hero)
+            HeroPanel(goal: goal, hero: hero)
+            if let pace = engine.pace(for: goal, now: now), pace.status != .done {
+                PaceCard(goal: goal, pace: pace)
+            }
+            StatsRow(goal: goal)
+            if goal.kind == .books {
+                BooksSection(goal: goal)
+            }
+            if goal.kind == .milestones || !goal.milestones.isEmpty {
+                MilestonesSection(goal: goal)
+            }
+            ActivityChartCard(goal: goal)
+            HeatmapCard(goal: goal)
+            LinksSection(goal: goal)
+            if goal.kind != .milestones && goal.milestones.isEmpty {
+                MilestonesSection(goal: goal, collapsedWhenEmpty: true)
+            }
+            HistorySection(goal: goal)
+        }
+    }
+}
+
 private struct GoalHeader: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
+    var hero: Namespace.ID?
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             GoalIcon(goal: goal, size: 64)
+                .heroMatch("icon-\(goal.id)", in: hero)
             VStack(alignment: .leading, spacing: 6) {
                 Text(goal.name)
                     .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .heroMatch("title-\(goal.id)", in: hero)
                 HStack(spacing: 8) {
                     if !goal.category.isEmpty {
                         CategoryPill(text: goal.category, tint: goal.tint)
@@ -120,6 +135,7 @@ private struct GoalHeader: View {
 private struct HeroPanel: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
+    var hero: Namespace.ID?
 
     var body: some View {
         let engine = store.engine
@@ -148,6 +164,7 @@ private struct HeroPanel: View {
                 }
             }
             .frame(width: 168, height: 168)
+            .heroMatch("ring-\(goal.id)", in: hero)
 
             TrackingControls(goal: goal)
                 .frame(maxWidth: .infinity, alignment: .leading)

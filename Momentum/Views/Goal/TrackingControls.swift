@@ -21,47 +21,34 @@ private struct TimeControls: View {
     let goal: Goal
 
     var body: some View {
+        let session = store.data.session?.goalID == goal.id ? store.data.session : nil
         VStack(alignment: .leading, spacing: 14) {
-            if let session = store.data.session, session.goalID == goal.id {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(session.plannedDuration == nil ? "Elapsed" : "Time left")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                    SessionClockText(session: session)
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundStyle(goal.color.linear)
-                }
-                HStack(spacing: 10) {
-                    Button {
-                        store.togglePause()
-                    } label: {
-                        Label(session.isRunning ? "Pause" : "Resume", systemImage: session.isRunning ? "pause.fill" : "play.fill")
+            Group {
+                if let session {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(session.plannedDuration == nil ? "Elapsed" : "Time left")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+                        SessionClockText(session: session)
+                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .foregroundStyle(goal.color.linear)
                     }
-                    .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false))
-                    Button {
-                        store.stopFocus()
-                    } label: {
-                        Label("Stop & save", systemImage: "stop.fill")
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Ready when you are")
+                            .font(.title3.weight(.semibold))
+                        Text(goal.focusMinutes.map { "Sessions default to \($0) minutes." } ?? "Sessions run until you stop them.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(PillButtonStyle(tint: goal.tint))
                 }
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Ready when you are")
-                        .font(.title3.weight(.semibold))
-                    Text(goal.focusMinutes.map { "Sessions default to \($0) minutes." } ?? "Sessions run until you stop them.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-                HStack(spacing: 10) {
-                    Button {
-                        store.toggleFocus(goal)
-                    } label: {
-                        Label(goal.focusMinutes.map { "Focus \($0)m" } ?? "Start focus", systemImage: "play.fill")
-                    }
-                    .buttonStyle(PillButtonStyle(tint: goal.tint))
+            }
+            .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .leading)))
+            HStack(spacing: 10) {
+                FocusControlCluster(goal: goal)
                     .keyboardShortcut(.return, modifiers: .command)
+                if session == nil {
                     Menu {
                         FocusLengthMenu(goal: goal)
                     } label: {
@@ -70,7 +57,8 @@ private struct TimeControls: View {
                     .menuStyle(.button)
                     .fixedSize()
                     if goal.links.contains(where: \.opensWithFocus) {
-                        Label("Opens \(goal.links.filter(\.opensWithFocus).count) link\(goal.links.filter(\.opensWithFocus).count == 1 ? "" : "s")", systemImage: "bolt.fill")
+                        let count = goal.links.filter(\.opensWithFocus).count
+                        Label("Opens \(count) link\(count == 1 ? "" : "s")", systemImage: "bolt.fill")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -79,6 +67,7 @@ private struct TimeControls: View {
             StreakSafeNote(goal: goal)
             ManualLogRow(goal: goal)
         }
+        .animation(FocusControlCluster.morph, value: session?.startedAt)
     }
 }
 
@@ -123,7 +112,7 @@ private struct AmountControls: View {
                 } label: {
                     Label("Log…", systemImage: "square.and.pencil")
                 }
-                .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false))
+                .secondaryActionStyle(goal.tint)
                 Button {
                     store.perform("Undo Log") { $0.log(-goal.quickAddStep, for: goal.id, note: "Correction") }
                 } label: {
@@ -232,7 +221,7 @@ private struct BookControls: View {
                     } label: {
                         Label("Finished", systemImage: "checkmark.seal")
                     }
-                    .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
+                    .secondaryActionStyle(goal.tint, compact: true)
                 }
             } else {
                 Text(goal.books.contains { $0.status == .wantToRead } ? "Pick your next book" : "Start your reading list")
@@ -245,7 +234,7 @@ private struct BookControls: View {
                 } label: {
                     Label("Add a book", systemImage: "plus")
                 }
-                .buttonStyle(PillButtonStyle(tint: goal.tint))
+                .primaryActionStyle(goal.tint)
             }
         }
     }

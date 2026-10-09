@@ -54,23 +54,6 @@ extension View {
     }
 }
 
-/// A soft wash of color behind a screen, tinted by the goal it shows.
-struct AmbientBackground: View {
-    var primary: Color
-    var secondary: Color = .purple
-
-    var body: some View {
-        ZStack {
-            Color(nsColor: .windowBackgroundColor)
-            RadialGradient(colors: [primary.opacity(0.22), .clear], center: .topLeading, startRadius: 0, endRadius: 650)
-            RadialGradient(colors: [secondary.opacity(0.14), .clear], center: .topTrailing, startRadius: 0, endRadius: 520)
-            RadialGradient(colors: [primary.opacity(0.08), .clear], center: .bottom, startRadius: 0, endRadius: 600)
-        }
-        .ignoresSafeArea()
-        .animation(.easeInOut(duration: 0.6), value: primary)
-    }
-}
-
 // MARK: - Buttons
 
 /// A capsule button. Prominent buttons fill with the tint's gradient; others are tinted glass.
