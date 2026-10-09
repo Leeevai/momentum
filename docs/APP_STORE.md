@@ -1,7 +1,40 @@
 # Shipping to the App Store
 
 What's ready in the repository, and what has to happen in App Store Connect and Xcode to ship
-Momentum for iPhone, iPad and Mac.
+Momentum for iPhone, iPad, Apple Watch and Mac.
+
+## Where it stands
+
+Everything in the repository is ready: the apps, privacy manifests, a [privacy policy](PRIVACY.md),
+the listing text below, screenshots (`./scripts/app-store-screenshots.sh`) and a script that
+archives and uploads both apps (`./scripts/archive.sh`).
+
+What's missing is a paid developer account. The team Xcode signs with today, **636N6HY5DT
+("Hassan Mohsen (Personal Team)")**, is a free Personal Team: it runs the apps on your own devices
+but can't sign for the App Store, and `scripts/archive.sh` stops on it.
+
+## What the owner does
+
+These steps need you: an account, agreements and payment can't be done on your behalf.
+
+1. **Join the [Apple Developer Program](https://developer.apple.com/programs/enroll/)** with your
+   Apple ID (US$99 a year). Enrolled as an individual, the store lists your name as the seller.
+2. **Give the scripts the paid team.** Its team ID differs from the Personal Team's: put it in
+   `Config/Local.xcconfig` as `DEVELOPMENT_TEAM` (copy `Local.xcconfig.example`). Sign in to that
+   team in Xcode (Settings, Accounts), or create an App Store Connect API key (Users and Access,
+   Integrations, role App Manager) for `scripts/archive.sh --upload`.
+3. **Register the identifiers** in the next section. Automatic signing registers the bundle IDs on
+   the first archive; check that the app groups are enabled on them.
+4. **Create the app in App Store Connect**: platforms iOS and macOS, bundle ID
+   `<prefix>.Momentum`, a SKU of your choosing, and a name. "Momentum" alone is almost certainly
+   taken; the listing below uses "Momentum: Goals and Focus".
+5. **Choose the price.** Free needs nothing more; a paid app needs the Paid Apps agreement, tax and
+   banking in App Store Connect (Business).
+6. **Fill in the listing** from the table and texts below, App Privacy as **Data Not Collected**,
+   and the age rating questionnaire (4+).
+7. **Upload and test**: `./scripts/archive.sh --upload KEY KEY_ID ISSUER` (or archive in Xcode and
+   upload from the Organizer), install the build from TestFlight on a device, then submit it for
+   review in App Store Connect.
 
 ## Already in place
 
@@ -26,8 +59,9 @@ Momentum for iPhone, iPad and Mac.
    `<prefix>.Momentum.watchkitapp.Widget` (its complications).
 2. Register the app groups: `<team>.<prefix>.momentum` (macOS) and `group.<prefix>.momentum` (iOS
    and watchOS), and enable them on the bundle IDs of each platform.
-3. In `Config/Local.xcconfig`, set `DEVELOPMENT_TEAM` and `BUNDLE_ID_PREFIX`. For distribution,
-   switch the Mac targets to `CODE_SIGN_STYLE = Automatic` (or create Mac App Store profiles).
+3. In `Config/Local.xcconfig`, set `DEVELOPMENT_TEAM` and `BUNDLE_ID_PREFIX`. Day-to-day builds
+   sign manually with your development certificate; `scripts/archive.sh` switches to automatic
+   signing for the store, which creates the distribution certificate and profiles.
 
 ## In App Store Connect
 
@@ -76,15 +110,20 @@ iPhone app sends it and needs the iPhone app installed.
 
 ## Screenshots
 
-App Store sizes: 6.9" iPhone (1320 × 2868), 13" iPad (2064 × 2752), Mac (2880 × 1800), and
-Apple Watch (Ultra: 422 × 514). The watch screenshots need a watchOS simulator, installed with
-`xcodebuild -downloadPlatform watchOS`.
+App Store sizes: 6.9" iPhone (1320 × 2868), 13" iPad (2064 × 2752), Apple Watch 46 mm
+(416 × 496) and Mac (2880 × 1800). One command makes all of them:
 
 ```bash
-./scripts/app-store-screenshots.sh   # iPhone 6.9" and iPad 13", light and dark, into AppStoreScreenshots/
+./scripts/app-store-screenshots.sh   # into AppStoreScreenshots/ (gitignored)
 ```
 
-It runs the debug build on the simulators with a clean status bar. Debug builds of the iPhone
+It runs the debug build on fresh simulators it creates and deletes (an iPhone paired with a watch,
+and an iPad), so your own simulators are left alone, with a clean status bar, in light and dark;
+the watch set comes from the iPhone app sending its demo data. The Mac set comes from
+`scripts/screenshots/render.sh` at a 1440 × 900 window. The watch needs the watchOS simulator
+runtime (`xcodebuild -downloadPlatform watchOS`).
+
+To capture a screen by hand, debug builds of the iPhone
 app open demo data with `MOMENTUM_DEMO=1` (`empty` for a first run), a tab with `MOMENTUM_TAB`
 (`journal`, `insights`, `awards`, `goal`) and a sheet with `MOMENTUM_SHEET` (`new`, `plan`,
 `reflect`, `edit`, `review`, `focus`); by hand:
@@ -94,9 +133,7 @@ SIMCTL_CHILD_MOMENTUM_DEMO=1 SIMCTL_CHILD_MOMENTUM_TAB=journal xcrun simctl laun
 xcrun simctl io booted screenshot journal.png
 ```
 
-The Mac screenshots come from `./scripts/screenshots/render.sh`.
-
-For the watch, pair a watch simulator with an iPhone simulator, install both apps, and launch the
+For the watch by hand, pair a watch simulator with an iPhone simulator, install both apps, and launch the
 iPhone app with `MOMENTUM_DEMO=seed` (demo data written to the real data file, which the watch is
 sent from). Debug builds of the watch app open a goal with `MOMENTUM_WATCH_GOAL=<name>` and press
 one of its buttons with `MOMENTUM_WATCH_ACTION` (`start`, `pause`, `stop` or `log`):
@@ -111,6 +148,8 @@ SIMCTL_CHILD_MOMENTUM_WATCH_GOAL="Deep work" SIMCTL_CHILD_MOMENTUM_WATCH_ACTION=
 
 1. Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in the project (all targets).
 2. `swift test --package-path Packages/MomentumKit`, and build both schemes for Release.
-3. Archive each scheme in Xcode (Product → Archive) and upload through the Organizer; try the
-   build in TestFlight on a device with an older data file before releasing.
+3. `./scripts/archive.sh` archives both apps and exports them for App Store Connect, or uploads
+   them with `--upload KEY KEY_ID ISSUER` (an App Store Connect API key). Xcode's Product, Archive
+   and the Organizer do the same by hand. Try the build in TestFlight on a device with an older
+   data file before releasing.
 4. Update `CHANGELOG.md` and tag the release.

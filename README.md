@@ -236,7 +236,11 @@ your watch (or a watch simulator, after `xcodebuild -downloadPlatform watchOS`).
 swift test --package-path Packages/MomentumKit   # the core's test suite
 open Momentum.xcodeproj                          # run the apps from Xcode
 ./scripts/screenshots/render.sh                  # regenerate the Mac screenshots from demo data
+./scripts/app-store-screenshots.sh               # App Store screenshots: iPhone, iPad, Watch, Mac
+./scripts/archive.sh                             # archive both apps for App Store Connect
 ```
+
+Shipping to the App Store is described in [docs/APP_STORE.md](docs/APP_STORE.md).
 
 | Path | What lives there |
 |------|------------------|
