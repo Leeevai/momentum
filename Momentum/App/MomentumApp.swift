@@ -63,9 +63,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-extension Notification.Name {
-    static let reopenMainWindow = Notification.Name("MomentumReopenMainWindow")
-}
 
 struct MomentumCommands: Commands {
     let store: GoalStore
