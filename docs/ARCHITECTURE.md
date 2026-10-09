@@ -105,7 +105,8 @@ timelines. Links in widgets use `momentum://` deep links that the app resolves.
 | `Shared/` | both apps and both widget extensions |
 | `SharedUI/` | both apps: the store, side effects, sync, and every screen that suits both |
 | `Momentum/` | the Mac app: window, sidebar, menu bar, quick panel, Settings |
-| `MomentumMobile/` | the iPhone and iPad app: tabs, Today, Settings |
+| `MomentumMobile/` | the iPhone and iPad app: tabs, Today, Settings, the watch link |
+| `MomentumWatch/` | the Apple Watch app, showing what the iPhone sends |
 | `MomentumWidgets/` | both widget extensions; the Live Activity is iOS only |
 
 Platform differences are switched inline with `#if os(...)` (file panels become file importers,
@@ -143,6 +144,16 @@ and no sync service has a conflict to resolve.
 - **Known limit.** Deletions are remembered for 180 days, and files not saved for 150 days aren't
   merged (unless this device has no data yet). A device that comes back after more than 180 days
   away can still bring back records deleted elsewhere in the meantime.
+
+## The Apple Watch
+
+The watch app (`MomentumWatch/`) holds no data of its own. The iPhone works out a
+`WatchSnapshot` on every change (today's goals with progress, streaks and one-tap actions, the
+timer and the break: a few kilobytes) and sends it as the WatchConnectivity application context.
+A tap on the watch is a `WatchAction` sent as a message; the iPhone, woken in the background if
+needed, applies it to the shared data file as a widget would, and replies with the new snapshot.
+Out of the iPhone's reach, actions go by `transferUserInfo` and are applied in order when it's
+back. The watch keeps the last snapshot, so it opens instantly and works on the last known state.
 
 ## The Live Activity
 

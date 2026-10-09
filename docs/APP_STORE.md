@@ -17,7 +17,8 @@ Momentum for iPhone, iPad and Mac.
 
 ## In the Apple Developer account
 
-1. Register the bundle IDs `<prefix>.Momentum` and `<prefix>.Momentum.Widget` (both platforms).
+1. Register the bundle IDs `<prefix>.Momentum`, `<prefix>.Momentum.Widget` (both platforms) and
+   `<prefix>.Momentum.watchkitapp` (the watch app, embedded in the iPhone app).
 2. Register the app groups: `<team>.<prefix>.momentum` (macOS) and `group.<prefix>.momentum` (iOS),
    and enable them on both bundle IDs.
 3. In `Config/Local.xcconfig`, set `DEVELOPMENT_TEAM` and `BUNDLE_ID_PREFIX`. For distribution,
@@ -55,6 +56,7 @@ daily journal, with widgets and a Live Activity.
 > - Reading goals with a library, Open Library search and Goodreads import
 > - Habit stacking: one goal right after another
 > - Widgets for the Home Screen and Lock Screen, and Control Center
+> - An Apple Watch app to start sessions and check in from your wrist
 > - Sync through your own iCloud Drive folder, with the Mac app
 > - No account, no ads, no tracking
 
@@ -66,7 +68,9 @@ optional.
 
 ## Screenshots
 
-App Store sizes: 6.9" iPhone (1320 × 2868), 13" iPad (2064 × 2752), and Mac (2880 × 1800).
+App Store sizes: 6.9" iPhone (1320 × 2868), 13" iPad (2064 × 2752), Mac (2880 × 1800), and
+Apple Watch (Ultra: 422 × 514). The watch screenshots need a watchOS simulator, installed with
+`xcodebuild -downloadPlatform watchOS`.
 
 ```bash
 ./scripts/app-store-screenshots.sh   # iPhone 6.9" and iPad 13", light and dark, into AppStoreScreenshots/

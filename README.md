@@ -121,6 +121,11 @@ iPhone. Each device keeps its own file there and merges the others' record by re
 change to each goal wins, deletions stick, and progress logged anywhere adds up. No account, no
 server, and nothing to resolve by hand.
 
+### On your wrist
+An Apple Watch app shows today's goals with their rings, starts, pauses and stops the timer, and
+logs a check-in with one tap (or a double tap of your fingers). The iPhone does the work and
+keeps the watch up to date; taps made out of its reach are delivered when it's back.
+
 ### Widgets everywhere
 Interactive widgets on the Mac desktop and the iPhone Home Screen: **start and stop timers, check
 in and log pages without opening the app**. On iPhone, Lock Screen widgets show today's progress,
@@ -216,7 +221,8 @@ open Momentum.xcodeproj                          # run the apps from Xcode
 | `Packages/MomentumKit` | **MomentumCore**: the model, the progress engine (periods, streaks, pace, insights, achievements, coach), Pomodoro, the journal, sync (stamps, merge, folder layout), persistence and migrations, reminder planning. Swift 6, no UI, fully tested. |
 | `SharedUI/` | The store, side effects and every screen both apps share: Today's cards, goal pages, editors, Journal, Insights, Awards, the design system. |
 | `Momentum/` | The Mac app: window and sidebar, menu bar, quick panel and global shortcut, Settings. |
-| `MomentumMobile/` | The iPhone and iPad app: tabs, Today with zoom transitions, Settings. |
+| `MomentumMobile/` | The iPhone and iPad app: tabs, Today with zoom transitions, Settings, and the link to the watch. |
+| `MomentumWatch/` | The Apple Watch app: today's goals, a page per goal, the timer. It shows a snapshot the iPhone sends. |
 | `MomentumWidgets/` | The widgets, for both platforms, and the iPhone Live Activity. |
 | `Shared/` | Code the apps and widgets all compile: storage location, App Intents, the Live Activity model. |
 | `Config/` | Signing (`Shared.xcconfig`), entitlements and Info.plists. |
@@ -233,7 +239,7 @@ widgets and other devices, and [CONTRIBUTING.md](CONTRIBUTING.md) to get involve
 - [x] An iPhone and iPad app, with Lock Screen widgets and a Live Activity
 - [x] Pomodoro cycles, a daily journal, awards and a coach
 - [ ] App Store releases
-- [ ] Apple Watch
+- [x] Apple Watch
 - [ ] Translations
 
 ## License
