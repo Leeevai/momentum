@@ -150,10 +150,18 @@ and no sync service has a conflict to resolve.
 The watch app (`MomentumWatch/`) holds no data of its own. The iPhone works out a
 `WatchSnapshot` on every change (today's goals with progress, streaks and one-tap actions, the
 timer and the break: a few kilobytes) and sends it as the WatchConnectivity application context.
-A tap on the watch is a `WatchAction` sent as a message; the iPhone, woken in the background if
-needed, applies it to the shared data file as a widget would, and replies with the new snapshot.
-Out of the iPhone's reach, actions go by `transferUserInfo` and are applied in order when it's
-back. The watch keeps the last snapshot, so it opens instantly and works on the last known state.
+A tap on the watch is a `WatchCommand`: an explicit action (start a goal; stop or pause *the
+session the watch showed*; log), the time it was tapped, and an id. The iPhone, woken in the
+background if needed, applies it to the shared data file as a widget would, once per id, dated
+when it was tapped, and replies with the new snapshot. So a reply lost on the way back can be
+resent safely, a Stop that arrives late doesn't count the hours in between, and a stale Stop
+can't end a newer session. Out of the iPhone's reach, commands go by `transferUserInfo`, and new
+ones queue behind them so they arrive in the order tapped.
+
+The watch keeps the last snapshot, so it opens instantly; one from an earlier day shows daily
+goals starting over. The complications read it from the app group: the iPhone pushes an update
+(`transferCurrentComplicationUserInfo`, a few dozen a day) when something on the face changes,
+and their timeline has an entry at midnight and at the end of a planned block.
 
 ## The Live Activity
 
