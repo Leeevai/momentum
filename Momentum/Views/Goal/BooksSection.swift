@@ -204,7 +204,11 @@ struct BookCover: View {
 
     var body: some View {
         Group {
-            if let url = book.coverURL {
+            if let cached = CoverCache.image(for: book) {
+                Image(nsImage: cached)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else if let url = book.coverURL {
                 AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
                     if let image = phase.image {
                         image.resizable().aspectRatio(contentMode: .fill)

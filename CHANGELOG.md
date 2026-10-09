@@ -11,6 +11,8 @@ All notable changes to Momentum are recorded here. The format follows
   Focus is on. Today, the menu bar and the widgets follow it, with a "Show all" way past it.
 - Focus sounds: white, pink or brown noise during a focus session, generated on the fly, fading in
   and out with the timer. Pick it from the session banner or Settings.
+- Book covers from Open Library are saved on the Mac, so the Goal widget shows the cover of the
+  book you're reading and the library works offline.
 
 ### Changed
 - An unknown goal color or book status written by a newer version no longer makes the data file

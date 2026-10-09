@@ -180,19 +180,29 @@ private struct GoalDetailPanel: View {
         switch goal.kind {
         case .books:
             if let book = goal.currentBook {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label(book.title, systemImage: "book")
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
-                    if !book.author.isEmpty && !compact {
-                        Text(book.author).font(.caption2).foregroundStyle(.secondary)
+                HStack(alignment: .top, spacing: 8) {
+                    if let cover = CoverCache.image(for: book) {
+                        Image(nsImage: cover)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: compact ? 30 : 40, height: compact ? 44 : 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                            .shadow(color: .black.opacity(0.2), radius: 1.5, x: 1, y: 1)
                     }
-                    if let fraction = book.fraction {
-                        ProgressBar(progress: fraction, color: goal.color, height: 5)
-                        Text("p. \(book.currentPage) of \(book.totalPages ?? 0)")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label(book.title, systemImage: "book")
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                        if !book.author.isEmpty && !compact {
+                            Text(book.author).font(.caption2).foregroundStyle(.secondary)
+                        }
+                        if let fraction = book.fraction {
+                            ProgressBar(progress: fraction, color: goal.color, height: 5)
+                            Text("p. \(book.currentPage) of \(book.totalPages ?? 0)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
                     }
                 }
                 Spacer(minLength: 0)

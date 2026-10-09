@@ -14,6 +14,7 @@ final class SideEffects {
     private let isEnabled: Bool
     private var lastSessionStart: Date?
     private var replanTask: Task<Void, Never>?
+    private var downloadingCovers: Set<UUID> = []
 
     init(isEnabled: Bool = true) {
         self.isEnabled = isEnabled
@@ -32,6 +33,7 @@ final class SideEffects {
         scheduleReplan(engine: engine)
         notifications.syncSessionEnd(data.session, goal: data.session.flatMap { engine.goal($0.goalID) })
         syncFocusSound(data)
+        cacheCovers(data)
     }
 
     func dataDidChange(from old: AppData, to new: AppData, engine: ProgressEngine) {
@@ -52,7 +54,37 @@ final class SideEffects {
         if old.session?.isRunning != new.session?.isRunning || old.preferences != new.preferences {
             syncFocusSound(new)
         }
+        cacheCovers(new)
         scheduleReplan(engine: engine)
+    }
+
+    /// Downloads covers the widgets don't have yet, and removes ones whose books are gone.
+    private func cacheCovers(_ data: AppData) {
+        let books = data.goals.flatMap(\.books)
+        let missing = books.filter { $0.coverURL != nil && !CoverCache.hasCover(for: $0) && !downloadingCovers.contains($0.id) }
+        for book in missing {
+            guard let url = book.coverURL else { continue }
+            downloadingCovers.insert(book.id)
+            Task { [weak self] in
+                defer { self?.downloadingCovers.remove(book.id) }
+                do {
+                    let (bytes, response) = try await URLSession.shared.data(from: url)
+                    guard (response as? HTTPURLResponse)?.statusCode == 200, NSImage(data: bytes) != nil else { return }
+                    try FileManager.default.createDirectory(at: CoverCache.directoryURL, withIntermediateDirectories: true)
+                    try bytes.write(to: CoverCache.fileURL(for: book.id), options: .atomic)
+                    SharedStore.reloadWidgets()
+                } catch {
+                    Logger(subsystem: "dev.momentum.app", category: "Covers")
+                        .error("Could not cache a cover: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+        }
+        let known = Set(books.map { "\($0.id.uuidString).jpg" })
+        if let files = try? FileManager.default.contentsOfDirectory(atPath: CoverCache.directoryURL.path) {
+            for file in files where !known.contains(file) {
+                try? FileManager.default.removeItem(at: CoverCache.directoryURL.appendingPathComponent(file))
+            }
+        }
     }
 
     /// Plays the chosen sound while a session runs; fades it out on pause or stop.
