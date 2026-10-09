@@ -1,0 +1,17 @@
+// Signing and identifiers shared by every target.
+//
+// These build under the maintainer's Apple team. To build under yours, create
+// Config/Local.xcconfig (it is gitignored) and override DEVELOPMENT_TEAM and
+// BUNDLE_ID_PREFIX there. The app group ID follows automatically.
+
+DEVELOPMENT_TEAM = 636N6HY5DT
+BUNDLE_ID_PREFIX = dev.hassan
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Apple Development
+PROVISIONING_PROFILE_SPECIFIER =
+
+#include? "Local.xcconfig"
+
+// The app and its widgets share data through this group. macOS accepts a group
+// prefixed with the team ID without a provisioning profile.
+APP_GROUP_ID = $(DEVELOPMENT_TEAM).$(BUNDLE_ID_PREFIX).momentum
