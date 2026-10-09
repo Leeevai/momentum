@@ -9,3 +9,11 @@ extension KeyedDecodingContainer {
         try decodeIfPresent(T.self, forKey: key) ?? defaultValue()
     }
 }
+
+extension DateInterval {
+    /// Whether `date` falls in `[start, end)`. `contains(_:)` includes the end, which makes a
+    /// moment on a boundary (midnight, the first of the year) belong to two adjacent periods.
+    func holds(_ date: Date) -> Bool {
+        date >= start && date < end
+    }
+}

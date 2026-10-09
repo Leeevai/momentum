@@ -149,7 +149,7 @@ public struct ProgressEngine: Sendable {
     public func booksFinished(for goal: Goal, in interval: DateInterval) -> Int {
         goal.books.filter { book in
             guard book.status == .finished, let finished = book.finishedAt else { return false }
-            return interval.contains(finished)
+            return interval.holds(finished)
         }.count
     }
 

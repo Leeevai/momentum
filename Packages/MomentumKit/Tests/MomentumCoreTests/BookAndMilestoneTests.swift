@@ -72,6 +72,15 @@ struct BookTests {
         #expect(data.entries.map(\.amount) == [20])
     }
 
+    @Test("A book finished at midnight on New Year's Day counts in the new year only")
+    func yearBoundary() {
+        let book = Book(title: "Boundary", status: .finished, finishedAt: date(2026, 1, 1, 0, 0))
+        let goal = readingGoal(books: [book])
+        let e = engine(AppData(goals: [goal]))
+        #expect(e.booksFinished(for: goal, in: e.interval(of: .yearly, containing: date(2025, 6, 1))) == 0)
+        #expect(e.booksFinished(for: goal, in: e.interval(of: .yearly, containing: date(2026, 6, 1))) == 1)
+    }
+
     @Test("Removing a book removes its page logs")
     func removeBookRemovesLogs() {
         let book = Book(title: "Gone", totalPages: 100)

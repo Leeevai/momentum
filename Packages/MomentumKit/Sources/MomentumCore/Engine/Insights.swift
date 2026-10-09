@@ -82,7 +82,7 @@ extension ProgressEngine {
 
         var hours = [Int: Double]()
         let timeGoalIDs = Set(timeGoals.map(\.id))
-        let rangeEntries = data.entries.filter { range.contains($0.date) }
+        let rangeEntries = data.entries.filter { range.holds($0.date) }
         for entry in rangeEntries where timeGoalIDs.contains(entry.goalID) && entry.amount > 0 {
             spread(entry, into: &hours)
         }
@@ -93,7 +93,7 @@ extension ProgressEngine {
         var books = 0
         for goal in data.goals {
             for milestone in goal.milestones {
-                if let done = milestone.completedAt, range.contains(done) {
+                if let done = milestone.completedAt, range.holds(done) {
                     milestones += 1
                     active.insert(dayKey(done))
                 }
@@ -110,7 +110,7 @@ extension ProgressEngine {
         for goal in timeGoals {
             previousFocus += amount(for: goal, in: previousRange, now: now)
         }
-        let previousActive = Set(data.entries.filter { previousRange.contains($0.date) && $0.amount > 0 }.map { dayKey($0.date) }).count
+        let previousActive = Set(data.entries.filter { previousRange.holds($0.date) && $0.amount > 0 }.map { dayKey($0.date) }).count
 
         let scores = activeGoals.map { goal in
             let streak = streak(for: goal, now: now)
