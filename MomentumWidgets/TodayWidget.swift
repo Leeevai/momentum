@@ -40,7 +40,7 @@ struct TodayWidgetView: View {
         } else if family == .systemSmall {
             TodaySmall(entry: entry)
         } else {
-            TodayList(entry: entry, maxRows: family == .systemLarge ? 5 : 3, showsWeek: family == .systemLarge)
+            TodayList(entry: entry, maxRows: family == .systemLarge ? 4 : 3, isLarge: family == .systemLarge)
         }
     }
 }
@@ -105,7 +105,9 @@ private struct TodaySmall: View {
 private struct TodayList: View {
     let entry: MomentumEntry
     let maxRows: Int
-    let showsWeek: Bool
+    /// The large size: today's rings and numbers on top, the week at the bottom, and room for
+    /// one or two goals to take a tile each.
+    let isLarge: Bool
 
     var body: some View {
         let engine = entry.engine
@@ -117,20 +119,30 @@ private struct TodayList: View {
             }
         let summary = engine.todaySummary(now: entry.date)
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Today").font(.headline)
-                Spacer()
-                Text("\(summary.done) of \(summary.total) done")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if isLarge {
+                TodayHero(entry: entry, goals: goals)
+            } else {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Today").font(.headline)
+                    Spacer()
+                    Text("\(summary.done) of \(summary.total) done")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             if goals.isEmpty {
                 Text("Nothing due today. Enjoy it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            ForEach(goals.prefix(maxRows)) { goal in
-                TodayRow(goal: goal, entry: entry)
+            if isLarge && goals.count <= 2 {
+                ForEach(goals) { goal in
+                    TodayTile(goal: goal, entry: entry, showsDetail: goals.count == 1)
+                }
+            } else {
+                ForEach(goals.prefix(maxRows)) { goal in
+                    TodayRow(goal: goal, entry: entry)
+                }
             }
             if goals.count > maxRows {
                 Text("+\(goals.count - maxRows) more")
@@ -138,7 +150,7 @@ private struct TodayList: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            if showsWeek {
+            if isLarge {
                 WeekGrid(engine: engine, goals: Array(goals.prefix(4)), now: entry.date)
             }
         }
@@ -184,6 +196,112 @@ private struct TodayRow: View {
             }
             Spacer(minLength: 4)
             StreakBadge(count: streak.current, unit: streak.unit)
+        }
+    }
+}
+
+/// The large widget's top: today's goals as nested rings, beside the day's numbers.
+private struct TodayHero: View {
+    let entry: MomentumEntry
+    let goals: [Goal]
+
+    var body: some View {
+        let engine = entry.engine
+        let now = entry.date
+        let summary = engine.todaySummary(now: now)
+        let streak = engine.longestCurrentStreak(now: now)
+        let focus = engine.data.goals.filter { $0.kind == .time }.reduce(0.0) { $0 + engine.amount(for: $1, on: now, now: now) }
+        HStack(spacing: 14) {
+            ZStack {
+                ForEach(Array(goals.prefix(3).enumerated()), id: \.element.id) { index, goal in
+                    ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: 7)
+                        .padding(CGFloat(index) * 9)
+                }
+            }
+            .frame(width: 64, height: 64)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Today")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                Text(summary.total == 0 ? "Nothing due" : "\(summary.done) of \(summary.total) done")
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                HStack(spacing: 10) {
+                    if streak > 0 {
+                        Label("\(streak)", systemImage: "flame.fill").foregroundStyle(.orange)
+                    }
+                    if focus > 0 {
+                        Label(Formatting.duration(focus), systemImage: "timer").foregroundStyle(.secondary)
+                    }
+                }
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// A goal with room to spare: glasscn's habit row, a glass tile with the ring, today's amount
+/// or the running clock, a progress bar, the streak and the action.
+private struct TodayTile: View {
+    let goal: Goal
+    let entry: MomentumEntry
+    /// A lone goal also shows what the Goal widget does beyond its ring: a heatmap, the current
+    /// book or the next milestones.
+    var showsDetail = false
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let engine = entry.engine
+        let progress = engine.progress(for: goal, now: entry.date)
+        let streak = engine.streak(for: goal, now: entry.date)
+        let tokens = GlassTokens(colorScheme)
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        VStack(alignment: .leading, spacing: 12) {
+            row(engine: engine, progress: progress, streak: streak)
+            if showsDetail {
+                GoalDetailPanel(goal: goal, entry: entry, compact: false)
+            }
+        }
+        .padding(12)
+        .background(shape.fill(tokens.subtleFill))
+        .overlay(shape.strokeBorder(tokens.rim, lineWidth: 1))
+    }
+
+    private func row(engine: ProgressEngine, progress: Double, streak: ProgressEngine.Streak) -> some View {
+        HStack(spacing: 12) {
+            Link(destination: DeepLink.goal(goal.id).url) {
+                HStack(spacing: 12) {
+                    ProgressRing(progress: progress, color: goal.color, lineWidth: 5) {
+                        GoalGlyph(goal: goal, size: 15)
+                    }
+                    .frame(width: 44, height: 44)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Text(goal.name)
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                            StreakBadge(count: streak.current, unit: streak.unit)
+                        }
+                        if let session = entry.data.session, session.goalID == goal.id {
+                            WidgetSessionClock(session: session)
+                                .font(.system(.title3, design: .rounded, weight: .bold))
+                                .monospacedDigit()
+                                .foregroundStyle(goal.tint)
+                        } else {
+                            Text(goal.progressText(engine.currentAmount(for: goal, now: entry.date), target: engine.target(for: goal)))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        ProgressBar(progress: progress, color: goal.color, height: 5)
+                    }
+                }
+            }
+            WidgetActionButton(goal: goal, engine: engine, size: 32)
         }
     }
 }
