@@ -52,6 +52,10 @@ struct InsightsView: View {
                         CategoryChart(report: report)
                     }
                 }
+                let mood = engine.moodReport(in: report.range, now: store.now)
+                if mood.days >= 3 {
+                    MoodCard(report: mood)
+                }
                 ScoresCard(report: report)
             }
             .padding(28)
@@ -246,6 +250,85 @@ private struct CategoryChart: View {
             Spacer(minLength: 0)
         }
         .glassCard(tint: .indigo)
+    }
+}
+
+/// How mood lines up with progress and focus, from the journal.
+private struct MoodCard: View {
+    let report: MoodReport
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Mood and momentum", systemImage: "cloud.sun.fill")
+                .font(.headline)
+                .symbolRenderingMode(.multicolor)
+            Text(headline)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .bottom, spacing: 18) {
+                if let good = report.moodOnGoodDays {
+                    MoodColumn(title: "Days most goals were done", value: good)
+                }
+                if let other = report.moodOnOtherDays {
+                    MoodColumn(title: "Other days", value: other)
+                }
+                Divider().frame(height: 80)
+                Chart(Mood.allCases) { mood in
+                    BarMark(x: .value("Mood", mood.title), y: .value("Focus", (report.focusByMood[mood] ?? 0) / 3600))
+                        .foregroundStyle(mood.tint.gradient)
+                        .cornerRadius(5)
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine()
+                        AxisValueLabel { Text("\(value.as(Double.self).map { Formatting.number($0) } ?? "")h") }
+                    }
+                }
+                .frame(height: 120)
+                .overlay(alignment: .topTrailing) {
+                    Text("Average focus by mood")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .glassCard(cornerRadius: 22)
+    }
+
+    private var headline: String {
+        guard let good = report.moodOnGoodDays, let other = report.moodOnOtherDays else {
+            return "Rate more days in the journal to see how mood and progress relate."
+        }
+        let difference = good - other
+        if difference > 0.3 { return "You feel better on days you get through your goals: \(Self.describe(good)) versus \(Self.describe(other))." }
+        if difference < -0.3 { return "Your mood runs higher on lighter days. Maybe the targets are asking a lot." }
+        return "Your mood holds steady whether or not the goals get done."
+    }
+
+    static func describe(_ value: Double) -> String {
+        let mood = Mood(rawValue: Int(value.rounded())) ?? .okay
+        return "\(mood.title.lowercased()) (\(String(format: "%.1f", value)))"
+    }
+
+    private struct MoodColumn: View {
+        let title: String
+        let value: Double
+
+        var body: some View {
+            let mood = Mood(rawValue: Int(value.rounded())) ?? .okay
+            VStack(spacing: 8) {
+                Image(systemName: mood.symbolName)
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 34))
+                    .foregroundStyle(mood.tint)
+                Text(String(format: "%.1f", value))
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(width: 110)
+            }
+        }
     }
 }
 
