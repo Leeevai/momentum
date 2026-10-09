@@ -85,10 +85,8 @@ struct MobileSettings: View {
                 }
                 Section("Coach and journal") {
                     Toggle("Plan the morning and reflect in the evening", isOn: binding(\.journalPromptsEnabled, preferences))
-                    Toggle("Streak nudges in the evening", isOn: binding(\.streakNudgesEnabled, preferences))
-                    Toggle("Weekly recap", isOn: binding(\.weeklyRecapEnabled, preferences))
-                    Toggle("Goal reminders", isOn: binding(\.remindersEnabled, preferences))
                 }
+                MobileNotificationsSection()
                 MobileDataSection()
                 Section("Feedback") {
                     Toggle("Celebrate finished goals", isOn: binding(\.celebratesCompletion, preferences))
@@ -134,6 +132,60 @@ struct MobileSettings: View {
 }
 
 /// Export a backup or a spreadsheet, import a backup, or restore one of the daily copies.
+/// Reminders, the evening nudge and its time, the weekly recap, and whether notifications are
+/// allowed at all, with the way to Settings when they aren't.
+private struct MobileNotificationsSection: View {
+    @Environment(GoalStore.self) private var store
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        let preferences = store.data.preferences
+        let scheduler = store.effects.notifications
+        Section {
+            Toggle("Goal reminders", isOn: binding(\.remindersEnabled, preferences))
+            Toggle("Evening nudge", isOn: binding(\.streakNudgesEnabled, preferences))
+            if preferences.streakNudgesEnabled {
+                DatePicker("Nudge at", selection: nudgeTime(preferences), displayedComponents: .hourAndMinute)
+            }
+            Toggle("Weekly recap", isOn: binding(\.weeklyRecapEnabled, preferences))
+            switch scheduler.authorization {
+            case .notDetermined:
+                Button("Allow Notifications") { Task { await scheduler.requestAuthorization() } }
+            case .denied:
+                Button("Turn On in Settings") {
+                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                }
+            default:
+                EmptyView()
+            }
+        } header: {
+            Text("Notifications")
+        } footer: {
+            Text(scheduler.authorization == .denied
+                 ? "Notifications are off for Momentum, so reminders and nudges can't arrive."
+                 : "The evening nudge comes when a streak or a challenge day would end at midnight.")
+        }
+        .task { await scheduler.refreshAuthorization() }
+    }
+
+    private func nudgeTime(_ preferences: Preferences) -> Binding<Date> {
+        Binding(
+            get: {
+                let minute = preferences.streakNudgeMinute
+                return Calendar.current.date(bySettingHour: minute / 60, minute: minute % 60, second: 0, of: .now) ?? .now
+            },
+            set: { date in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                store.updatePreferences { $0.streakNudgeMinute = (parts.hour ?? 20) * 60 + (parts.minute ?? 0) }
+            }
+        )
+    }
+
+    private func binding<Value>(_ keyPath: WritableKeyPath<Preferences, Value>, _ preferences: Preferences) -> Binding<Value> {
+        Binding(get: { preferences[keyPath: keyPath] }, set: { value in store.updatePreferences { $0[keyPath: keyPath] = value } })
+    }
+}
+
 private struct MobileDataSection: View {
     @Environment(GoalStore.self) private var store
     @State private var exportingJSON = false
