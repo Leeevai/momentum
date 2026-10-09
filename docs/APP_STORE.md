@@ -46,6 +46,7 @@ daily journal, with widgets and a Live Activity.
 > and let a coach suggest what's worth doing next.
 >
 > - Focus sessions with Pomodoro cycles, on the Lock Screen and in the Dynamic Island
+> - Rate each session and learn the hour you focus best
 > - Streaks with breaks and a minimum for hard days
 > - A daily plan and an evening reflection, with mood and energy
 > - Challenges from 7 to 100 days, with a dot for every day

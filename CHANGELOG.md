@@ -21,6 +21,8 @@ All notable changes to Momentum are recorded here. The format follows
 - **A daily journal**: plan the morning with an intention and up to three priorities, shown on
   Today; reflect in the evening with mood, energy, a win and notes. The Journal is a month calendar
   of how each day went.
+- **How did it go?** After a focus session, one tap rates it scattered, steady or in the flow.
+  Insights shows the share of time in the flow and the hour your sessions go best.
 - **Challenges**: commit a goal to a run of days, from a week to a hundred. The goal's page shows
   a dot for every day (kept, missed, a day off, today), Today shows which day it is, and finishing
   without a miss earns an award.

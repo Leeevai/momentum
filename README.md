@@ -75,6 +75,8 @@ the anchor celebrates with a **Next up** button, and the coach suggests it.
   break, with pause, stop and next-block buttons.
 - **Links on every goal**: docs, repos, courses, `notion://` or `obsidian://` links, local files.
   Mark one to **open when a session starts**, so your workspace is ready.
+- **How did it go?** One tap after a session (scattered, steady, in the flow), and Insights
+  learns the hour your sessions go best.
 - **Focus sounds**: white, pink or brown noise, generated on the fly.
 - A **live timer in the menu bar**, and a **quick panel from any app** (Control-Option-M): type a
   goal and press Return to start or log it without leaving your work.
