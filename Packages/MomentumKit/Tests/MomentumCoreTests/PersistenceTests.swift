@@ -50,6 +50,22 @@ struct PersistenceTests {
         #expect(data.preferences == Preferences())
     }
 
+    @Test("Unknown colors and book statuses from newer versions fall back")
+    func tolerantEnums() throws {
+        let json = #"{"version": 2, "goals": [{"name": "G", "kind": "books", "target": 1, "color": "ultraviolet", "books": [{"title": "B", "status": "lent"}]}]}"#
+        let goal = try #require(FileStore.decode(Data(json.utf8)).goals.first)
+        #expect(goal.color == .blue)
+        #expect(goal.books.first?.status == .wantToRead)
+    }
+
+    @Test("Focus sounds default to off, and unknown ones from newer versions don't break the file")
+    func focusSoundDecoding() throws {
+        let json = #"{"version": 2, "preferences": {"focusSound": "ocean", "focusSoundVolume": 3}}"#
+        let preferences = try FileStore.decode(Data(json.utf8)).preferences
+        #expect(preferences.focusSound == .off)
+        #expect(preferences.focusSoundVolume == 1)
+    }
+
     @Test("The file store applies updates on top of what is on disk")
     func fileStoreUpdates() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")

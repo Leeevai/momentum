@@ -98,7 +98,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
         author = try c.decode(.author, default: "")
         totalPages = try c.decodeIfPresent(Int.self, forKey: .totalPages)
         currentPage = try c.decode(.currentPage, default: 0)
-        status = try c.decode(.status, default: .wantToRead)
+        status = (try? c.decode(.status, default: .wantToRead)) ?? .wantToRead
         rating = try c.decodeIfPresent(Int.self, forKey: .rating)
         notes = try c.decode(.notes, default: "")
         link = try c.decodeIfPresent(URL.self, forKey: .link)

@@ -368,7 +368,8 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         id = try c.decode(.id, default: UUID())
         name = try c.decode(.name, default: "Untitled")
         icon = try c.decode(.icon, default: "🎯")
-        color = try c.decode(.color, default: .blue)
+        // Cosmetic values from a newer version fall back rather than make the whole file unreadable.
+        color = (try? c.decode(.color, default: .blue)) ?? .blue
         category = try c.decode(.category, default: "")
         details = try c.decode(.details, default: "")
         kind = try c.decode(.kind, default: .time)

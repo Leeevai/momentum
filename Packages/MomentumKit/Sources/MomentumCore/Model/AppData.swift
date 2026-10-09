@@ -111,6 +111,34 @@ public struct FocusSession: Codable, Hashable, Sendable {
     }
 }
 
+/// Background noise played during a focus session.
+public enum FocusSound: String, Codable, CaseIterable, Identifiable, Sendable {
+    case off
+    case white
+    case pink
+    case brown
+
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .off: "Off"
+        case .white: "White noise"
+        case .pink: "Pink noise"
+        case .brown: "Brown noise (rain)"
+        }
+    }
+
+    public var symbolName: String {
+        switch self {
+        case .off: "speaker.slash"
+        case .white: "waveform"
+        case .pink: "waveform.path"
+        case .brown: "cloud.rain"
+        }
+    }
+}
+
 public struct Preferences: Codable, Hashable, Sendable {
     /// Offered first when starting a focus session on a goal with no default length.
     public var defaultFocusMinutes: Int
@@ -124,10 +152,13 @@ public struct Preferences: Codable, Hashable, Sendable {
     public var streakNudgeMinute: Int
     /// A summary notification on the last evening of each week.
     public var weeklyRecapEnabled: Bool
+    public var focusSound: FocusSound
+    /// From 0 to 1.
+    public var focusSoundVolume: Double
 
     public init(defaultFocusMinutes: Int = 25, celebratesCompletion: Bool = true, playsSounds: Bool = true, remindersEnabled: Bool = true,
                 showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60,
-                weeklyRecapEnabled: Bool = true) {
+                weeklyRecapEnabled: Bool = true, focusSound: FocusSound = .off, focusSoundVolume: Double = 0.4) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
@@ -136,11 +167,13 @@ public struct Preferences: Codable, Hashable, Sendable {
         self.streakNudgesEnabled = streakNudgesEnabled
         self.streakNudgeMinute = streakNudgeMinute
         self.weeklyRecapEnabled = weeklyRecapEnabled
+        self.focusSound = focusSound
+        self.focusSoundVolume = focusSoundVolume
     }
 
     private enum CodingKeys: String, CodingKey {
         case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar, streakNudgesEnabled, streakNudgeMinute
-        case weeklyRecapEnabled
+        case weeklyRecapEnabled, focusSound, focusSoundVolume
     }
 
     public init(from decoder: Decoder) throws {
@@ -153,6 +186,9 @@ public struct Preferences: Codable, Hashable, Sendable {
         streakNudgesEnabled = try c.decode(.streakNudgesEnabled, default: true)
         streakNudgeMinute = try c.decode(.streakNudgeMinute, default: 20 * 60)
         weeklyRecapEnabled = try c.decode(.weeklyRecapEnabled, default: true)
+        // An unknown sound from a newer version plays nothing rather than failing the file.
+        focusSound = (try? c.decode(.focusSound, default: .off)) ?? .off
+        focusSoundVolume = min(1, max(0, try c.decode(.focusSoundVolume, default: 0.4)))
     }
 }
 
