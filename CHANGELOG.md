@@ -6,6 +6,8 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-09
+
 ### Added
 - **A Week of Focus widget**: the last seven days of focus, stacked by goal, against the week before.
 - **Goals in iPhone Settings**: reorder goals, archive them, and restore or delete archived ones.
@@ -211,7 +213,8 @@ An unpublished prototype.
 - Today and Goal widgets with start/stop and check-in buttons.
 - Menu bar timer.
 
-[Unreleased]: https://github.com/Leeevai/momentum/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Leeevai/momentum/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/Leeevai/momentum/releases/tag/v2.1.0
 [2.0.0]: https://github.com/Leeevai/momentum/releases/tag/v2.0.0
 [1.1.0]: https://github.com/Leeevai/momentum/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Leeevai/momentum/releases/tag/v1.0.0
