@@ -1,4 +1,5 @@
 import Foundation
+import os
 import OSLog
 
 /// Loads and saves `AppData` as JSON, coordinating access across processes.
@@ -8,6 +9,13 @@ import OSLog
 public final class FileStore: Sendable {
     public let fileURL: URL
     private let logger = Logger(subsystem: "dev.momentum.core", category: "FileStore")
+    private let lastWrite = OSAllocatedUnfairLock<Date?>(initialState: nil)
+
+    /// The file's modification date right after this store's latest write, read while that write
+    /// still held the file coordinator, so no other process's write can be mistaken for it.
+    public var lastWriteModification: Date? {
+        lastWrite.withLock { $0 }
+    }
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
@@ -27,6 +35,8 @@ public final class FileStore: Sendable {
             data = self.read(url)
             change(&data)
             self.write(data, to: url)
+            let modification = self.modificationDate()
+            self.lastWrite.withLock { $0 = modification }
         }
         return data
     }
@@ -36,6 +46,8 @@ public final class FileStore: Sendable {
         coordinate(writing: true) { url in
             self.backUp(url, reason: "before-import")
             self.write(newData, to: url)
+            let modification = self.modificationDate()
+            self.lastWrite.withLock { $0 = modification }
         }
     }
 
@@ -89,11 +101,17 @@ public final class FileStore: Sendable {
 
     // MARK: - Encoding
 
-    public static func encode(_ data: AppData) throws -> Data {
+    /// Compact by default, since the data file is rewritten on every change; `pretty` for exports.
+    public static func encode(_ data: AppData, pretty: Bool = false) throws -> Data {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.outputFormatting = pretty ? [.prettyPrinted, .sortedKeys] : []
         return try encoder.encode(data)
+    }
+
+    /// When the data file last changed, to tell another process's write from one's own.
+    public func modificationDate() -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: fileURL.path))?[.modificationDate] as? Date
     }
 
     /// Decodes any version of the data file, migrating older formats.

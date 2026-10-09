@@ -16,6 +16,7 @@ public struct ProgressEngine: Sendable {
     /// Goal id -> the earliest day it has data for, so history from before creation still counts.
     private let firstDay: [UUID: Date]
     private let goalsByID: [UUID: Goal]
+    private let streakCache = StreakCache()
 
     public init(data: AppData, calendar: Calendar = .current) {
         self.data = data
@@ -276,63 +277,81 @@ public struct ProgressEngine: Sendable {
 
     private static let maxStreakDays = 3_650
 
+    // Each streak is a pass over history (cached for the engine's lifetime: past periods can't
+    // change while the data doesn't) plus the current period, checked live. The current period
+    // adds to a streak once kept but never breaks it while still open.
+
     private func dailyStreak(for goal: Goal, now: Date) -> Streak {
         let today = startOfDay(now)
-        var day = max(firstDay(of: goal), self.day(-Self.maxStreakDays, from: today))
-        var run = 0
-        var best = 0
-        while day <= today {
-            if keepsStreak(goal, periodContaining: day, now: now) {
-                run += 1
-                best = max(best, run)
-            } else if isRequired(goal, on: day) && day != today {
-                run = 0
+        let history = streakCache.value("d|\(goal.id)|\(dayKey(today))") {
+            var day = max(firstDay(of: goal), self.day(-Self.maxStreakDays, from: today))
+            var run = 0
+            var best = 0
+            while day < today {
+                if keepsStreak(goal, periodContaining: day, now: now) {
+                    run += 1
+                    best = max(best, run)
+                } else if isRequired(goal, on: day) {
+                    run = 0
+                }
+                day = self.day(1, from: day)
             }
-            day = self.day(1, from: day)
+            return StreakCache.Value(run: run, best: best)
         }
-        return Streak(current: run, best: best, unit: "day")
+        return finish(history, currentKept: keepsStreak(goal, periodContaining: today, now: now), unit: "day")
     }
 
     private func periodStreak(for goal: Goal, now: Date) -> Streak {
         let period = goal.effectivePeriod
         guard let component = period.calendarComponent else { return Streak(current: 0, best: 0, unit: period.noun) }
         let current = interval(of: period, containing: now)
-        var start = interval(of: period, containing: firstDay(of: goal)).start
-        var run = 0
-        var best = 0
-        var guardCount = 0
-        while start <= current.start && guardCount < 600 {
-            guardCount += 1
-            let periodInterval = interval(of: period, containing: start)
-            if keepsStreak(goal, periodContaining: start, now: now) {
-                run += 1
-                best = max(best, run)
-            } else if periodInterval.start != current.start && !goal.isOnBreak(at: periodInterval.start) {
-                run = 0
+        let history = streakCache.value("p|\(goal.id)|\(period.rawValue)|\(dayKey(current.start))") {
+            var start = interval(of: period, containing: firstDay(of: goal)).start
+            var run = 0
+            var best = 0
+            var guardCount = 0
+            while start < current.start && guardCount < 600 {
+                guardCount += 1
+                let periodInterval = interval(of: period, containing: start)
+                if keepsStreak(goal, periodContaining: start, now: now) {
+                    run += 1
+                    best = max(best, run)
+                } else if !goal.isOnBreak(at: periodInterval.start) {
+                    run = 0
+                }
+                guard let next = calendar.date(byAdding: component, value: 1, to: periodInterval.start) else { break }
+                start = next
             }
-            guard let next = calendar.date(byAdding: component, value: 1, to: periodInterval.start) else { break }
-            start = next
+            return StreakCache.Value(run: run, best: best)
         }
-        return Streak(current: run, best: best, unit: period.noun)
+        return finish(history, currentKept: keepsStreak(goal, periodContaining: now, now: now), unit: period.noun)
     }
 
     private func activityStreak(for goal: Goal, now: Date) -> Streak {
         let today = startOfDay(now)
         let days = activityDays[goal.id] ?? []
-        var day = max(firstDay(of: goal), self.day(-Self.maxStreakDays, from: today))
-        var run = 0
-        var best = 0
-        while day <= today {
-            let active = days.contains(dayKey(day)) || (day == today && liveSeconds(for: goal, in: dayInterval(day), now: now) > 0)
-            if active {
-                run += 1
-                best = max(best, run)
-            } else if day != today && !goal.isOnBreak(at: day) {
-                run = 0
+        let history = streakCache.value("a|\(goal.id)|\(dayKey(today))") {
+            var day = max(firstDay(of: goal), self.day(-Self.maxStreakDays, from: today))
+            var run = 0
+            var best = 0
+            while day < today {
+                if days.contains(dayKey(day)) {
+                    run += 1
+                    best = max(best, run)
+                } else if !goal.isOnBreak(at: day) {
+                    run = 0
+                }
+                day = self.day(1, from: day)
             }
-            day = self.day(1, from: day)
+            return StreakCache.Value(run: run, best: best)
         }
-        return Streak(current: run, best: best, unit: "day")
+        let activeToday = days.contains(dayKey(today)) || liveSeconds(for: goal, in: dayInterval(today), now: now) > 0
+        return finish(history, currentKept: activeToday, unit: "day")
+    }
+
+    private func finish(_ history: StreakCache.Value, currentKept: Bool, unit: String) -> Streak {
+        let current = history.run + (currentKept ? 1 : 0)
+        return Streak(current: current, best: max(history.best, current), unit: unit)
     }
 
     /// Share of recent periods with the target met (30 days, 12 weeks, 12 months or 5 years).
@@ -468,5 +487,31 @@ public struct ProgressEngine: Sendable {
 
     public func entries(for goal: Goal) -> [LogEntry] {
         data.entries.filter { $0.goalID == goal.id }.sorted { $0.date > $1.date }
+    }
+}
+
+/// Memoizes streak history for one engine. Engines are immutable snapshots, so entries never
+/// go stale; a reference type lets copies of the engine share it.
+final class StreakCache: @unchecked Sendable {
+    struct Value: Sendable {
+        var run: Int
+        var best: Int
+    }
+
+    private let lock = NSLock()
+    private var values: [String: Value] = [:]
+
+    func value(_ key: String, compute: () -> Value) -> Value {
+        lock.lock()
+        if let cached = values[key] {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+        let computed = compute()
+        lock.lock()
+        values[key] = computed
+        lock.unlock()
+        return computed
     }
 }

@@ -145,3 +145,25 @@ struct DailyBackupTests {
         #expect(restored.goals.map(\.name) == ["Backed up"])
     }
 }
+
+@Suite("Write tracking")
+struct WriteTrackingTests {
+    @Test("A store remembers the modification date its own write produced")
+    func remembersOwnWrite() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = folder.appendingPathComponent("data.json")
+        let mine = FileStore(fileURL: file)
+        let theirs = FileStore(fileURL: file)
+        #expect(mine.lastWriteModification == nil)
+
+        mine.update { $0.upsert(Goal(name: "Mine", target: 1)) }
+        let own = try #require(mine.lastWriteModification)
+        #expect(mine.modificationDate() == own)
+
+        Thread.sleep(forTimeInterval: 0.01)
+        theirs.update { $0.upsert(Goal(name: "Theirs", target: 1)) }
+        #expect(mine.modificationDate() != own)
+        #expect(mine.load().goals.count == 2)
+    }
+}
