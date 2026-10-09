@@ -10,6 +10,7 @@
 		AB0000000000000000000013 /* MomentumWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000005 /* MomentumWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AB0000000000000000000033 /* MomentumCore in Frameworks */ = {isa = PBXBuildFile; productRef = AB0000000000000000000031 /* MomentumCore */; };
 		AB0000000000000000000034 /* MomentumCore in Frameworks */ = {isa = PBXBuildFile; productRef = AB0000000000000000000032 /* MomentumCore */; };
+		AB0000000000000000000053 /* MomentumCore in Frameworks */ = {isa = PBXBuildFile; productRef = AB0000000000000000000054 /* MomentumCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +46,8 @@
 		AB0000000000000000000022 /* MomentumWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MomentumWidgets.entitlements; sourceTree = "<group>"; };
 		AB0000000000000000000023 /* Momentum-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Momentum-Info.plist"; sourceTree = "<group>"; };
 		AB0000000000000000000024 /* MomentumWidgets-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "MomentumWidgets-Info.plist"; sourceTree = "<group>"; };
+		AB0000000000000000000050 /* MomentumMobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MomentumMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB0000000000000000000051 /* MomentumMobile-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "MomentumMobile-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +55,7 @@
 		AB0000000000000000000007 /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Shared; sourceTree = "<group>"; };
 		AB0000000000000000000008 /* MomentumWidgets */ = {isa = PBXFileSystemSynchronizedRootGroup; path = MomentumWidgets; sourceTree = "<group>"; };
 		AB0000000000000000000040 /* SharedUI */ = {isa = PBXFileSystemSynchronizedRootGroup; path = SharedUI; sourceTree = "<group>"; };
+		AB0000000000000000000052 /* MomentumMobile */ = {isa = PBXFileSystemSynchronizedRootGroup; path = MomentumMobile; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +75,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AB0000000000000000000056 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB0000000000000000000053 /* MomentumCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -78,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				AB0000000000000000000006 /* Momentum */,
+				AB0000000000000000000052 /* MomentumMobile */,
 				AB0000000000000000000008 /* MomentumWidgets */,
 				AB0000000000000000000007 /* Shared */,
 				AB0000000000000000000040 /* SharedUI */,
@@ -91,6 +104,7 @@
 			children = (
 				AB0000000000000000000004 /* Momentum.app */,
 				AB0000000000000000000005 /* MomentumWidgets.appex */,
+				AB0000000000000000000050 /* MomentumMobile.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -104,6 +118,7 @@
 				AB0000000000000000000023 /* Momentum-Info.plist */,
 				AB0000000000000000000022 /* MomentumWidgets.entitlements */,
 				AB0000000000000000000024 /* MomentumWidgets-Info.plist */,
+				AB0000000000000000000051 /* MomentumMobile-Info.plist */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -162,6 +177,31 @@
 			productReference = AB0000000000000000000005 /* MomentumWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		AB0000000000000000000058 /* MomentumMobile */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB0000000000000000000059 /* Build configuration list for PBXNativeTarget "MomentumMobile" */;
+			buildPhases = (
+				AB0000000000000000000055 /* Sources */,
+				AB0000000000000000000056 /* Frameworks */,
+				AB0000000000000000000057 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AB0000000000000000000052 /* MomentumMobile */,
+				AB0000000000000000000007 /* Shared */,
+				AB0000000000000000000040 /* SharedUI */,
+			);
+			name = MomentumMobile;
+			packageProductDependencies = (
+				AB0000000000000000000054 /* MomentumCore */,
+			);
+			productName = MomentumMobile;
+			productReference = AB0000000000000000000050 /* MomentumMobile.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -176,6 +216,9 @@
 						CreatedOnToolsVersion = 27.0;
 					};
 					AB000000000000000000000B = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					AB0000000000000000000058 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -199,6 +242,7 @@
 			targets = (
 				AB000000000000000000000A /* Momentum */,
 				AB000000000000000000000B /* MomentumWidgets */,
+				AB0000000000000000000058 /* MomentumMobile */,
 			);
 		};
 /* End PBXProject section */
@@ -218,6 +262,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AB0000000000000000000057 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -229,6 +280,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AB0000000000000000000010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB0000000000000000000055 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -375,6 +433,77 @@
 			};
 			name = Release;
 		};
+		AB000000000000000000005A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/MomentumMobile-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Momentum;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Leeevai. MIT License.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_ID_PREFIX).Momentum";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AB000000000000000000005B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/MomentumMobile-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Momentum;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Leeevai. MIT License.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_ID_PREFIX).Momentum";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -405,6 +534,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		AB0000000000000000000059 /* Build configuration list for PBXNativeTarget "MomentumMobile" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB000000000000000000005A /* Debug */,
+				AB000000000000000000005B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -420,6 +558,10 @@
 			productName = MomentumCore;
 		};
 		AB0000000000000000000032 /* MomentumCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MomentumCore;
+		};
+		AB0000000000000000000054 /* MomentumCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MomentumCore;
 		};
