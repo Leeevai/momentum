@@ -102,3 +102,28 @@ struct GoalSettingsTests {
         #expect(stored.breaks.count == 1)
     }
 }
+
+@Suite("Second review fixes")
+struct SecondReviewFixTests {
+    @Test("Stopping a session on a goal that's no longer a time goal logs nothing")
+    func stopOnChangedKind() {
+        let goal = Goal(name: "Was time", kind: .time, target: 3600)
+        var data = AppData(goals: [goal])
+        data.startFocus(on: goal.id, at: referenceNow, calendar: testCalendar)
+        data.updateGoal(goal.id) { $0.kind = .count }
+        #expect(data.stopFocus(at: referenceNow.addingTimeInterval(1500), calendar: testCalendar).isEmpty)
+        #expect(data.entries.isEmpty)
+        #expect(data.session == nil)
+    }
+
+    @Test("Imported finishes count as history for a new books goal's pace")
+    func importedFinishesForPace() throws {
+        let finishes = (1...6).map { Book(title: "B\($0)", status: .finished, finishedAt: dayOffset(-10 * $0)) }
+        let goal = Goal(name: "Read", kind: .books, period: .yearly, target: 12, books: finishes, createdAt: referenceNow)
+        let e = engine(AppData(goals: [goal]))
+        #expect(e.firstDay(of: goal) == testCalendar.startOfDay(for: dayOffset(-60)))
+        let pace = try #require(e.pace(for: goal, now: referenceNow))
+        #expect(pace.recentPerDay > 0)
+        #expect(pace.status == .onTrack)
+    }
+}

@@ -35,11 +35,12 @@ public struct ProgressEngine: Sendable {
             if let known = first[entry.goalID], day < known { first[entry.goalID] = day }
         }
         for goal in data.goals {
-            for milestone in goal.milestones {
-                if let done = milestone.completedAt { activity[goal.id, default: []].insert(Self.dayKey(done, calendar)) }
-            }
-            for book in goal.books {
-                if let done = book.finishedAt { activity[goal.id, default: []].insert(Self.dayKey(done, calendar)) }
+            // Finishes count as history too: imported books carry past dates and no log entries.
+            let finishes = goal.milestones.compactMap(\.completedAt) + goal.books.compactMap(\.finishedAt)
+            for done in finishes {
+                activity[goal.id, default: []].insert(Self.dayKey(done, calendar))
+                let day = calendar.startOfDay(for: done)
+                if let known = first[goal.id], day < known { first[goal.id] = day }
             }
         }
         dailyTotals = totals

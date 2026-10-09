@@ -154,6 +154,9 @@ extension AppData {
     public mutating func stopFocus(at now: Date = .now, calendar: Calendar = .current) -> [LogEntry] {
         guard let finished = session else { return [] }
         session = nil
+        // Seconds only mean something to a time goal; one changed to another kind mid-session
+        // (or deleted) gets nothing rather than seconds read as its own unit.
+        guard goal(finished.goalID)?.kind == .time else { return [] }
         var perDay: [Date: (start: Date, seconds: Double)] = [:]
         for segment in finished.allSegments(at: now) {
             var cursor = segment.start

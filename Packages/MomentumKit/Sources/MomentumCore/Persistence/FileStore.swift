@@ -1,5 +1,4 @@
 import Foundation
-import os
 import OSLog
 
 /// Loads and saves `AppData` as JSON, coordinating access across processes.
@@ -9,12 +8,30 @@ import OSLog
 public final class FileStore: Sendable {
     public let fileURL: URL
     private let logger = Logger(subsystem: "dev.momentum.core", category: "FileStore")
-    private let lastWrite = OSAllocatedUnfairLock<Date?>(initialState: nil)
 
-    /// The file's modification date right after this store's latest write, read while that write
-    /// still held the file coordinator, so no other process's write can be mistaken for it.
-    public var lastWriteModification: Date? {
-        lastWrite.withLock { $0 }
+    /// Data together with the file's modification date at the moment it was read or written,
+    /// taken inside the file coordinator so no other writer can slip in between the two.
+    public struct Snapshot: Sendable {
+        public var data: AppData
+        public var modification: Date?
+
+        public init(data: AppData, modification: Date?) {
+            self.data = data
+            self.modification = modification
+        }
+    }
+
+    /// The result of a coordinated change.
+    public struct Transform: Sendable {
+        public var before: AppData
+        public var after: AppData
+        public var modification: Date?
+
+        public init(before: AppData, after: AppData, modification: Date?) {
+            self.before = before
+            self.after = after
+            self.modification = modification
+        }
     }
 
     public init(fileURL: URL) {
@@ -22,9 +39,15 @@ public final class FileStore: Sendable {
     }
 
     public func load() -> AppData {
-        var data = AppData()
-        coordinate(writing: false) { url in data = self.read(url) }
-        return data
+        loadSnapshot().data
+    }
+
+    public func loadSnapshot() -> Snapshot {
+        var snapshot = Snapshot(data: AppData(), modification: nil)
+        coordinate(writing: false) { url in
+            snapshot = Snapshot(data: self.read(url), modification: self.modificationDate())
+        }
+        return snapshot
     }
 
     /// Applies `change` to the latest data on disk and saves it.
@@ -34,30 +57,30 @@ public final class FileStore: Sendable {
     }
 
     /// Like `update`, returning the data as it was on disk before the change too, so the change
-    /// can be described exactly (for undo).
+    /// can be described exactly (for undo), and the file's modification date after it.
     @discardableResult
-    public func transform(_ change: (inout AppData) -> Void) -> (before: AppData, after: AppData) {
-        var before = AppData()
-        var after = AppData()
+    public func transform(_ change: (inout AppData) -> Void) -> Transform {
+        var result = Transform(before: AppData(), after: AppData(), modification: nil)
         coordinate(writing: true) { url in
-            before = self.read(url)
-            after = before
+            let before = self.read(url)
+            var after = before
             change(&after)
             if after != before { self.write(after, to: url) }
-            let modification = self.modificationDate()
-            self.lastWrite.withLock { $0 = modification }
+            result = Transform(before: before, after: after, modification: self.modificationDate())
         }
-        return (before, after)
+        return result
     }
 
     /// Replaces everything, keeping the previous file next to it as a backup.
-    public func replace(with newData: AppData) {
+    @discardableResult
+    public func replace(with newData: AppData) -> Snapshot {
+        var snapshot = Snapshot(data: newData, modification: nil)
         coordinate(writing: true) { url in
             self.backUp(url, reason: "before-import")
             self.write(newData, to: url)
-            let modification = self.modificationDate()
-            self.lastWrite.withLock { $0 = modification }
+            snapshot.modification = self.modificationDate()
         }
+        return snapshot
     }
 
     // MARK: - Daily backups

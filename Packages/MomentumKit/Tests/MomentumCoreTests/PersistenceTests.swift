@@ -148,22 +148,33 @@ struct DailyBackupTests {
 
 @Suite("Write tracking")
 struct WriteTrackingTests {
-    @Test("A store remembers the modification date its own write produced")
-    func remembersOwnWrite() throws {
+    @Test("Changes and loads report the file's date from inside the coordinator")
+    func reportsModification() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: folder) }
         let file = folder.appendingPathComponent("data.json")
         let mine = FileStore(fileURL: file)
         let theirs = FileStore(fileURL: file)
-        #expect(mine.lastWriteModification == nil)
 
-        mine.update { $0.upsert(Goal(name: "Mine", target: 1)) }
-        let own = try #require(mine.lastWriteModification)
-        #expect(mine.modificationDate() == own)
+        let own = try #require(mine.transform { $0.upsert(Goal(name: "Mine", target: 1)) }.modification)
+        #expect(mine.loadSnapshot().modification == own)
 
         Thread.sleep(forTimeInterval: 0.01)
         theirs.update { $0.upsert(Goal(name: "Theirs", target: 1)) }
-        #expect(mine.modificationDate() != own)
-        #expect(mine.load().goals.count == 2)
+        let snapshot = mine.loadSnapshot()
+        #expect(snapshot.modification != own)
+        #expect(snapshot.data.goals.count == 2)
+    }
+
+    @Test("A change that changes nothing doesn't rewrite the file")
+    func unchangedSkipsWrite() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = FileStore(fileURL: folder.appendingPathComponent("data.json"))
+        let first = store.transform { $0.upsert(Goal(name: "Once", target: 1)) }
+        Thread.sleep(forTimeInterval: 0.01)
+        let second = store.transform { _ in }
+        #expect(second.modification == first.modification)
+        #expect(second.before == second.after)
     }
 }
