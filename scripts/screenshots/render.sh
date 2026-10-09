@@ -20,6 +20,7 @@ xcrun swiftc -sdk "$SDK" -target "$TARGET" -O -parse-as-library -emit-library -e
 echo "Rendering app screens…"
 cp "$ROOT"/Shared/**/*.swift "$WORK/src/"
 find "$ROOT/Momentum" -name '*.swift' ! -name 'MomentumApp.swift' -exec cp {} "$WORK/src/" \;
+find "$ROOT/SharedUI" -name '*.swift' -exec cp {} "$WORK/src/" \;
 cp "$ROOT/scripts/screenshots/Harness.swift" "$WORK/src/main.swift"
 xcrun swiftc -sdk "$SDK" -target "$TARGET" -swift-version 5 -I "$WORK" -L "$WORK" -lMomentumCore \
   -Xlinker -rpath -Xlinker "$WORK" -o "$WORK/harness" "$WORK"/src/*.swift

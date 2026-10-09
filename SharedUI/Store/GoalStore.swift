@@ -1,5 +1,9 @@
-import AppKit
 import MomentumCore
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 import Observation
 import OSLog
 
@@ -122,7 +126,12 @@ final class GoalStore {
         recordAchievements()
         if persistence.watchedDirectory != nil { sync = FolderSync(store: self) }
         persistence.backUpDaily()
-        observers.append(NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+        #if os(macOS)
+        let becameActive = NSApplication.didBecomeActiveNotification
+        #else
+        let becameActive = UIApplication.didBecomeActiveNotification
+        #endif
+        observers.append(NotificationCenter.default.addObserver(forName: becameActive, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
                 self?.reload()
                 self?.sync?.pull()
@@ -248,10 +257,10 @@ final class GoalStore {
         let breakEnded = data.rest.map { settings.autoStartsNextBlock && $0.isOver(at: .now) } == true
         guard data.isBlockDue(at: .now) || breakEnded else { return }
         perform { event = $0.advancePomodoro() }
-        guard let event, data.preferences.playsSounds else { return }
+        guard let event else { return }
         switch event {
-        case .blockCompleted: NSSound(named: "Hero")?.play()
-        case .blockStarted: NSSound(named: "Purr")?.play()
+        case .blockCompleted: effects.play(.blockCompleted, preferences: data.preferences)
+        case .blockStarted: effects.play(.blockStarted, preferences: data.preferences)
         }
     }
 
@@ -275,7 +284,7 @@ final class GoalStore {
         } else {
             earned.forEach { show(Toast(kind: .achievement($0))) }
         }
-        if data.preferences.playsSounds { NSSound(named: "Funk")?.play() }
+        effects.play(.award, preferences: data.preferences)
     }
 
     // MARK: - Toasts
@@ -390,7 +399,7 @@ final class GoalStore {
         let current = ProgressEngine(data: after)
         for goal in current.activeGoals where current.isComplete(goal, now: moment) {
             guard let earlier = previous.goal(goal.id), !previous.isComplete(earlier, now: moment) else { continue }
-            if data.preferences.playsSounds { NSSound(named: "Glass")?.play() }
+            effects.play(.goalCompleted, preferences: data.preferences)
             if data.preferences.celebratesCompletion {
                 let next = current.activeGoals.first { $0.stackAfter == goal.id && !current.isComplete($0, now: moment) && current.isScheduled($0, on: moment) }
                 celebration = Celebration(goal: goal, next: next)

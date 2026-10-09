@@ -13,13 +13,13 @@ struct LivingBackdrop: View {
 
     var body: some View {
         let dark = colorScheme == .dark
-        let base = Color(nsColor: .windowBackgroundColor)
+        let base = Color.windowBackground
         let a = primary.opacity(dark ? 0.42 : 0.28)
         let b = secondary.opacity(dark ? 0.32 : 0.22)
         let c = primary.blended(with: secondary, by: 0.5).opacity(dark ? 0.24 : 0.16)
         ZStack {
             base
-            if #available(macOS 15.0, *) {
+            if #available(macOS 15.0, iOS 18.0, *) {
                 MeshGradient(
                     width: 3, height: 3,
                     points: [[0, 0], [0.55, 0], [1, 0], [0, 0.5], [0.45, 0.55], [1, 0.45], [0, 1], [0.6, 1], [1, 1]],
@@ -66,7 +66,7 @@ struct GlassPillStyle: ButtonStyle {
                 .foregroundStyle(prominent ? Color.white : tint)
                 .contentShape(Capsule())
             #if compiler(>=6.2)
-            if #available(macOS 26.0, *), !prominent {
+            if #available(macOS 26.0, iOS 26.0, *), !prominent {
                 label
                     .glassEffect(.regular.tint(tint.opacity(0.14)).interactive(), in: Capsule())
                     .scaleEffect(configuration.isPressed ? 0.96 : 1)
@@ -123,7 +123,7 @@ extension View {
     @ViewBuilder
     func glassMorphID(_ id: String, in namespace: Namespace.ID) -> some View {
         #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, iOS 26.0, *) {
             self.glassEffectID(id, in: namespace)
         } else {
             self
@@ -154,7 +154,7 @@ struct GlassGroup<Content: View>: View {
 
     var body: some View {
         #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, iOS 26.0, *) {
             GlassEffectContainer(spacing: spacing) { content }
         } else {
             content

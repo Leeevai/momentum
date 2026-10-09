@@ -78,7 +78,7 @@ struct AwardsView: View {
         }
         .background(LivingBackdrop(primary: .yellow, secondary: .purple))
         .navigationTitle("Awards")
-        .onExitCommand { close() }
+        .onEscape { close() }
     }
 
     private func header(_ progress: [AchievementProgress]) -> some View {

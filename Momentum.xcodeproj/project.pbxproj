@@ -51,6 +51,7 @@
 		AB0000000000000000000006 /* Momentum */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Momentum; sourceTree = "<group>"; };
 		AB0000000000000000000007 /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Shared; sourceTree = "<group>"; };
 		AB0000000000000000000008 /* MomentumWidgets */ = {isa = PBXFileSystemSynchronizedRootGroup; path = MomentumWidgets; sourceTree = "<group>"; };
+		AB0000000000000000000040 /* SharedUI */ = {isa = PBXFileSystemSynchronizedRootGroup; path = SharedUI; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +80,7 @@
 				AB0000000000000000000006 /* Momentum */,
 				AB0000000000000000000008 /* MomentumWidgets */,
 				AB0000000000000000000007 /* Shared */,
+				AB0000000000000000000040 /* SharedUI */,
 				AB0000000000000000000009 /* Config */,
 				AB0000000000000000000003 /* Products */,
 			);
@@ -126,6 +128,7 @@
 			fileSystemSynchronizedGroups = (
 				AB0000000000000000000006 /* Momentum */,
 				AB0000000000000000000007 /* Shared */,
+				AB0000000000000000000040 /* SharedUI */,
 			);
 			name = Momentum;
 			packageProductDependencies = (

@@ -100,6 +100,17 @@ final class SideEffects {
         }
     }
 
+    func play(_ sound: AppSound, preferences: Preferences) {
+        guard isEnabled, preferences.playsSounds else { return }
+        let name = switch sound {
+        case .goalCompleted: "Glass"
+        case .blockCompleted: "Hero"
+        case .blockStarted: "Purr"
+        case .award: "Funk"
+        }
+        NSSound(named: name)?.play()
+    }
+
     func dayDidChange(engine: ProgressEngine) {
         guard isEnabled else { return }
         scheduleReplan(engine: engine)

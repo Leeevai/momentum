@@ -60,11 +60,11 @@ enum SharedStore {
 
     private static let logger = Logger(subsystem: "dev.momentum.shared", category: "SharedStore")
 
-    /// Refreshes every widget and, on macOS 26, the Control Center focus control.
+    /// Refreshes every widget and the Control Center focus control.
     static func reloadWidgets() {
         WidgetCenter.shared.reloadAllTimelines()
         #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, iOS 18.0, *) {
             ControlCenter.shared.reloadAllControls()
         }
         #endif

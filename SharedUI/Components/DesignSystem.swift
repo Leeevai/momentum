@@ -14,7 +14,7 @@ struct GlassCard: ViewModifier {
     func body(content: Content) -> some View {
         // Liquid Glass needs the macOS 26 SDK (Swift 6.2) to compile, and macOS 26 to run.
         #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, iOS 26.0, *) {
             glass(content)
         } else {
             material(content)
@@ -29,7 +29,7 @@ struct GlassCard: ViewModifier {
     }
 
     #if compiler(>=6.2)
-    @available(macOS 26.0, *)
+    @available(macOS 26.0, iOS 26.0, *)
     private func glass(_ content: Content) -> some View {
         content
             .padding(padding)
