@@ -80,7 +80,14 @@ func render(_ name: String, height: CGFloat, dark: Bool, route: (GoalStore) -> R
     guard isWanted(name) else { return }
     let store = makeStore()
     guard let destination = route(store) else { return }
-    snapshot(screen(store, route: destination), size: CGSize(width: 1280, height: height), dark: dark, name: name)
+    snapshot(screen(store, route: destination), size: windowSize(height: height), dark: dark, name: name)
+}
+
+/// MOMENTUM_WINDOW=1440x900 renders every screen at that size, as App Store Connect wants Mac
+/// screenshots (2880 × 1800 at 2x); otherwise screens are 1280 wide and as tall as they need.
+func windowSize(height: CGFloat) -> CGSize {
+    let parts = (ProcessInfo.processInfo.environment["MOMENTUM_WINDOW"] ?? "").split(separator: "x").compactMap { Double($0) }
+    return parts.count == 2 ? CGSize(width: parts[0], height: parts[1]) : CGSize(width: 1280, height: height)
 }
 
 MainActor.assumeIsolated {
