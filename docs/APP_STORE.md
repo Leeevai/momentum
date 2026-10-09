@@ -65,7 +65,9 @@ daily journal, with widgets and a Live Activity.
 
 **Review notes.** No account or sign-in. To see a running timer, tap Start on any time goal;
 the Live Activity appears on the Lock Screen. Sync needs a folder picked in Settings and is
-optional.
+optional. Background audio is used only for the optional focus sounds (Settings, Focus sound),
+which keep playing with the screen locked during a session. The Apple Watch app shows what the
+iPhone app sends it and needs the iPhone app installed.
 
 ## Screenshots
 
