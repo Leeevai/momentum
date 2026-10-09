@@ -33,13 +33,30 @@ final class FolderSync {
     @ObservationIgnored private var writeTask: Task<Void, Never>?
     @ObservationIgnored private var lastWritten: AppData?
     @ObservationIgnored private var peerDates: [String: Date] = [:]
+    @ObservationIgnored private var peersByID: [String: Peer] = [:]
     @ObservationIgnored private let logger = Logger(subsystem: "dev.momentum.app", category: "Sync")
 
-    private static let bookmarkKey = "syncFolderBookmark"
-    private static let deviceKey = "syncDeviceID"
+    private nonisolated static let bookmarkKey = "syncFolderBookmark"
+    private nonisolated static let deviceKey = "syncDeviceID"
+
+    /// Merges the other devices' copies straight into the data file, without the app's store:
+    /// for intents (a Lock Screen button) that must not act on data older than the folder's.
+    nonisolated static func catchUpFromFolder() {
+        guard let bookmark = UserDefaults.standard.data(forKey: bookmarkKey) else { return }
+        var stale = false
+        guard let url = try? URL(resolvingBookmarkData: bookmark, options: bookmarkResolution, relativeTo: nil,
+                                 bookmarkDataIsStale: &stale) else { return }
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        let envelopes = SyncFolder(url: url, deviceID: deviceID).readPeers()
+        guard !envelopes.isEmpty else { return }
+        SharedStore.transform(stamping: false) { data in
+            for envelope in envelopes { data = SyncMerge.merge(data, envelope.data) }
+        }
+    }
 
     /// A stable id for this device, made once.
-    static var deviceID: String {
+    nonisolated static var deviceID: String {
         if let id = UserDefaults.standard.string(forKey: deviceKey) { return id }
         let id = UUID().uuidString
         UserDefaults.standard.set(id, forKey: deviceKey)
@@ -71,13 +88,13 @@ final class FolderSync {
     }
 
     #if os(macOS)
-    private static let bookmarkCreation: URL.BookmarkCreationOptions = .withSecurityScope
-    private static let bookmarkResolution: URL.BookmarkResolutionOptions = .withSecurityScope
+    private nonisolated static let bookmarkCreation: URL.BookmarkCreationOptions = .withSecurityScope
+    private nonisolated static let bookmarkResolution: URL.BookmarkResolutionOptions = .withSecurityScope
     private static let platform = "macOS"
     private static var deviceName: String { Host.current().localizedName ?? "Mac" }
     #else
-    private static let bookmarkCreation: URL.BookmarkCreationOptions = []
-    private static let bookmarkResolution: URL.BookmarkResolutionOptions = []
+    private nonisolated static let bookmarkCreation: URL.BookmarkCreationOptions = []
+    private nonisolated static let bookmarkResolution: URL.BookmarkResolutionOptions = []
     private static let platform = "iOS"
     private static var deviceName: String { UIDevice.current.name }
     #endif
@@ -103,6 +120,7 @@ final class FolderSync {
         close()
         UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
         peers = []
+        peersByID = [:]
         lastSync = nil
         lastError = nil
     }
@@ -112,10 +130,12 @@ final class FolderSync {
         var stale = false
         do {
             let url = try URL(resolvingBookmarkData: bookmark, options: Self.bookmarkResolution, relativeTo: nil, bookmarkDataIsStale: &stale)
-            if stale, let fresh = try? url.bookmarkData(options: Self.bookmarkCreation, includingResourceValuesForKeys: nil, relativeTo: nil) {
+            open(url)
+            // A stale bookmark can only be renewed while the folder is being accessed.
+            if stale, folder != nil,
+               let fresh = try? url.bookmarkData(options: Self.bookmarkCreation, includingResourceValuesForKeys: nil, relativeTo: nil) {
                 UserDefaults.standard.set(fresh, forKey: Self.bookmarkKey)
             }
-            open(url)
             syncNow()
         } catch {
             lastError = "The sync folder can't be found. Choose it again."
@@ -208,17 +228,38 @@ final class FolderSync {
         let known = peerDates
         isSyncing = true
         Task { [weak self] in
-            let (changed, dates, envelopes) = await Task.detached(priority: .utility) { () -> (Bool, [String: Date], [SyncEnvelope]) in
-                let files = source.peerFiles()
-                let dates = Dictionary(files.map { ($0.url.lastPathComponent, $0.modified) }, uniquingKeysWith: max)
-                guard dates != known else { return (false, dates, []) }
-                return (true, dates, source.readPeers())
+            // Only files changed since they were last read are read; a file that couldn't be
+            // read (still downloading) keeps no date, so the next pass tries it again.
+            let (dates, envelopes) = await Task.detached(priority: .utility) { () -> ([String: Date], [SyncEnvelope]) in
+                var dates: [String: Date] = [:]
+                var envelopes: [SyncEnvelope] = []
+                for file in source.peerFiles() {
+                    let name = file.url.lastPathComponent
+                    if known[name] == file.modified {
+                        dates[name] = file.modified
+                        continue
+                    }
+                    switch source.read(file.url) {
+                    case .read(let envelope):
+                        envelopes.append(envelope)
+                        dates[name] = file.modified
+                    case .stale:
+                        dates[name] = file.modified
+                    case .unreadable:
+                        break
+                    }
+                }
+                return (dates, envelopes)
             }.value
             guard let self else { return }
             self.isSyncing = false
             self.peerDates = dates
-            guard changed else { return }
-            self.peers = envelopes.map { Peer(id: $0.deviceID, name: $0.deviceName, platform: $0.platform, savedAt: $0.savedAt) }
+            guard !envelopes.isEmpty else { return }
+            for envelope in envelopes {
+                self.peersByID[envelope.deviceID] = Peer(id: envelope.deviceID, name: envelope.deviceName, platform: envelope.platform,
+                                                         savedAt: envelope.savedAt)
+            }
+            self.peers = self.peersByID.values.sorted { $0.savedAt > $1.savedAt }
             self.store?.merge(envelopes.map(\.data))
             self.lastSync = .now
         }

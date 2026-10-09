@@ -80,22 +80,36 @@ public struct SyncFolder: Sendable {
         return files.sorted { $0.0.lastPathComponent < $1.0.lastPathComponent }
     }
 
-    /// Reads the other devices' copies. Unreadable files are skipped and logged: a half-synced
-    /// file is read again on the next pass. Files not saved for `SyncState.peerLifetime` are left
-    /// out, so a long-gone device can't bring back what was deleted since.
-    public func readPeers(now: Date = .now) -> [SyncEnvelope] {
-        peerFiles().compactMap { file -> SyncEnvelope? in
-            var envelope: SyncEnvelope?
-            var coordinationError: NSError?
-            NSFileCoordinator().coordinate(readingItemAt: file.url, options: [], error: &coordinationError) { source in
-                do {
-                    envelope = try Self.decode(Data(contentsOf: source))
-                } catch {
-                    Self.logger.error("Skipping \(file.url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
-                }
+    /// What reading one device's file gave.
+    public enum PeerRead: Sendable {
+        case read(SyncEnvelope)
+        /// Not saved for `SyncState.peerLifetime`: left out, so a long-gone device can't bring
+        /// back what was deleted since.
+        case stale
+        /// Not readable now (still downloading, half written); worth trying again later.
+        case unreadable
+    }
+
+    /// Reads one device's file.
+    public func read(_ file: URL, now: Date = .now) -> PeerRead {
+        var envelope: SyncEnvelope?
+        var coordinationError: NSError?
+        NSFileCoordinator().coordinate(readingItemAt: file, options: [], error: &coordinationError) { source in
+            do {
+                envelope = try Self.decode(Data(contentsOf: source))
+            } catch {
+                Self.logger.error("Skipping \(file.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
-            guard let envelope, now.timeIntervalSince(envelope.savedAt) < SyncState.peerLifetime else { return nil }
-            return envelope
+        }
+        guard let envelope else { return .unreadable }
+        return now.timeIntervalSince(envelope.savedAt) < SyncState.peerLifetime ? .read(envelope) : .stale
+    }
+
+    /// Reads the other devices' copies, leaving out stale and unreadable files.
+    public func readPeers(now: Date = .now) -> [SyncEnvelope] {
+        peerFiles().compactMap { file in
+            if case .read(let envelope) = read(file.url, now: now) { return envelope }
+            return nil
         }
     }
 
