@@ -167,10 +167,12 @@ and [CONTRIBUTING.md](CONTRIBUTING.md) to get involved.
 
 ## Roadmap
 
+- [x] Control Center focus toggle (macOS 26)
+- [x] Book search with covers and page counts, and Goodreads import
 - [ ] iCloud sync between Macs
 - [ ] An iPhone companion with Lock Screen widgets
-- [ ] Control Center controls for the focus timer
-- [ ] Book search with covers and page counts
+- [ ] Focus filters: show only the goals that fit the Focus you're in
+- [ ] Translations
 - [ ] Notarized releases
 
 ## License
