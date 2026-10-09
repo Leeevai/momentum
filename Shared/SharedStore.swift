@@ -23,6 +23,11 @@ enum SharedStore {
     static func update(_ change: (inout AppData) -> Void) -> AppData {
         let data = fileStore.update(change)
         WidgetCenter.shared.reloadAllTimelines()
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *) {
+            ControlCenter.shared.reloadAllControls()
+        }
+        #endif
         return data
     }
 }

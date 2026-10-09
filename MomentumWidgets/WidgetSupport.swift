@@ -9,6 +9,11 @@ struct MomentumWidgetBundle: WidgetBundle {
         GoalWidget()
         FocusWidget()
         StreaksWidget()
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *) {
+            FocusControl()
+        }
+        #endif
     }
 }
 
