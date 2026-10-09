@@ -9,6 +9,17 @@ All notable changes to Momentum are recorded here. The format follows
 ### Added
 - **A Week of Focus widget**: the last seven days of focus, stacked by goal, against the week before.
 - **Goals in iPhone Settings**: reorder goals, archive them, and restore or delete archived ones.
+- **Notifications in iPhone Settings**: the evening nudge's time, and a way to turn notifications
+  back on when they're off.
+
+### Fixed
+- Sync: a session brought back by undoing a stop could lose its time when another device
+  started one; three devices starting sessions one after another could count the same stretch
+  twice; settling a merge could reopen a goal's links on the Mac.
+- Apple Watch: Start ignored the goal's session length and Pomodoro; taps sent in quick
+  succession could arrive out of order; late taps could reach back before newer changes; weekly
+  goals didn't start over at the week's end on the watch face.
+- The small Mood widget was too tall for the smallest iPhones.
 
 ## [2.0.0] - 2026-10-09
 
