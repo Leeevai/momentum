@@ -6,20 +6,23 @@ struct CelebrationOverlay: View {
     let celebration: Celebration
     var onFinish: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var start = Date()
     @State private var toastVisible = false
 
     var body: some View {
         ZStack(alignment: .top) {
-            TimelineView(.animation) { context in
-                Canvas { canvas, size in
-                    let elapsed = context.date.timeIntervalSince(start)
-                    for particle in Self.particles {
-                        draw(particle, at: elapsed, in: &canvas, size: size)
+            if !reduceMotion {
+                TimelineView(.animation) { context in
+                    Canvas { canvas, size in
+                        let elapsed = context.date.timeIntervalSince(start)
+                        for particle in Self.particles {
+                            draw(particle, at: elapsed, in: &canvas, size: size)
+                        }
                     }
                 }
+                .allowsHitTesting(false)
             }
-            .allowsHitTesting(false)
 
             if toastVisible {
                 HStack(spacing: 12) {

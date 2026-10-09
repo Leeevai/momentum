@@ -6,6 +6,7 @@ struct GoalCard: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let engine = store.engine
@@ -75,7 +76,7 @@ struct GoalCard: View {
             }
         }
         .glassCard(tint: goal.tint, highlighted: running)
-        .scaleEffect(isHovered ? 1.012 : 1)
+        .scaleEffect(isHovered && !reduceMotion ? 1.012 : 1)
         .shadow(color: goal.tint.opacity(isHovered ? 0.18 : 0), radius: 16, y: 6)
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isHovered)
         .onHover { isHovered = $0 }

@@ -99,6 +99,7 @@ private struct TemplateGallery: View {
 struct TemplateTile: View {
     let template: GoalTemplate
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let goal = template.prototype
@@ -118,7 +119,7 @@ struct TemplateTile: View {
         .padding(12)
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(goal.tint.opacity(isHovered ? 0.16 : 0.08)))
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(goal.tint.opacity(isHovered ? 0.45 : 0.15), lineWidth: 1))
-        .scaleEffect(isHovered ? 1.02 : 1)
+        .scaleEffect(isHovered && !reduceMotion ? 1.02 : 1)
         .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isHovered)
         .onHover { isHovered = $0 }
     }
