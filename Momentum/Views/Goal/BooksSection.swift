@@ -178,7 +178,9 @@ private struct BookRow: View {
         }
         Divider()
         if book.status != .reading {
-            Button("Start Reading") { store.perform("Start Book") { $0.startReading(book.id, in: goal.id) } }
+            Button(book.status == .finished ? "Read Again" : "Start Reading") {
+                store.perform("Start Book") { $0.startReading(book.id, in: goal.id) }
+            }
         }
         if book.status != .finished {
             Button("Mark as Finished") { store.perform("Finish Book") { $0.finishBook(book.id, in: goal.id) } }

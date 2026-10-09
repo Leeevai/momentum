@@ -22,7 +22,8 @@ struct LogProgressSheet: View {
         self.entry = entry
         let value = entry?.amount ?? goal.quickAddStep
         _amount = State(initialValue: value)
-        _minutes = State(initialValue: max(1, Int((value / 60).rounded())))
+        let wholeMinutes = Int((abs(value) / 60).rounded())
+        _minutes = State(initialValue: value < 0 ? -max(1, wholeMinutes) : max(1, wholeMinutes))
         _date = State(initialValue: entry?.date ?? day.map(Self.moment(on:)) ?? .now)
         _note = State(initialValue: entry?.note ?? "")
     }
@@ -38,6 +39,17 @@ struct LogProgressSheet: View {
     /// Page logs move a book's bookmark, so their amount is fixed once logged.
     private var amountIsLocked: Bool { entry?.bookID != nil }
 
+    /// Editing a correction (a negative entry) keeps it negative.
+    private var isCorrection: Bool { (entry?.amount ?? 0) < 0 }
+
+    /// The amount to save: the entry's exact amount unless its duration was actually changed,
+    /// so editing a note never rounds a 25m 40s session to 26m.
+    private var amountToSave: Double {
+        guard goal.kind == .time else { return amount }
+        if let entry, Int((abs(entry.amount) / 60).rounded()) == abs(minutes) { return entry.amount }
+        return Double(minutes * 60)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
@@ -50,8 +62,9 @@ struct LogProgressSheet: View {
             .padding(20)
             Form {
                 if goal.kind == .time {
-                    Stepper(value: $minutes, in: 1...720, step: entry == nil ? 5 : 1) {
-                        LabeledContent("Duration", value: Formatting.duration(Double(minutes * 60)))
+                    Stepper(value: $minutes, in: isCorrection ? -720...(-1) : 1...720, step: entry == nil ? 5 : 1) {
+                        LabeledContent(isCorrection ? "Correction" : "Duration",
+                                       value: (isCorrection ? "−" : "") + Formatting.duration(Double(abs(minutes) * 60)))
                     }
                 } else {
                     LabeledContent("Amount") {
@@ -93,7 +106,7 @@ struct LogProgressSheet: View {
     }
 
     private func save() {
-        let value = goal.kind == .time ? Double(minutes * 60) : amount
+        let value = amountToSave
         let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
         if var edited = entry {
             if !amountIsLocked { edited.amount = value }
@@ -116,6 +129,8 @@ struct LinkEditor: View {
     @State private var title: String
     @State private var address: String
     @State private var bookmark: Data?
+    /// The file path the bookmark was made for; a retyped path needs a new one.
+    @State private var bookmarkPath: String?
     @State private var opensWithFocus: Bool
 
     init(goalID: UUID, link: GoalLink?) {
@@ -124,6 +139,7 @@ struct LinkEditor: View {
         _title = State(initialValue: link?.title ?? "")
         _address = State(initialValue: link.map { $0.url.isFileURL ? $0.url.path(percentEncoded: false) : $0.url.absoluteString } ?? "")
         _bookmark = State(initialValue: link?.bookmark)
+        _bookmarkPath = State(initialValue: link.flatMap { $0.url.isFileURL ? $0.url.path(percentEncoded: false) : nil })
         _opensWithFocus = State(initialValue: link?.opensWithFocus ?? false)
     }
 
@@ -148,7 +164,6 @@ struct LinkEditor: View {
                 .padding(20)
             Form {
                 TextField("Address", text: $address, prompt: Text("https://…, notion://…, or a file"))
-                    .onChange(of: address) { _, _ in if !(url?.isFileURL ?? false) { bookmark = nil } }
                 HStack {
                     Spacer()
                     Button("Choose File or Folder…", action: chooseFile)
@@ -185,6 +200,7 @@ struct LinkEditor: View {
         guard panel.runModal() == .OK, let picked = panel.url else { return }
         address = picked.path(percentEncoded: false)
         bookmark = LinkOpener.bookmark(for: picked)
+        bookmarkPath = picked.path(percentEncoded: false)
         if title.isEmpty { title = picked.lastPathComponent }
     }
 
@@ -193,7 +209,8 @@ struct LinkEditor: View {
         var updated = link ?? GoalLink(title: "", url: url)
         updated.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         updated.url = url
-        updated.bookmark = url.isFileURL ? (bookmark ?? LinkOpener.bookmark(for: url)) : nil
+        let matchingBookmark = bookmarkPath == url.path(percentEncoded: false) ? bookmark : nil
+        updated.bookmark = url.isFileURL ? (matchingBookmark ?? LinkOpener.bookmark(for: url)) : nil
         updated.opensWithFocus = opensWithFocus
         store.perform(link == nil ? "Add Link" : "Edit Link") { $0.upsertLink(updated, in: goalID) }
         dismiss()
@@ -328,27 +345,42 @@ struct BookEditor: View {
     }
 
     private func save() {
-        var updated = draft
-        updated.title = updated.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        updated.author = updated.author.trimmingCharacters(in: .whitespacesAndNewlines)
-        updated.totalPages = Int(pagesText.trimmingCharacters(in: .whitespaces)).flatMap { $0 > 0 ? $0 : nil }
-        if let total = updated.totalPages { updated.currentPage = min(updated.currentPage, total) }
+        let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let author = draft.author.trimmingCharacters(in: .whitespacesAndNewlines)
+        let totalPages = Int(pagesText.trimmingCharacters(in: .whitespaces)).flatMap { $0 > 0 ? $0 : nil }
         let trimmedLink = linkText.trimmingCharacters(in: .whitespaces)
-        updated.link = trimmedLink.isEmpty ? nil : URL(string: trimmedLink.contains("://") ? trimmedLink : "https://\(trimmedLink)")
-        let previousStatus = book?.status
+        let link = trimmedLink.isEmpty ? nil : URL(string: trimmedLink.contains("://") ? trimmedLink : "https://\(trimmedLink)")
+        let edited = draft
+        let original = book
         let now = Date.now
-        if updated.status == .reading && updated.startedAt == nil { updated.startedAt = now }
-        if updated.status == .finished && previousStatus != .finished {
-            updated.finishedAt = updated.finishedAt ?? now
-            if let total = updated.totalPages { updated.currentPage = total }
-        }
-        if updated.status != .finished { updated.finishedAt = nil }
-        let pageDelta = updated.currentPage - (book?.currentPage ?? 0)
-        let bookID = updated.id
+        // Merge onto the book as stored now: pages logged from a widget while this sheet was open
+        // must not be undone by the copy taken when it opened.
         store.perform(book == nil ? "Add Book" : "Edit Book") { data in
-            data.upsertBook(updated, in: goalID)
-            if book != nil, pageDelta != 0 {
-                data.log(Double(pageDelta), for: goalID, at: now, bookID: bookID)
+            var current = original.flatMap { original in data.goal(goalID)?.books.first { $0.id == original.id } } ?? edited
+            current.title = title
+            current.author = author
+            current.totalPages = totalPages
+            current.rating = edited.rating
+            current.notes = edited.notes
+            current.link = link
+            current.coverURL = edited.coverURL
+            if edited.status != (original?.status ?? .wantToRead) || original == nil { current.status = edited.status }
+            if current.status == .reading && current.startedAt == nil { current.startedAt = now }
+            if current.status == .finished && current.finishedAt == nil {
+                current.finishedAt = now
+                if let totalPages { current.currentPage = totalPages }
+            }
+            if current.status != .finished { current.finishedAt = nil }
+            // Only a page the user changed in this sheet moves the bookmark, logged as pages read.
+            var pageDelta = 0
+            if let original, edited.currentPage != original.currentPage, current.status == .reading {
+                pageDelta = edited.currentPage - current.currentPage
+                current.currentPage = edited.currentPage
+            }
+            if let totalPages { current.currentPage = min(current.currentPage, totalPages) }
+            data.upsertBook(current, in: goalID)
+            if pageDelta != 0 {
+                data.log(Double(pageDelta), for: goalID, at: now, bookID: current.id)
             }
         }
         dismiss()

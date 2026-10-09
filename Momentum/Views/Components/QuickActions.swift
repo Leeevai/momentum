@@ -98,7 +98,9 @@ struct QuickActionsView: View {
         guard goals.indices.contains(selection) else { return }
         let goal = goals[selection]
         dismiss()
-        if open || (goal.kind == .books && goal.currentBook == nil) {
+        let nothingToDo = (goal.kind == .books && goal.currentBook == nil)
+            || (goal.kind == .milestones && !goal.milestones.contains { !$0.isDone })
+        if open || nothingToDo {
             store.select(goal.id)
             return
         }

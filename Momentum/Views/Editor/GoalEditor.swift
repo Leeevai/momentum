@@ -169,6 +169,12 @@ struct GoalEditor: View {
         if draft.kind.usesPeriod && draft.period == .total {
             Section("Deadline") {
                 Toggle("Finish by a date", isOn: $hasDeadline.animation())
+                    .onChange(of: hasDeadline) { _, on in
+                        // The picker only shows a default; store it, or the goal saves without one.
+                        if on && draft.deadline == nil {
+                            draft.deadline = Calendar.current.date(byAdding: .month, value: 3, to: .now)
+                        }
+                    }
                 if hasDeadline {
                     DatePicker("Deadline", selection: Binding(
                         get: { draft.deadline ?? Calendar.current.date(byAdding: .month, value: 3, to: .now) ?? .now },
@@ -268,7 +274,15 @@ struct GoalEditor: View {
         } else {
             goal.reminder = nil
         }
-        store.perform(isNew ? "Add Goal" : "Edit Goal") { $0.upsert(goal) }
+        store.perform(isNew ? "Add Goal" : "Edit Goal") { data in
+            if isNew {
+                data.upsert(goal)
+            } else {
+                // Only the settings this sheet edits: milestones, books, links and breaks may have
+                // changed (from a widget, the menu bar) since it opened.
+                data.updateGoal(goal.id) { $0.applySettings(from: goal) }
+            }
+        }
         if isNew { store.select(goal.id) }
         dismiss()
     }
