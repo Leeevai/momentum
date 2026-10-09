@@ -23,6 +23,8 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         public var targetText: String
         /// When the period this progress counts toward ends (nil for an overall target).
         public var periodEnd: Date?
+        /// What reaching the target is called for this goal: "Done for today", "Done this week".
+        public var doneText: String
         /// The day of a running challenge, and its length.
         public var challengeDay: Int?
         public var challengeLength: Int?
@@ -154,7 +156,19 @@ extension ProgressEngine {
             actionTitle: actionTitle(for: goal),
             targetText: goal.kind == .milestones ? "\(goal.milestones.count) milestones" : goal.format(target(for: goal)),
             periodEnd: goal.effectivePeriod == .total ? nil : interval(of: goal.effectivePeriod, containing: now).end,
+            doneText: Self.doneText(for: goal),
             challengeDay: challenge?.dayNumber, challengeLength: challenge?.challenge.days)
+    }
+
+    private static func doneText(for goal: Goal) -> String {
+        if goal.kind == .milestones { return "All done" }
+        return switch goal.effectivePeriod {
+        case .daily: "Done for today"
+        case .weekly: "Done this week"
+        case .monthly: "Done this month"
+        case .yearly: "Done this year"
+        case .total: "Target reached"
+        }
     }
 
     private func actionTitle(for goal: Goal) -> String? {

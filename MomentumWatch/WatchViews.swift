@@ -5,10 +5,11 @@ import SwiftUI
 struct WatchRoot: View {
     @Environment(WatchStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
+    @State private var path: [UUID] = []
 
     var body: some View {
         let snapshot = store.snapshot
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 if let session = snapshot.session, let item = snapshot.item(session.goalID) {
                     Section {
@@ -50,32 +51,51 @@ struct WatchRoot: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { store.refresh() }
         }
+        #if DEBUG
+        // Simulator runs: `MOMENTUM_WATCH_GOAL` opens a goal by name once the iPhone has sent it.
+        .onChange(of: snapshot.items.map(\.id)) { _, _ in openRequestedGoal() }
+        .onAppear { openRequestedGoal() }
+        #endif
     }
+
+    #if DEBUG
+    private func openRequestedGoal() {
+        guard path.isEmpty, let name = ProcessInfo.processInfo.environment["MOMENTUM_WATCH_GOAL"],
+              let item = store.snapshot.items.first(where: { $0.name == name }) else { return }
+        path = [item.id]
+    }
+    #endif
 }
 
 private struct GoalRow: View {
     let item: WatchSnapshot.Item
 
     var body: some View {
+        // The name gets the row's full width (two lines if it needs them); the streak rides on
+        // the progress line, where a column of its own cut names short.
         HStack(spacing: 10) {
             WatchRing(progress: item.progress, color: item.color, symbol: item.symbol, lineWidth: 4.5)
-                .frame(width: 38, height: 38)
+                .frame(width: 36, height: 36)
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.name)
                     .font(.headline)
-                    .lineLimit(1)
-                Text(item.isComplete ? "Done" : item.progressText)
-                    .font(.caption2)
-                    .foregroundStyle(item.isComplete ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary))
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                HStack(spacing: 6) {
+                    Text(item.isComplete ? "Done" : item.progressText)
+                        .foregroundStyle(item.isComplete ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    if item.streak > 0 {
+                        Label("\(item.streak)", systemImage: "flame.fill")
+                            .labelStyle(.titleAndIcon)
+                            .foregroundStyle(.orange)
+                            .fixedSize()
+                    }
+                }
+                .font(.caption2)
             }
             Spacer(minLength: 0)
-            if item.streak > 0 {
-                Label("\(item.streak)", systemImage: "flame.fill")
-                    .font(.caption2.weight(.semibold))
-                    .labelStyle(.titleAndIcon)
-                    .foregroundStyle(.orange)
-            }
         }
         .padding(.vertical, 2)
     }
@@ -164,7 +184,7 @@ struct GoalPage: View {
                         }
                     }
                     .frame(width: 104, height: 104)
-                    Text(item.isComplete ? "Done for today" : item.progressText)
+                    Text(item.isComplete ? item.doneText : item.progressText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -185,6 +205,9 @@ struct GoalPage: View {
             }
             .navigationTitle(item.name)
             .containerBackground(item.color.backdrop, for: .navigation)
+            #if DEBUG
+            .task { await DebugActions.runRequested(on: item, store: store) }
+            #endif
             .overlay(alignment: .top) {
                 if store.isSending { ProgressView().controlSize(.small) }
             }
@@ -246,3 +269,26 @@ extension View {
         }
     }
 }
+
+#if DEBUG
+/// Simulator runs: `MOMENTUM_WATCH_ACTION` (`start`, `pause`, `stop` or `log`) taps that button on
+/// the goal opened by `MOMENTUM_WATCH_GOAL`, once, as a test of the round trip to the iPhone.
+@MainActor
+enum DebugActions {
+    private static var hasRun = false
+
+    static func runRequested(on item: WatchSnapshot.Item, store: WatchStore) async {
+        guard !hasRun, let action = ProcessInfo.processInfo.environment["MOMENTUM_WATCH_ACTION"] else { return }
+        hasRun = true
+        try? await Task.sleep(for: .seconds(2))
+        let session = store.snapshot.session.flatMap { $0.goalID == item.id ? $0 : nil }
+        switch action {
+        case "start": store.perform(.start(goal: item.id))
+        case "pause": if let session { store.perform(.setPaused(goal: item.id, sessionStart: session.startedAt, paused: session.isRunning)) }
+        case "stop": if let session { store.perform(.stop(goal: item.id, sessionStart: session.startedAt)) }
+        case "log": store.perform(.quickAdd(goal: item.id))
+        default: break
+        }
+    }
+}
+#endif
