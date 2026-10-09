@@ -32,7 +32,7 @@ struct InsightsView: View {
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 14)], spacing: 14) {
                     StatTile(title: "Focused", value: Formatting.duration(report.totalFocusSeconds), systemImage: "timer", tint: .indigo,
-                             caption: "\(Formatting.duration(report.averageFocusPerDay)) a day on average")
+                             caption: focusCaption(report))
                     StatTile(title: "Active days", value: "\(report.activeDays) of \(days)", systemImage: "calendar.badge.checkmark", tint: .green,
                              caption: Formatting.percent(Double(report.activeDays) / Double(days)) + " of days")
                     StatTile(title: "Best streak now", value: "\(engine.longestCurrentStreak(now: store.now))", systemImage: "flame.fill", tint: .orange)
@@ -58,6 +58,16 @@ struct InsightsView: View {
         .scrollContentBackground(.hidden)
         .background(AmbientBackground(primary: .indigo, secondary: .pink))
         .navigationTitle("Insights")
+    }
+
+    /// "▲ 12% vs the 30 days before", or the daily average without a baseline.
+    private func focusCaption(_ report: InsightsReport) -> String {
+        guard let change = report.focusChange else {
+            return "\(Formatting.duration(report.averageFocusPerDay)) a day on average"
+        }
+        let arrow = change > 0.005 ? "▲" : (change < -0.005 ? "▼" : "=")
+        let span = days == 365 ? "year" : "\(days) days"
+        return "\(arrow) \(Formatting.percent(abs(change))) vs the \(span) before"
     }
 }
 
