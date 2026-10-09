@@ -179,6 +179,16 @@ struct FocusBanner: View {
 
     @ViewBuilder
     private var extras: some View {
+        Button {
+            store.isFocusModePresented = true
+        } label: {
+            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(goal.tint)
+        .help("Focus mode: full screen, nothing else in sight")
         FocusSoundMenu()
         Menu {
             if session.plannedDuration != nil {

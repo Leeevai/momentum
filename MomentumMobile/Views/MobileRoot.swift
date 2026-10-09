@@ -28,6 +28,10 @@ struct MobileRoot: View {
         .sheet(item: $store.sheet) { route in
             MobileSheet(route: route)
         }
+        .fullScreenCover(isPresented: $store.isFocusModePresented) {
+            FocusModeView { store.isFocusModePresented = false }
+                .environment(store)
+        }
         .overlay {
             if let celebration = store.celebration {
                 CelebrationOverlay(celebration: celebration) { store.celebration = nil }

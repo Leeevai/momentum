@@ -127,6 +127,11 @@ struct MomentumCommands: Commands {
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button("Stop and Save") { store.stopFocus() }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
+                Button("Focus Mode") {
+                    openWindow(id: "main")
+                    store.isFocusModePresented = true
+                }
+                .keyboardShortcut("f", modifiers: [.command, .control])
                 if session.plannedDuration != nil {
                     Button("Add 5 Minutes") { store.extendFocus(by: 5) }
                 }

@@ -34,6 +34,14 @@ struct RootView: View {
             }
         }
         .overlay {
+            if store.isFocusModePresented {
+                FocusModeView { withAnimation(.easeInOut(duration: 0.35)) { store.isFocusModePresented = false } }
+                    .transition(.opacity.combined(with: .scale(scale: 1.04)))
+                    .zIndex(2)
+            }
+        }
+        .animation(.easeInOut(duration: 0.35), value: store.isFocusModePresented)
+        .overlay {
             if let toast = store.toast {
                 ToastBanner(toast: toast)
                     .id(toast.id)

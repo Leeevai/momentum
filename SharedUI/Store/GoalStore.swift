@@ -79,6 +79,8 @@ final class GoalStore {
     var sheet: SheetRoute?
     var celebration: Celebration?
     var toast: Toast?
+    /// The full-screen focus mode.
+    var isFocusModePresented = false
     /// Coach tips dismissed today.
     private(set) var dismissedTips: Set<String> = []
     /// A goal awaiting delete confirmation.
