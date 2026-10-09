@@ -18,6 +18,12 @@ public struct InsightsReport: Sendable {
         public var id: UUID { goalID }
     }
 
+    public struct CategoryShare: Identifiable, Hashable, Sendable {
+        public var name: String
+        public var seconds: Double
+        public var id: String { name }
+    }
+
     public struct Bucket: Identifiable, Hashable, Sendable {
         /// Weekday (1 = Sunday ... 7) or hour of day (0...23).
         public var index: Int
@@ -38,6 +44,8 @@ public struct InsightsReport: Sendable {
     public var focusByWeekday: [Bucket]
     public var focusByHour: [Bucket]
     /// The same measures over the equally long range just before this one.
+    /// Focus time by goal category, largest first; uncategorized goals share "Other".
+    public var focusByCategory: [CategoryShare]
     public var previousFocusSeconds: Double
     public var previousActiveDays: Int
 
@@ -61,11 +69,13 @@ extension ProgressEngine {
 
         var focusByDay: [InsightsReport.FocusDay] = []
         var weekday = [Int: Double]()
+        var categories = [String: Double]()
         var total = 0.0
         for goal in timeGoals {
             for daily in dailyAmounts(for: goal, days: days, now: now) where daily.amount > 0 {
                 focusByDay.append(.init(day: daily.day, goalID: goal.id, seconds: daily.amount))
                 weekday[calendar.component(.weekday, from: daily.day), default: 0] += daily.amount
+                categories[goal.category.isEmpty ? "Other" : goal.category, default: 0] += daily.amount
                 total += daily.amount
             }
         }
@@ -120,6 +130,8 @@ extension ProgressEngine {
             scores: scores,
             focusByWeekday: (1...7).map { .init(index: $0, seconds: weekday[$0] ?? 0) },
             focusByHour: (0..<24).map { .init(index: $0, seconds: hours[$0] ?? 0) },
+            focusByCategory: categories.map { InsightsReport.CategoryShare(name: $0.key, seconds: $0.value) }
+                .sorted { $0.seconds != $1.seconds ? $0.seconds > $1.seconds : $0.name < $1.name },
             previousFocusSeconds: previousFocus,
             previousActiveDays: previousActive
         )

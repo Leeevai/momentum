@@ -39,4 +39,18 @@ struct InsightsComparisonTests {
         #expect(report.previousActiveDays == 2)
         #expect(try #require(report.focusChange) == 0)
     }
+
+    @Test("Focus is grouped by category, largest first")
+    func byCategory() {
+        let work = Goal(name: "Work", category: "Work", kind: .time, target: 3600, createdAt: date(2026, 9, 1))
+        let study = Goal(name: "Study", category: "Learning", kind: .time, target: 3600, createdAt: date(2026, 9, 1))
+        let loose = Goal(name: "Loose", kind: .time, target: 3600, createdAt: date(2026, 9, 1))
+        var data = AppData(goals: [work, study, loose])
+        data.log(3600, for: work.id, at: dayOffset(-1))
+        data.log(1800, for: study.id, at: dayOffset(-1))
+        data.log(600, for: loose.id, at: dayOffset(-1))
+        let shares = engine(data).insights(days: 7, now: referenceNow).focusByCategory
+        #expect(shares.map(\.name) == ["Work", "Learning", "Other"])
+        #expect(shares.map(\.seconds) == [3600, 1800, 600])
+    }
 }
