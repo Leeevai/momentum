@@ -6,6 +6,9 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Dark and tinted app icons for iPhone and iPad Home Screens.
+
 ## [2.1.0] - 2026-10-09
 
 ### Added
