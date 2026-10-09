@@ -18,6 +18,7 @@ struct ToggleFocusIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         if let id = UUID(uuidString: goalID) {
+            LiveActivitySync.catchUp()
             let data = SharedStore.update { $0.toggleFocus(on: id) }
             await LiveActivitySync.after(data)
         }
@@ -30,7 +31,33 @@ struct PauseResumeFocusIntent: AppIntent {
     static let isDiscoverable = false
 
     func perform() async throws -> some IntentResult {
+        LiveActivitySync.catchUp()
         let data = SharedStore.update { $0.togglePauseFocus() }
+        await LiveActivitySync.after(data)
+        return .result()
+    }
+}
+
+/// Stops the session if it's still the one on the given goal: a stop, never a start, so a
+/// second tap (or a tap on a timer already stopped elsewhere) does nothing.
+struct StopSessionIntent: AppIntent {
+    static let title: LocalizedStringResource = "Stop Session"
+    static let isDiscoverable = false
+
+    @Parameter(title: "Goal ID")
+    var goalID: String
+
+    init() {}
+
+    init(goalID: UUID) {
+        self.goalID = goalID.uuidString
+    }
+
+    func perform() async throws -> some IntentResult {
+        LiveActivitySync.catchUp()
+        let data = SharedStore.update { data in
+            if data.session?.goalID.uuidString == goalID { data.stopFocus() }
+        }
         await LiveActivitySync.after(data)
         return .result()
     }
@@ -42,6 +69,7 @@ struct StartNextBlockIntent: AppIntent {
     static let isDiscoverable = false
 
     func perform() async throws -> some IntentResult {
+        LiveActivitySync.catchUp()
         let data = SharedStore.update { $0.startNextBlock() }
         await LiveActivitySync.after(data)
         return .result()
@@ -54,6 +82,7 @@ struct EndBreakIntent: AppIntent {
     static let isDiscoverable = false
 
     func perform() async throws -> some IntentResult {
+        LiveActivitySync.catchUp()
         let data = SharedStore.update { $0.endRest() }
         await LiveActivitySync.after(data)
         return .result()
@@ -63,6 +92,15 @@ struct EndBreakIntent: AppIntent {
 /// Keeps the Lock Screen timer in step after an intent changes the data. On iPhone the timer
 /// intents are Live Activity intents, so they run in the app, which may update the activity.
 enum LiveActivitySync {
+    /// Merges in what other devices did, set by the app where it syncs. A Lock Screen button can
+    /// be tapped long after the app last looked at the sync folder; acting on stale data would
+    /// pause a session already stopped elsewhere, and bring it back.
+    nonisolated(unsafe) static var catchUpHandler: (@Sendable () -> Void)?
+
+    static func catchUp() {
+        catchUpHandler?()
+    }
+
     static func after(_ data: AppData) async {
         #if os(iOS)
         await FocusActivityController.sync(with: data)
@@ -74,6 +112,7 @@ enum LiveActivitySync {
 extension ToggleFocusIntent: LiveActivityIntent {}
 extension PauseResumeFocusIntent: LiveActivityIntent {}
 extension StartNextBlockIntent: LiveActivityIntent {}
+extension StopSessionIntent: LiveActivityIntent {}
 extension EndBreakIntent: LiveActivityIntent {}
 #endif
 

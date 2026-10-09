@@ -9,7 +9,7 @@ import WidgetKit
 struct FocusLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: FocusActivityAttributes.self) { context in
-            LockScreenFocusView(attributes: context.attributes, state: context.state)
+            LockScreenFocusView(attributes: context.attributes, state: context.state, isStale: context.isStale)
                 .padding(16)
                 .activityBackgroundTint(Color.black.opacity(0.35))
                 .activitySystemActionForegroundColor(.white)
@@ -24,7 +24,7 @@ struct FocusLiveActivity: Widget {
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    ActivityClock(state: state)
+                    ActivityClock(state: state, isStale: context.isStale)
                         .font(.system(size: 30, weight: .bold, design: .rounded))
                         .foregroundStyle(tint)
                         .frame(maxWidth: 120, alignment: .trailing)
@@ -32,7 +32,7 @@ struct FocusLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.center) {
                     VStack(spacing: 2) {
-                        Text(state.phaseTitle)
+                        Text(state.phaseTitle(isStale: context.isStale))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(tint)
                         Text(attributes.goalName)
@@ -51,7 +51,7 @@ struct FocusLiveActivity: Widget {
                 Image(systemName: state.phase == .resting ? "leaf.fill" : attributes.symbol)
                     .foregroundStyle(tint)
             } compactTrailing: {
-                ActivityClock(state: state)
+                ActivityClock(state: state, isStale: context.isStale)
                     .font(.system(.caption, design: .rounded, weight: .semibold))
                     .foregroundStyle(tint)
                     .frame(maxWidth: 52)
@@ -68,13 +68,14 @@ struct FocusLiveActivity: Widget {
 private struct LockScreenFocusView: View {
     let attributes: FocusActivityAttributes
     let state: FocusActivityAttributes.ContentState
+    let isStale: Bool
 
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 14) {
                 ActivityGlyph(attributes: attributes, state: state, size: 48)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(state.phaseTitle)
+                    Text(state.phaseTitle(isStale: isStale))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(attributes.tint)
                     Text(attributes.goalName)
@@ -83,7 +84,7 @@ private struct LockScreenFocusView: View {
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
-                ActivityClock(state: state)
+                ActivityClock(state: state, isStale: isStale)
                     .font(.system(size: 36, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .frame(maxWidth: 140, alignment: .trailing)
@@ -112,14 +113,23 @@ private struct ActivityGlyph: View {
     }
 }
 
-/// Counts down to the planned end, up from the start when open-ended, and holds still when paused.
+/// Counts down to the planned end and then on into overtime, up from the start when open-ended,
+/// and holds still when paused.
 private struct ActivityClock: View {
     let state: FocusActivityAttributes.ContentState
+    let isStale: Bool
 
     var body: some View {
         Group {
             if state.phase == .paused {
-                Text(Formatting.clock(state.elapsed))
+                Text(Formatting.clock(state.remaining ?? state.elapsed))
+            } else if let end = state.end, isStale || end <= .now {
+                if state.phase == .resting {
+                    Text("0:00")
+                } else {
+                    // Past the planned end: the overtime, counting up, as the app shows it.
+                    Text("+") + Text(end, style: .timer)
+                }
             } else if let end = state.end {
                 Text(timerInterval: state.counterStart...max(end, state.counterStart), countsDown: true)
             } else {
@@ -164,7 +174,7 @@ private struct ActivityButtons: View {
                 }
                 .buttonStyle(ActivityButtonStyle(tint: .white.opacity(0.18)))
                 if let id = UUID(uuidString: attributes.goalID) {
-                    Button(intent: ToggleFocusIntent(goalID: id)) {
+                    Button(intent: StopSessionIntent(goalID: id)) {
                         Image(systemName: "stop.fill")
                     }
                     .buttonStyle(ActivityButtonStyle(tint: attributes.tint))
@@ -202,10 +212,12 @@ extension FocusActivityAttributes {
 }
 
 extension FocusActivityAttributes.ContentState {
-    var phaseTitle: String {
+    func phaseTitle(isStale: Bool) -> String {
         switch phase {
+        case .focusing where isStale && end != nil: "Time's up"
         case .focusing: block.map { "Block \($0)" } ?? "Focusing"
         case .paused: "Paused"
+        case .resting where isStale: "Break's over"
         case .resting: "Break · block \(block ?? 1) next"
         }
     }

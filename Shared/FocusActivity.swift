@@ -16,8 +16,10 @@ struct FocusActivityAttributes: ActivityAttributes {
         var counterStart: Date
         /// The planned end of the block or break, counted down to; nil counts up.
         var end: Date?
-        /// Time focused so far, shown while paused.
+        /// Time focused so far, shown while paused in an open-ended session.
         var elapsed: TimeInterval
+        /// Time left of a planned block, shown while paused.
+        var remaining: TimeInterval?
         /// The Pomodoro block number, when cycles are on.
         var block: Int?
     }
@@ -40,7 +42,8 @@ enum FocusActivityController {
             }
             return
         }
-        let content = ActivityContent(state: state, staleDate: state.end.map { $0.addingTimeInterval(60) })
+        // Stale at the planned end, when the view switches to counting overtime or "break's over".
+        let content = ActivityContent(state: state, staleDate: state.end)
         var updated = false
         for activity in Activity<FocusActivityAttributes>.activities {
             if activity.attributes.goalID == attributes.goalID && !updated {
@@ -69,12 +72,13 @@ enum FocusActivityController {
                 counterStart: session.counterReferenceDate ?? now.addingTimeInterval(-elapsed),
                 end: session.plannedEnd,
                 elapsed: elapsed,
+                remaining: session.remaining(at: now).map { max(0, $0) },
                 block: pomodoro ? session.block : nil)
             return (attributes(for: goal), state)
         }
         if let rest = data.rest, !rest.isOver(at: now), let goal = data.goal(rest.goalID) {
             let state = FocusActivityAttributes.ContentState(phase: .resting, counterStart: rest.start, end: rest.end, elapsed: 0,
-                                                             block: rest.nextBlock)
+                                                             remaining: nil, block: rest.nextBlock)
             return (attributes(for: goal), state)
         }
         return nil
