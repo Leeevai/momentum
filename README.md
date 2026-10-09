@@ -55,9 +55,9 @@ Every goal can be **daily** (on the weekdays you choose), **weekly**, **monthly*
 
 ### Reading, properly
 A books goal is a small library: *reading*, *up next*, *finished* and *set aside*. Find books in the
-Open Library catalog (title, author, page count and cover filled in for you), log pages with one
-click, finish books with a rating, and the goal counts the books you finish while the streak counts
-the days you read.
+Open Library catalog (title, author, page count and cover filled in for you), import your Goodreads
+library, log pages with one click and finish books with a rating. The goal counts the books you
+finish, while the streak counts the days you read.
 
 ### Streaks that are fair
 - Days a goal isn't scheduled never break its streak, and **breaks** (a trip, a sick week) protect it entirely.
