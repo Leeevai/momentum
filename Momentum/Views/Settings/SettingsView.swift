@@ -397,26 +397,6 @@ private struct DataSettings: View {
     }
 }
 
-struct ExportDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.json, .commaSeparatedText] }
-    var data: Data
-    var type: UTType
-
-    init(data: Data, type: UTType) {
-        self.data = data
-        self.type = type
-    }
-
-    init(configuration: ReadConfiguration) throws {
-        data = configuration.file.regularFileContents ?? Data()
-        type = configuration.contentType
-    }
-
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: data)
-    }
-}
-
 private struct AboutSettings: View {
     var body: some View {
         VStack(spacing: 12) {

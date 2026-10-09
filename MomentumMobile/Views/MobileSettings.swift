@@ -75,6 +75,7 @@ struct MobileSettings: View {
                     Toggle("Weekly recap", isOn: binding(\.weeklyRecapEnabled, preferences))
                     Toggle("Goal reminders", isOn: binding(\.remindersEnabled, preferences))
                 }
+                MobileDataSection()
                 Section("Feedback") {
                     Toggle("Celebrate finished goals", isOn: binding(\.celebratesCompletion, preferences))
                     Toggle("Haptics", isOn: binding(\.playsSounds, preferences))
@@ -104,5 +105,87 @@ struct MobileSettings: View {
 
     private func pomodoroBinding<Value>(_ keyPath: WritableKeyPath<PomodoroSettings, Value>, _ settings: PomodoroSettings) -> Binding<Value> {
         Binding(get: { settings[keyPath: keyPath] }, set: { value in store.updatePreferences { $0.pomodoro[keyPath: keyPath] = value } })
+    }
+}
+
+/// Export a backup or a spreadsheet, import a backup, or restore one of the daily copies.
+private struct MobileDataSection: View {
+    @Environment(GoalStore.self) private var store
+    @State private var exportingJSON = false
+    @State private var exportingCSV = false
+    @State private var importing = false
+    @State private var pendingImport: AppData?
+    @State private var message: String?
+
+    var body: some View {
+        Section {
+            Button { exportingJSON = true } label: { Label("Export a Backup", systemImage: "square.and.arrow.up") }
+            Button { exportingCSV = true } label: { Label("Export Entries as CSV", systemImage: "tablecells") }
+            Button { importing = true } label: { Label("Import a Backup", systemImage: "square.and.arrow.down") }
+            let backups = store.dailyBackups
+            if !backups.isEmpty {
+                Menu {
+                    ForEach(backups, id: \.self) { url in
+                        Button(Self.title(for: url)) { load(url) }
+                    }
+                } label: {
+                    Label("Restore a Daily Copy", systemImage: "clock.arrow.circlepath")
+                }
+            }
+            if let message {
+                Text(message).font(.footnote).foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Your data")
+        } footer: {
+            Text("\(store.data.goals.count) goals and \(store.data.entries.count) entries, kept on this iPhone. Importing replaces everything, and saves the current data as a backup first.")
+        }
+        .fileExporter(isPresented: $exportingJSON, document: ExportDocument(data: (try? FileStore.encode(store.data, pretty: true)) ?? Data(), type: .json),
+                      contentType: .json, defaultFilename: "Momentum Backup \(Date.now.formatted(.iso8601.year().month().day()))") { result in
+            report(result, what: "Backup")
+        }
+        .fileExporter(isPresented: $exportingCSV, document: ExportDocument(data: Data(CSVExporter.csv(for: store.data).utf8), type: .commaSeparatedText),
+                      contentType: .commaSeparatedText, defaultFilename: "Momentum Entries") { result in
+            report(result, what: "CSV")
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            switch result {
+            case .success(let url): load(url)
+            case .failure(let error): message = error.localizedDescription
+            }
+        }
+        .confirmationDialog("Replace all data?", isPresented: Binding(get: { pendingImport != nil }, set: { if !$0 { pendingImport = nil } }),
+                            titleVisibility: .visible, presenting: pendingImport) { data in
+            Button("Replace with \(data.goals.count) goals", role: .destructive) {
+                store.replaceAll(with: data)
+                message = "Restored \(data.goals.count) goals and \(data.entries.count) entries."
+            }
+        } message: { _ in
+            Text("Your current goals and history will be replaced. A backup of them is saved first.")
+        }
+    }
+
+    private func load(_ url: URL) {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        do {
+            pendingImport = try FileStore.decode(Data(contentsOf: url))
+        } catch {
+            message = "That file isn't a Momentum backup: \(error.localizedDescription)"
+        }
+    }
+
+    private func report(_ result: Result<URL, Error>, what: String) {
+        switch result {
+        case .success(let url): message = "\(what) saved to \(url.lastPathComponent)."
+        case .failure(let error): message = error.localizedDescription
+        }
+    }
+
+    /// "data-2026-10-08.json" as "Thursday 8 October".
+    private static func title(for url: URL) -> String {
+        let name = url.deletingPathExtension().lastPathComponent.replacingOccurrences(of: "data-", with: "")
+        guard let day = DayID(string: name) else { return name }
+        return day.date().formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 }

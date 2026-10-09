@@ -1,5 +1,6 @@
 import MomentumCore
 import SwiftUI
+import UniformTypeIdentifiers
 #if os(macOS)
 import AppKit
 #else
@@ -76,5 +77,26 @@ enum Metrics {
         #else
         false
         #endif
+    }
+}
+
+/// A file to save through `fileExporter`: a JSON backup or a CSV of entries.
+struct ExportDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json, .commaSeparatedText] }
+    var data: Data
+    var type: UTType
+
+    init(data: Data, type: UTType) {
+        self.data = data
+        self.type = type
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+        type = configuration.contentType
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
