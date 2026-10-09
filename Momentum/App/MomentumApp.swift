@@ -69,6 +69,12 @@ struct MomentumCommands: Commands {
             .keyboardShortcut("n", modifiers: .command)
         }
         CommandMenu("Go") {
+            Button("Quick Actions…") {
+                openWindow(id: "main")
+                store.sheet = .quickActions
+            }
+            .keyboardShortcut("k", modifiers: .command)
+            Divider()
             Button("Today") { show(.today) }
                 .keyboardShortcut("1", modifiers: .command)
             Button("Insights") { show(.insights) }

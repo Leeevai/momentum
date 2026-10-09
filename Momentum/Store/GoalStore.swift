@@ -10,6 +10,7 @@ enum Route: Hashable {
 }
 
 enum SheetRoute: Identifiable {
+    case quickActions
     case newGoal
     case editGoal(Goal)
     case log(goalID: UUID, entry: LogEntry? = nil)
@@ -18,6 +19,7 @@ enum SheetRoute: Identifiable {
 
     var id: String {
         switch self {
+        case .quickActions: "quick-actions"
         case .newGoal: "new"
         case .editGoal(let goal): "edit-\(goal.id)"
         case .log(let id, let entry): "log-\(id)-\(entry?.id.uuidString ?? "new")"

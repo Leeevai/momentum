@@ -71,6 +71,8 @@ private struct SheetContent: View {
 
     var body: some View {
         switch route {
+        case .quickActions:
+            QuickActionsView()
         case .newGoal:
             NewGoalFlow()
         case .editGoal(let goal):
