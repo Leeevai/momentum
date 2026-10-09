@@ -8,6 +8,7 @@ All notable changes to Momentum are recorded here. The format follows
 
 ### Added
 - **A Week of Focus widget**: the last seven days of focus, stacked by goal, against the week before.
+- **Goals in iPhone Settings**: reorder goals, archive them, and restore or delete archived ones.
 
 ## [2.0.0] - 2026-10-09
 
