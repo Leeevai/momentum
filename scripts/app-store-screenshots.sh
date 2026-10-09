@@ -12,11 +12,11 @@ trap 'rm -rf "$BUILD"' EXIT
 BUNDLE_ID="$(xcodebuild -project "$ROOT/Momentum.xcodeproj" -scheme MomentumMobile -showBuildSettings 2>/dev/null \
   | awk '/ PRODUCT_BUNDLE_IDENTIFIER =/ {print $3; exit}')"
 
-# Screen name, tab, sheet.
+# Screen name, tab, sheet, and for the goal tab the goal's name (the rest of the line).
 SCREENS=(
   "1-today today -"
   "2-focus today focus"
-  "3-goal goal -"
+  "3-goal goal - Learn Spanish"
   "4-journal journal -"
   "5-review today review"
   "6-awards awards -"
@@ -41,13 +41,14 @@ capture() {
   xcrun simctl status_bar "$udid" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
   xcrun simctl install "$udid" "$app"
   mkdir -p "$OUT/$label"
-  local appearance screen name tab sheet
+  local appearance screen name tab sheet goal
   for appearance in light dark; do
     xcrun simctl ui "$udid" appearance "$appearance"
     for screen in "${SCREENS[@]}"; do
-      read -r name tab sheet <<< "$screen"
+      read -r name tab sheet goal <<< "$screen"
       [[ "$sheet" == "-" ]] && sheet=""
       SIMCTL_CHILD_MOMENTUM_DEMO=1 SIMCTL_CHILD_MOMENTUM_TAB="$tab" SIMCTL_CHILD_MOMENTUM_SHEET="$sheet" \
+        SIMCTL_CHILD_MOMENTUM_GOAL="$goal" \
         xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE_ID" >/dev/null
       sleep 5
       xcrun simctl io "$udid" screenshot "$OUT/$label/$name-$appearance.png" >/dev/null
