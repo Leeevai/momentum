@@ -29,6 +29,8 @@ struct MomentumApp: App {
         } label: {
             MenuBarLabel()
                 .environment(store)
+                // The menu bar item exists from launch, so it's where the global shortcut starts.
+                .task { QuickPanelController.shared.attach(store) }
         }
         .menuBarExtraStyle(.window)
     }

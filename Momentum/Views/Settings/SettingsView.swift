@@ -46,6 +46,14 @@ private struct GeneralSettings: View {
                 }
                 Toggle("Show the focus timer in the menu bar", isOn: binding(\.showsTimerInMenuBar, preferences))
             }
+            Section {
+                LabeledContent("Quick actions from anywhere") {
+                    HotKeyRecorder()
+                }
+                Text("Opens a floating panel over any app: type a goal and press Return to start or log it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Coach and journal") {
                 Toggle("Invite me to plan the morning and reflect in the evening", isOn: binding(\.journalPromptsEnabled, preferences))
             }

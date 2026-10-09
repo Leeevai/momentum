@@ -6,6 +6,10 @@ import SwiftUI
 struct QuickActionsView: View {
     @Environment(GoalStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    /// Set when shown in the floating panel rather than as a sheet.
+    var onClose: (() -> Void)?
+    /// Brings the main window forward, from the floating panel.
+    var onOpenApp: (() -> Void)?
     @State private var query = ""
     @State private var selection = 0
     @FocusState private var searchFocused: Bool
@@ -77,7 +81,7 @@ struct QuickActionsView: View {
             run(goals, open: true)
             return .handled
         }
-        .onExitCommand { dismiss() }
+        .onExitCommand { close() }
     }
 
     /// Active goals matching the query by name, category or book; today's unfinished ones first.
@@ -97,17 +101,22 @@ struct QuickActionsView: View {
     private func run(_ goals: [Goal], open: Bool) {
         guard goals.indices.contains(selection) else { return }
         let goal = goals[selection]
-        dismiss()
+        close()
         let nothingToDo = (goal.kind == .books && goal.currentBook == nil)
             || (goal.kind == .milestones && !goal.milestones.contains { !$0.isDone })
         if open || nothingToDo {
             store.select(goal.id)
+            onOpenApp?()
             return
         }
         switch goal.kind {
         case .time: store.toggleFocus(goal)
         default: store.quickAdd(goal)
         }
+    }
+
+    private func close() {
+        if let onClose { onClose() } else { dismiss() }
     }
 
     private func hint(_ symbol: String, _ text: String) -> some View {
