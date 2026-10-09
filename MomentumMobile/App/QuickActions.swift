@@ -67,12 +67,3 @@ final class QuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
         return true
     }
 }
-
-final class MobileAppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession,
-                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
-        configuration.delegateClass = QuickActionSceneDelegate.self
-        return configuration
-    }
-}

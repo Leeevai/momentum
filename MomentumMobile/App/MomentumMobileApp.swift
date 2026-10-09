@@ -15,7 +15,6 @@ struct MomentumMobileApp: App {
                 .onAppear {
                     LinkRouter.handler = { link in handle(link) }
                     GoalSpotlight.update(from: store.data)
-                    WatchBridge.shared.activate()
                     store.onChange = { engine in WatchBridge.shared.send(engine.watchSnapshot(now: .now)) }
                 }
         }
