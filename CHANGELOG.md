@@ -6,6 +6,8 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-09
+
 ### Added
 - **An iPhone and iPad app**, sharing the Mac app's store and screens: Today with goal cards that
   zoom open into their pages, Journal, Insights and Awards in tabs with the Liquid Glass tab bar,
@@ -194,5 +196,7 @@ An unpublished prototype.
 - Today and Goal widgets with start/stop and check-in buttons.
 - Menu bar timer.
 
+[Unreleased]: https://github.com/Leeevai/momentum/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Leeevai/momentum/releases/tag/v2.0.0
 [1.1.0]: https://github.com/Leeevai/momentum/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Leeevai/momentum/releases/tag/v1.0.0
