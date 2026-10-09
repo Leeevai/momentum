@@ -71,8 +71,9 @@ public enum SyncStamper {
         }
 
         if before.entries != after.entries {
-            let old = Dictionary(before.entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            let new = Dictionary(after.entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let (oldStretch, newStretch) = changedStretch(before.entries, after.entries)
+            let old = Dictionary(oldStretch.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let new = Dictionary(newStretch.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             for (id, entry) in new {
                 let key = SyncState.entry(id)
                 if let previous = old[id] {

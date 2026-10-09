@@ -236,14 +236,17 @@ struct AchievementStats {
         case .weeklyStreak:
             return Double(bestStreak(unit: "week"))
         case .focusHours:
-            return max(0, timerAndTimeEntries.reduce(0) { $0 + $1.amount }) / 3600
+            return max(0, timeGoalIDs.reduce(0) { $0 + (engine.dailyTotals[$1]?.values.reduce(0, +) ?? 0) }) / 3600
         case .longestSessionMinutes:
             return (data.entries.filter { $0.source == .timer }.map(\.amount).max() ?? 0) / 60
         case .bestWeekFocusHours:
-            var weeks: [Date: Double] = [:]
-            for entry in timerAndTimeEntries {
-                let week = calendar.dateInterval(of: .weekOfYear, for: entry.date)?.start ?? entry.date
-                weeks[week, default: 0] += entry.amount
+            var weeks: [Int: Double] = [:]
+            for id in timeGoalIDs {
+                for (key, seconds) in engine.dailyTotals[id] ?? [:] {
+                    let day = DayMath.days(fromKey: key)
+                    let weekStart = day - (DayMath.weekday(day) - calendar.firstWeekday + 7) % 7
+                    weeks[weekStart, default: 0] += seconds
+                }
             }
             return (weeks.values.max() ?? 0) / 3600
         case .earlyBird:
@@ -253,8 +256,8 @@ struct AchievementStats {
         case .booksFinished:
             return Double(data.goals.reduce(0) { $0 + $1.books.filter { $0.finishedAt != nil }.count })
         case .pagesRead:
-            let bookGoals = Set(data.goals.filter { $0.kind == .books }.map(\.id))
-            return max(0, data.entries.filter { bookGoals.contains($0.goalID) }.reduce(0) { $0 + $1.amount })
+            let bookGoals = data.goals.filter { $0.kind == .books }.map(\.id)
+            return max(0, bookGoals.reduce(0) { $0 + (engine.dailyTotals[$1]?.values.reduce(0, +) ?? 0) })
         case .milestonesCompleted:
             return Double(data.goals.reduce(0) { $0 + $1.milestones.filter(\.isDone).count })
         case .goalsFinished:
@@ -277,13 +280,9 @@ struct AchievementStats {
 
     private var timeGoalIDs: Set<UUID> { Set(data.goals.filter { $0.kind == .time }.map(\.id)) }
 
-    private var timerAndTimeEntries: [LogEntry] {
-        let ids = timeGoalIDs
-        return data.entries.filter { ids.contains($0.goalID) }
-    }
-
     private var sessionStartHours: [Int] {
-        data.entries.filter { $0.source == .timer && $0.amount >= 60 }.map { calendar.component(.hour, from: $0.date) }
+        let zone = calendar.timeZone
+        return data.entries.filter { $0.source == .timer && $0.amount >= 60 }.map { DayMath.localHour($0.date, zone) }
     }
 
     private func bestStreak(unit: String) -> Int {
@@ -292,26 +291,14 @@ struct AchievementStats {
 
     /// Day keys with any progress logged or anything finished.
     private var activeDayKeys: Set<Int> {
-        var keys = Set(data.entries.filter { $0.amount > 0 }.map { engine.dayKey($0.date) })
-        for goal in data.goals {
-            for date in goal.milestones.compactMap(\.completedAt) + goal.books.compactMap(\.finishedAt) {
-                keys.insert(engine.dayKey(date))
-            }
-        }
-        return keys
+        engine.activityDays.values.reduce(into: Set<Int>()) { $0.formUnion($1) }
     }
 
     /// Whether any goal saw progress again after 7 or more days without any.
     private var hasComeback: Bool {
-        var days: [UUID: [Date]] = [:]
-        for entry in data.entries where entry.amount > 0 {
-            days[entry.goalID, default: []].append(engine.startOfDay(entry.date))
-        }
-        return days.values.contains { dates in
-            let sorted = Set(dates).sorted()
-            return zip(sorted, sorted.dropFirst()).contains { earlier, later in
-                (calendar.dateComponents([.day], from: earlier, to: later).day ?? 0) >= 8
-            }
+        engine.activityDays.values.contains { keys in
+            let days = keys.map(DayMath.days(fromKey:)).sorted()
+            return zip(days, days.dropFirst()).contains { earlier, later in later - earlier >= 8 }
         }
     }
 

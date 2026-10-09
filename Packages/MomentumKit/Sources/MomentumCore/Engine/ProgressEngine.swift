@@ -10,9 +10,9 @@ public struct ProgressEngine: Sendable {
     public let calendar: Calendar
 
     /// Goal id -> day key -> logged amount.
-    private let dailyTotals: [UUID: [Int: Double]]
+    let dailyTotals: [UUID: [Int: Double]]
     /// Goal id -> day keys with any activity (logs, finished milestones, finished books).
-    private let activityDays: [UUID: Set<Int>]
+    let activityDays: [UUID: Set<Int>]
     /// Goal id -> the earliest day it has data for, so history from before creation still counts.
     private let firstDay: [UUID: Date]
     private let goalsByID: [UUID: Goal]
@@ -28,12 +28,18 @@ public struct ProgressEngine: Sendable {
         for goal in data.goals {
             first[goal.id] = calendar.startOfDay(for: goal.createdAt)
         }
+        // The earliest day key per goal, turned into a date once per goal: a calendar call per
+        // entry is most of the cost of building an engine over years of history.
+        var earliest: [UUID: Int] = [:]
         for entry in data.entries {
             let key = Self.dayKey(entry.date, calendar)
             totals[entry.goalID, default: [:]][key, default: 0] += entry.amount
             if entry.amount > 0 { activity[entry.goalID, default: []].insert(key) }
-            let day = calendar.startOfDay(for: entry.date)
-            if let known = first[entry.goalID], day < known { first[entry.goalID] = day }
+            if key < earliest[entry.goalID, default: .max] { earliest[entry.goalID] = key }
+        }
+        for (goalID, key) in earliest {
+            let day = DayID(year: key / 10_000, month: key / 100 % 100, day: key % 100).date(in: calendar)
+            if let known = first[goalID], day < known { first[goalID] = day }
         }
         for goal in data.goals {
             // Finishes count as history too: imported books carry past dates and no log entries.
@@ -62,9 +68,12 @@ public struct ProgressEngine: Sendable {
 
     // MARK: - Calendar
 
+    /// The local day `date` falls on, as yyyymmdd in the Gregorian calendar. Computed from the
+    /// time zone's offset rather than through `Calendar`, which is far slower and is called for
+    /// every log entry each time the engine is built.
     static func dayKey(_ date: Date, _ calendar: Calendar) -> Int {
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
-        return (parts.year ?? 0) * 10_000 + (parts.month ?? 0) * 100 + (parts.day ?? 0)
+        let (year, month, day) = DayMath.civil(DayMath.localDay(date, calendar.timeZone))
+        return year * 10_000 + month * 100 + day
     }
 
     public func dayKey(_ date: Date) -> Int { Self.dayKey(date, calendar) }
@@ -285,9 +294,37 @@ public struct ProgressEngine: Sendable {
     // change while the data doesn't) plus the current period, checked live. The current period
     // adds to a streak once kept but never breaks it while still open.
 
+    /// A key for a goal's streak history that changes whenever anything the history depends on
+    /// does: its settings, its logged days and its finishes. Lets the history outlive the engine
+    /// it was computed in, since most changes don't touch a goal's past.
+    private func historyKey(_ kind: String, _ goal: Goal, _ anchor: Int) -> String {
+        var hasher = Hasher()
+        hasher.combine(goal.kind)
+        hasher.combine(goal.period)
+        hasher.combine(goal.target)
+        hasher.combine(goal.streakMinimum)
+        hasher.combine(goal.weekdays)
+        hasher.combine(goal.breaks)
+        hasher.combine(firstDay(of: goal))
+        hasher.combine(goal.milestones.compactMap(\.completedAt))
+        hasher.combine(goal.books.compactMap(\.finishedAt))
+        // Order-independent sums over the daily totals.
+        var totals = 0
+        for (key, amount) in dailyTotals[goal.id] ?? [:] {
+            totals &+= key &* 1_000_003 &+ amount.hashValue
+        }
+        hasher.combine(totals)
+        if let session = data.session, session.goalID == goal.id {
+            hasher.combine(session.startedAt)
+            hasher.combine(session.segments)
+            hasher.combine(session.runningSince)
+        }
+        return "\(kind)|\(goal.id)|\(anchor)|\(hasher.finalize())"
+    }
+
     private func dailyStreak(for goal: Goal, now: Date) -> Streak {
         let today = startOfDay(now)
-        let history = streakCache.value("d|\(goal.id)|\(dayKey(today))") {
+        let history = streakCache.value(historyKey("d", goal, dayKey(today))) {
             var day = max(firstDay(of: goal), self.day(-Self.maxStreakDays, from: today))
             var run = 0
             var best = 0
@@ -309,7 +346,7 @@ public struct ProgressEngine: Sendable {
         let period = goal.effectivePeriod
         guard let component = period.calendarComponent else { return Streak(current: 0, best: 0, unit: period.noun) }
         let current = interval(of: period, containing: now)
-        let history = streakCache.value("p|\(goal.id)|\(period.rawValue)|\(dayKey(current.start))") {
+        let history = streakCache.value(historyKey("p", goal, dayKey(current.start))) {
             var start = interval(of: period, containing: firstDay(of: goal)).start
             var run = 0
             var best = 0
@@ -334,7 +371,7 @@ public struct ProgressEngine: Sendable {
     private func activityStreak(for goal: Goal, now: Date) -> Streak {
         let today = startOfDay(now)
         let days = activityDays[goal.id] ?? []
-        let history = streakCache.value("a|\(goal.id)|\(dayKey(today))") {
+        let history = streakCache.value(historyKey("a", goal, dayKey(today))) {
             var day = max(firstDay(of: goal), self.day(-Self.maxStreakDays, from: today))
             var run = 0
             var best = 0
@@ -530,28 +567,31 @@ final class EntryIndex: @unchecked Sendable {
     }
 }
 
-/// Memoizes streak history for one engine. Engines are immutable snapshots, so entries never
-/// go stale; a reference type lets copies of the engine share it.
+/// Memoizes streak history. Keys fingerprint everything a history depends on, so a value never
+/// goes stale; they are shared across engines (a new one is built on every change, and most
+/// changes leave every goal's past alone), up to a bound.
 final class StreakCache: @unchecked Sendable {
     struct Value: Sendable {
         var run: Int
         var best: Int
     }
 
-    private let lock = NSLock()
-    private var values: [String: Value] = [:]
+    private static let lock = NSLock()
+    private nonisolated(unsafe) static var values: [String: Value] = [:]
+    private static let limit = 2_000
 
     func value(_ key: String, compute: () -> Value) -> Value {
-        lock.lock()
-        if let cached = values[key] {
-            lock.unlock()
+        Self.lock.lock()
+        if let cached = Self.values[key] {
+            Self.lock.unlock()
             return cached
         }
-        lock.unlock()
+        Self.lock.unlock()
         let computed = compute()
-        lock.lock()
-        values[key] = computed
-        lock.unlock()
+        Self.lock.lock()
+        if Self.values.count >= Self.limit { Self.values.removeAll(keepingCapacity: true) }
+        Self.values[key] = computed
+        Self.lock.unlock()
         return computed
     }
 }

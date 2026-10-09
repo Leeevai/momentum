@@ -8,6 +8,9 @@ import OSLog
 public final class FileStore: Sendable {
     public let fileURL: URL
     private let logger = Logger(subsystem: "dev.momentum.core", category: "FileStore")
+    /// The data as last read or written, with the file date it belongs to. A file whose date
+    /// hasn't moved since is not decoded again: with years of history that's the slow part of a save.
+    private let cache = ReadCache()
 
     /// Data together with the file's modification date at the moment it was read or written,
     /// taken inside the file coordinator so no other writer can slip in between the two.
@@ -204,10 +207,14 @@ public final class FileStore: Sendable {
 
     private func read(_ url: URL) -> AppData {
         guard FileManager.default.fileExists(atPath: url.path) else { return AppData() }
+        let modification = modificationDate()
+        if let cached = cache.data(for: modification) { return cached }
         do {
             let bytes = try Data(contentsOf: url)
             if Self.isLegacy(bytes) { keepLegacyCopy(of: url) }
-            return try Self.decode(bytes)
+            let data = try Self.decode(bytes)
+            cache.store(data, modification: modification)
+            return data
         } catch {
             // Keep the unreadable file so the next save cannot destroy the history in it.
             logger.error("Could not read \(url.path, privacy: .public): \(String(describing: error), privacy: .public)")
@@ -220,6 +227,7 @@ public final class FileStore: Sendable {
         do {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try Self.encode(data).write(to: url, options: .atomic)
+            cache.store(data, modification: modificationDate())
         } catch {
             logger.error("Could not save \(url.path, privacy: .public): \(String(describing: error), privacy: .public)")
         }
@@ -234,5 +242,26 @@ public final class FileStore: Sendable {
         } catch {
             logger.error("Could not back up \(url.path, privacy: .public): \(String(describing: error), privacy: .public)")
         }
+    }
+}
+
+/// The last data a `FileStore` read or wrote, keyed by the file's modification date.
+private final class ReadCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var modification: Date?
+    private var data: AppData?
+
+    func data(for modification: Date?) -> AppData? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let modification, modification == self.modification else { return nil }
+        return data
+    }
+
+    func store(_ data: AppData, modification: Date?) {
+        lock.lock()
+        defer { lock.unlock() }
+        self.modification = modification
+        self.data = modification == nil ? nil : data
     }
 }

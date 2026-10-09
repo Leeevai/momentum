@@ -13,9 +13,11 @@ public struct DayID: Codable, Hashable, Comparable, Sendable, CustomStringConver
         self.day = day
     }
 
+    /// The day `date` falls on in `calendar`'s time zone, numbered in the Gregorian calendar
+    /// whatever calendar the device uses, so every device names a day the same way.
     public init(_ date: Date, calendar: Calendar = .current) {
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
-        self.init(year: parts.year ?? 1970, month: parts.month ?? 1, day: parts.day ?? 1)
+        let (year, month, day) = DayMath.civil(DayMath.localDay(date, calendar.timeZone))
+        self.init(year: year, month: month, day: day)
     }
 
     /// Parses "yyyy-MM-dd".
@@ -29,9 +31,11 @@ public struct DayID: Codable, Hashable, Comparable, Sendable, CustomStringConver
         String(format: "%04d-%02d-%02d", year, month, day)
     }
 
-    /// The start of this day in `calendar`.
+    /// The start of this day in `calendar`'s time zone.
     public func date(in calendar: Calendar = .current) -> Date {
-        calendar.date(from: DateComponents(year: year, month: month, day: day)) ?? .distantPast
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        return gregorian.date(from: DateComponents(year: year, month: month, day: day)) ?? .distantPast
     }
 
     public static func < (lhs: DayID, rhs: DayID) -> Bool {

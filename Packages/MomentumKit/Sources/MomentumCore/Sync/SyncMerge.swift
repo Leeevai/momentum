@@ -62,7 +62,7 @@ public enum SyncMerge {
                 entries.append(entry)
             }
         }
-        merged.entries = entries.sorted { ($0.date, $0.id.uuidString) < ($1.date, $1.id.uuidString) }
+        merged.entries = entries.sorted { $0.date != $1.date ? $0.date < $1.date : $0.id.uuidString < $1.id.uuidString }
 
         // Journal days.
         let localDays = Dictionary(local.journal.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })

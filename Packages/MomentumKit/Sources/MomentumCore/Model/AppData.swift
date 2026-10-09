@@ -31,6 +31,19 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey { case id, goalID, date, amount, source, note, bookID }
 
+    /// Leaves out values that are the decoding default (a manual entry, no note, no book): most
+    /// entries are just an amount at a time, and the file is rewritten on every change.
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(goalID, forKey: .goalID)
+        try c.encode(date, forKey: .date)
+        try c.encode(amount, forKey: .amount)
+        if source != .manual { try c.encode(source, forKey: .source) }
+        if !note.isEmpty { try c.encode(note, forKey: .note) }
+        try c.encodeIfPresent(bookID, forKey: .bookID)
+    }
+
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(.id, default: UUID())

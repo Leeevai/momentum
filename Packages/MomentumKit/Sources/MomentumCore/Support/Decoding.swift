@@ -32,3 +32,19 @@ extension DateInterval {
         date >= start && date < end
     }
 }
+
+/// The stretches of two arrays between their common start and common end. Anything outside
+/// them is the same element in the same place in both, so a diff by id need only look inside:
+/// with thousands of entries and one added, that is the difference between a scan and a sort.
+func changedStretch<T: Equatable>(_ a: [T], _ b: [T]) -> (ArraySlice<T>, ArraySlice<T>) {
+    var start = 0
+    let shorter = min(a.count, b.count)
+    while start < shorter && a[start] == b[start] { start += 1 }
+    var endA = a.count
+    var endB = b.count
+    while endA > start && endB > start && a[endA - 1] == b[endB - 1] {
+        endA -= 1
+        endB -= 1
+    }
+    return (a[start..<endA], b[start..<endB])
+}

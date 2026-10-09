@@ -35,8 +35,9 @@ public struct DataPatch: Sendable {
         let newOrder = after.goals.map(\.id)
         if oldOrder != newOrder { order = Change(before: oldOrder, after: newOrder) }
 
-        let oldEntries = Self.byID(before.entries)
-        let newEntries = Self.byID(after.entries)
+        let (oldStretch, newStretch) = changedStretch(before.entries, after.entries)
+        let oldEntries = Self.byID(Array(oldStretch))
+        let newEntries = Self.byID(Array(newStretch))
         for id in Set(oldEntries.keys).union(newEntries.keys) where oldEntries[id] != newEntries[id] {
             entries[id] = Change(before: oldEntries[id], after: newEntries[id])
         }

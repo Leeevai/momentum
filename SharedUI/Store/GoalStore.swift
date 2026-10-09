@@ -102,6 +102,7 @@ final class GoalStore {
     @ObservationIgnored private var pomodoroTimer: Timer?
     @ObservationIgnored private var toastQueue: [Toast] = []
     @ObservationIgnored private var tipsCache: (key: String, tips: [CoachTip])?
+    @ObservationIgnored private var achievementTask: Task<Void, Never>?
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     /// The data file's modification date as of the last read or write by this app.
     @ObservationIgnored private var knownModification: Date?
@@ -270,21 +271,30 @@ final class GoalStore {
 
     // MARK: - Achievements
 
-    /// Records achievements the data has reached, announcing them.
+    /// Records achievements the data has reached, announcing them. Measured off the main thread
+    /// (it reads all of history) and once changes settle, so it never delays a tap.
     private func recordAchievements() {
-        let earned = engine.newlyEarnedAchievements(now: .now)
-        guard !earned.isEmpty else { return }
-        perform { data in
-            for achievement in earned where data.achievements[achievement.id] == nil {
-                data.achievements[achievement.id] = .now
+        achievementTask?.cancel()
+        let engine = self.engine
+        achievementTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            let earned = await Task.detached(priority: .utility) { engine.newlyEarnedAchievements(now: .now) }.value
+            guard !Task.isCancelled, let self else { return }
+            let fresh = earned.filter { self.data.achievements[$0.id] == nil }
+            guard !fresh.isEmpty else { return }
+            self.perform { data in
+                for achievement in fresh where data.achievements[achievement.id] == nil {
+                    data.achievements[achievement.id] = .now
+                }
             }
+            if fresh.count > 2 {
+                self.show(Toast(kind: .achievements(fresh.count)))
+            } else {
+                fresh.forEach { self.show(Toast(kind: .achievement($0))) }
+            }
+            self.effects.play(.award, preferences: self.data.preferences)
         }
-        if earned.count > 2 {
-            show(Toast(kind: .achievements(earned.count)))
-        } else {
-            earned.forEach { show(Toast(kind: .achievement($0))) }
-        }
-        effects.play(.award, preferences: data.preferences)
     }
 
     // MARK: - Toasts
