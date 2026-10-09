@@ -82,6 +82,8 @@ final class GoalStore {
     var sheet: SheetRoute?
     var celebration: Celebration?
     var toast: Toast?
+    /// The user's latest change, for haptics.
+    private(set) var haptic: HapticEvent?
     /// The full-screen focus mode.
     var isFocusModePresented = false
     /// Coach tips dismissed today.
@@ -168,6 +170,7 @@ final class GoalStore {
     func perform(_ undoName: String? = nil, _ change: (inout AppData) -> Void) {
         let result = persistence.update(change)
         knownModification = result.modification
+        if let event = HapticEvent(from: result.before, to: result.after) { haptic = event }
         if let undoName {
             let patch = DataPatch(from: result.before, to: result.after)
             if !patch.isEmpty { registerUndo(patch, name: undoName) }

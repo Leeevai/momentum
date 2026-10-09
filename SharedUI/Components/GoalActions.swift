@@ -29,7 +29,6 @@ struct GoalPrimaryButton: View {
                 }
             }
         }
-        .sensoryFeedback(.success, trigger: store.engine.currentAmount(for: goal, now: store.now))
     }
 
     private var quickAddTitle: String {

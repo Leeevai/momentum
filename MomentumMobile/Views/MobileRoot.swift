@@ -12,6 +12,7 @@ struct MobileRoot: View {
     // gives up ("unable to type-check this expression in reasonable time") on Xcode 26.
     var body: some View {
         routing(presentations(tabs))
+            .appHaptics(store)
     }
 
     private var tabs: some View {
