@@ -26,6 +26,8 @@ enum SheetRoute: Identifiable {
     /// The morning plan, or the evening reflection, for a day.
     case plan(DayID)
     case reflect(DayID)
+    /// The last seven days, looked back on.
+    case review
 
     var id: String {
         switch self {
@@ -38,6 +40,7 @@ enum SheetRoute: Identifiable {
         case .share(let goal): "share-\(goal.id)"
         case .plan(let day): "plan-\(day)"
         case .reflect(let day): "reflect-\(day)"
+        case .review: "review"
         }
     }
 }

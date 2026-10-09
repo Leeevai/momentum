@@ -33,6 +33,14 @@ struct JournalView: View {
         .navigationTitle("Journal")
         .toolbar {
             ToolbarItem {
+                Button {
+                    store.sheet = .review
+                } label: {
+                    Label("Week in Review", systemImage: "calendar.badge.checkmark")
+                }
+                .help("Look back on the last seven days")
+            }
+            ToolbarItem {
                 Button("Today") { select(Calendar.current.startOfDay(for: .now)) }
                     .help("Go to today")
             }
@@ -45,6 +53,7 @@ struct JournalView: View {
         VStack(alignment: .leading, spacing: 18) {
             MonthCalendar(month: $month, selected: selected, marker: selection) { day in select(day) }
             MonthStats(month: month)
+            YearInPixels { day in select(day) }
         }
     }
 
@@ -364,7 +373,7 @@ private struct DayGoals: View {
                         .font(.callout.weight(.medium))
                     Spacer()
                     if amount > 0 {
-                        Text(goal.formatShort(amount) + (goal.kind == .time ? "" : " \(goal.displayUnit)"))
+                        Text(goal.formatLogged(amount))
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()

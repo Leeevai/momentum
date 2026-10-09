@@ -44,6 +44,7 @@ struct MomentumApp: App {
         case .awards: store.route = .awards
         case .plan: store.sheet = .plan(DayID(.now))
         case .reflect: store.sheet = .reflect(DayID(.now))
+        case .review: store.sheet = .review
         case .goal(let id): store.select(id)
         case .newGoal: store.sheet = .newGoal
         case .openLink(let goalID, let linkID):
@@ -114,6 +115,11 @@ struct MomentumCommands: Commands {
                 store.sheet = .reflect(DayID(.now))
             }
             .keyboardShortcut("r", modifiers: [.command, .option])
+            Button("Week in Review") {
+                openWindow(id: "main")
+                store.sheet = .review
+            }
+            .keyboardShortcut("w", modifiers: [.command, .option])
         }
         CommandGroup(replacing: .help) {
             Button("Momentum Help") { showHelp() }

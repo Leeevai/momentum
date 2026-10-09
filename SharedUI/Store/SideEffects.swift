@@ -313,6 +313,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let goalID = (response.notification.request.content.userInfo["goal"] as? String).flatMap(UUID.init(uuidString:))
         let action = response.actionIdentifier
+        let isRecap = response.notification.request.identifier.contains(".recap.")
         await MainActor.run {
             guard let store = self.store else { return }
             switch action {
@@ -331,7 +332,11 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             case Action.nextBlock:
                 store.startNextBlock()
             default:
-                if let goalID { store.select(goalID) }
+                if isRecap {
+                    store.sheet = .review
+                } else if let goalID {
+                    store.select(goalID)
+                }
                 Self.activateApp()
             }
         }

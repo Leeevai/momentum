@@ -107,6 +107,8 @@ private struct SheetContent: View {
             PlanSheet(day: day)
         case .reflect(let day):
             ReflectSheet(day: day)
+        case .review:
+            WeekReviewSheet()
         }
     }
 }

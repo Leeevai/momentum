@@ -45,6 +45,7 @@ struct MomentumMobileApp: App {
             case "reflect": store.sheet = .reflect(DayID(.now))
             case "edit": if let first = data.goals.first { store.sheet = .editGoal(first) }
             case "focus": store.isFocusModePresented = true
+            case "review": store.sheet = .review
             default: break
             }
             return store
@@ -62,6 +63,7 @@ struct MomentumMobileApp: App {
         case .awards: store.route = .awards
         case .plan: store.sheet = .plan(DayID(.now))
         case .reflect: store.sheet = .reflect(DayID(.now))
+        case .review: store.sheet = .review
         case .goal(let id): store.select(id)
         case .newGoal: store.sheet = .newGoal
         case .openLink(let goalID, let linkID):

@@ -118,6 +118,8 @@ struct MobileSheet: View {
                 PlanSheet(day: day)
             case .reflect(let day):
                 ReflectSheet(day: day)
+            case .review:
+                WeekReviewSheet()
             }
         }
         .presentationDragIndicator(.visible)

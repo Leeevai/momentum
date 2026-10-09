@@ -66,6 +66,13 @@ extension Goal {
         return unit.isEmpty ? Formatting.number(value) : "\(Formatting.number(value)) \(unit)"
     }
 
+    /// What log entries add up to: the goal's own unit, except for books goals, whose entries
+    /// are pages read ("120 pages") while the target counts books.
+    public func formatLogged(_ amount: Double) -> String {
+        guard kind == .books else { return format(amount) }
+        return "\(Formatting.number(amount)) \(Formatting.unit("pages", for: amount))"
+    }
+
     /// A bare value for tight spaces: "1h 30m", "3", "12.5".
     public func formatShort(_ value: Double) -> String {
         kind == .time ? Formatting.duration(value) : Formatting.number(value)
