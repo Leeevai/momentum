@@ -8,17 +8,17 @@ struct GoalEntity: AppEntity {
 
     let id: UUID
     let name: String
-    let icon: String
+    let symbol: String
     let kind: GoalKind
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(icon) \(name)", subtitle: "\(kind.title)")
+        DisplayRepresentation(title: "\(name)", subtitle: "\(kind.title)", image: DisplayRepresentation.Image(systemName: symbol))
     }
 
     init(goal: Goal) {
         id = goal.id
         name = goal.name
-        icon = goal.icon
+        symbol = goal.symbol
         kind = goal.kind
     }
 }

@@ -26,7 +26,7 @@ struct CelebrationOverlay: View {
 
             if toastVisible {
                 HStack(spacing: 12) {
-                    Text(celebration.goal.icon).font(.title)
+                    GoalIcon(goal: celebration.goal, size: 40)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(celebration.goal.name) complete")
                             .font(.headline)

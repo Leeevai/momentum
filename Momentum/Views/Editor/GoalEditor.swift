@@ -1,4 +1,3 @@
-import AppKit
 import MomentumCore
 import SwiftUI
 
@@ -37,7 +36,7 @@ struct GoalEditor: View {
         let named = !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let targeted = draft.kind == .milestones || draft.target > 0
         let scheduled = draft.effectivePeriod != .daily || !draft.weekdays.isEmpty
-        return named && targeted && scheduled && !draft.icon.isEmpty
+        return named && targeted && scheduled
     }
 
     var body: some View {
@@ -91,14 +90,8 @@ struct GoalEditor: View {
     private var basics: some View {
         Section {
             TextField("Name", text: $draft.name, prompt: Text("e.g. Deep work, Read, Gym"))
-            HStack {
-                TextField("Icon", text: $draft.icon)
-                    .frame(maxWidth: 140)
-                    .onChange(of: draft.icon) { _, value in
-                        if value.count > 1 { draft.icon = String(value.suffix(1)) }
-                    }
-                Button("Emoji & Symbols…") { NSApp.orderFrontCharacterPalette(nil) }
-                    .controlSize(.small)
+            LabeledContent("Icon") {
+                SymbolPickerButton(goal: $draft)
             }
             LabeledContent("Color") {
                 ColorChooser(selection: $draft.color)

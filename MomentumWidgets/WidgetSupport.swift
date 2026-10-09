@@ -186,8 +186,7 @@ struct WidgetGoalRing: View {
     var body: some View {
         ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: lineWidth) {
             VStack(spacing: 0) {
-                Text(goal.icon)
-                    .font(.system(size: lineWidth * 2.4))
+                GoalGlyph(goal: goal, size: lineWidth * 2.2)
                 Group {
                     if let session = engine.data.session, session.goalID == goal.id {
                         WidgetSessionClock(session: session)

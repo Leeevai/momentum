@@ -52,23 +52,42 @@ struct StreakBadge: View {
     }
 }
 
-/// The goal's emoji on a tinted, rounded tile.
+/// The goal's symbol on an iOS-style tile: the goal's gradient, a glassy top light, a fine edge
+/// and a soft colored shadow.
 struct GoalIcon: View {
     let goal: Goal
     var size: CGFloat = 36
 
     var body: some View {
-        Text(goal.icon)
-            .font(.system(size: size * 0.55))
+        let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+        Image(systemName: goal.symbol)
+            .font(.system(size: size * 0.46, weight: .semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(.white)
             .frame(width: size, height: size)
-            .background(
-                RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
-                    .fill(goal.color.linear.opacity(0.22))
-            )
+            .background(shape.fill(goal.color.linear))
             .overlay(
-                RoundedRectangle(cornerRadius: size * 0.3, style: .continuous)
-                    .strokeBorder(goal.tint.opacity(0.25), lineWidth: 0.5)
+                shape.fill(LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0)], startPoint: .top, endPoint: .center))
+                    .blendMode(.plusLighter)
+                    .allowsHitTesting(false)
             )
+            .overlay(shape.strokeBorder(.white.opacity(0.22), lineWidth: max(0.5, size * 0.02)))
+            .shadow(color: goal.tint.opacity(0.32), radius: size * 0.14, y: size * 0.07)
+            .accessibilityHidden(true)
+    }
+}
+
+/// The goal's symbol alone, in its color: for ring centers and inline labels.
+struct GoalGlyph: View {
+    let goal: Goal
+    var size: CGFloat = 20
+
+    var body: some View {
+        Image(systemName: goal.symbol)
+            .font(.system(size: size, weight: .semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(goal.color.linear)
+            .accessibilityHidden(true)
     }
 }
 

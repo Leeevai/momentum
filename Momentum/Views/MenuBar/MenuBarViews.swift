@@ -18,8 +18,11 @@ struct MenuBarLabel: View {
     private var label: some View {
         if store.data.preferences.showsTimerInMenuBar, let session = store.data.session, let goal = store.goal(session.goalID) {
             LiveClock(isLive: session.isRunning, fallback: .now) { now in
-                Text("\(goal.icon) \(label(session, now: now))")
-                    .monospacedDigit()
+                HStack(spacing: 4) {
+                    Image(systemName: goal.symbol)
+                    Text(label(session, now: now))
+                        .monospacedDigit()
+                }
             }
         } else {
             let summary = store.engine.todaySummary(now: store.now)
@@ -129,7 +132,7 @@ private struct MenuSessionCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Text(goal.icon).font(.title2)
+            GoalIcon(goal: goal, size: 32)
             VStack(alignment: .leading, spacing: 1) {
                 Text(goal.name).font(.callout.weight(.semibold)).lineLimit(1)
                 SessionClockText(session: session)

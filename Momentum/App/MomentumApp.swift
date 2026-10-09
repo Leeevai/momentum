@@ -89,7 +89,7 @@ struct MomentumCommands: Commands {
                 .keyboardShortcut("2", modifiers: .command)
             Divider()
             ForEach(Array(store.engine.activeGoals.prefix(7).enumerated()), id: \.element.id) { index, goal in
-                Button("\(goal.icon) \(goal.name)") { show(.goal(goal.id)) }
+                Button { show(.goal(goal.id)) } label: { Label(goal.name, systemImage: goal.symbol) }
                     .keyboardShortcut(KeyEquivalent(Character(String(index + 3))), modifiers: .command)
             }
         }
@@ -116,7 +116,7 @@ struct MomentumCommands: Commands {
                     Text("No time goals yet")
                 }
                 ForEach(timeGoals) { goal in
-                    Button("Start \(goal.icon) \(goal.name)") { store.toggleFocus(goal) }
+                    Button { store.toggleFocus(goal) } label: { Label("Start \(goal.name)", systemImage: goal.symbol) }
                 }
             }
         }

@@ -121,7 +121,7 @@ private struct GoalLarge: View {
         let streak = engine.streak(for: goal, now: entry.date)
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Text(goal.icon)
+                GoalIcon(goal: goal, size: 22)
                 Text(goal.name).font(.headline).lineLimit(1)
                 Spacer()
                 Text(goal.targetDescription)

@@ -60,7 +60,7 @@ private struct TodaySmall: View {
             Spacer(minLength: 4)
             if let session = entry.data.session, let goal = engine.goal(session.goalID) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(goal.icon) \(goal.name)")
+                    Label(goal.name, systemImage: goal.symbol)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -163,7 +163,7 @@ private struct TodayRow: View {
     private func row(engine: ProgressEngine, streak: ProgressEngine.Streak) -> some View {
         HStack(spacing: 10) {
             ProgressRing(progress: engine.progress(for: goal, now: entry.date), color: goal.color, lineWidth: 4) {
-                Text(goal.icon).font(.system(size: 12))
+                GoalGlyph(goal: goal, size: 11)
             }
             .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 1) {
@@ -215,8 +215,7 @@ private struct WeekGrid: View {
                 }
                 ForEach(goals) { goal in
                     GridRow {
-                        Text(goal.icon)
-                            .font(.system(size: 11))
+                        GoalGlyph(goal: goal, size: 10)
                             .frame(width: 22, alignment: .leading)
                         ForEach(days.indices, id: \.self) { index in
                             dot(goal, days[index])

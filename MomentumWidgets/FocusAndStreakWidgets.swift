@@ -31,7 +31,7 @@ struct FocusWidgetView: View {
     private func running(session: FocusSession, goal: Goal) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("\(goal.icon) \(goal.name)")
+                Label(goal.name, systemImage: goal.symbol)
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
                 Spacer()
@@ -92,7 +92,7 @@ struct FocusWidgetView: View {
                 ForEach(goals.prefix(family == .systemSmall ? 2 : 3)) { goal in
                     Button(intent: ToggleFocusIntent(goalID: goal.id)) {
                         HStack(spacing: 8) {
-                            Text(goal.icon)
+                            GoalGlyph(goal: goal, size: 13)
                             Text(goal.name)
                                 .font(.callout.weight(.semibold))
                                 .lineLimit(1)
@@ -167,7 +167,7 @@ struct StreaksWidgetView: View {
                     .font(.system(size: 52, weight: .heavy, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [.yellow, .orange, .red], startPoint: .top, endPoint: .bottom))
                     .minimumScaleFactor(0.5)
-                Text("\(Formatting.unit("\(top.1.unit)s", for: Double(top.1.current))) of \(top.0.icon) \(top.0.name)")
+                Text("\(Formatting.unit("\(top.1.unit)s", for: Double(top.1.current))) of \(top.0.name)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -181,7 +181,7 @@ struct StreaksWidgetView: View {
                 let best = max(1, ranked.first?.1.best ?? 1)
                 ForEach(ranked.prefix(family == .systemLarge ? 8 : 3), id: \.0.id) { goal, streak in
                     HStack(spacing: 8) {
-                        Text(goal.icon)
+                        GoalGlyph(goal: goal, size: 13)
                         Text(goal.name)
                             .font(.subheadline.weight(.medium))
                             .lineLimit(1)

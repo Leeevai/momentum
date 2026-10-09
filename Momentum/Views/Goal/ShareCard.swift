@@ -14,8 +14,8 @@ struct ShareCard: View {
         let streak = engine.streak(for: goal, now: now)
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 14) {
-                Text(goal.icon)
-                    .font(.system(size: 34))
+                Image(systemName: goal.symbol)
+                    .font(.system(size: 30, weight: .semibold))
                     .frame(width: 60, height: 60)
                     .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.white.opacity(0.18)))
                 VStack(alignment: .leading, spacing: 2) {

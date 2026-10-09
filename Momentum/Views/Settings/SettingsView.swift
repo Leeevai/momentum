@@ -134,10 +134,12 @@ private struct NotificationSettings: View {
                         .foregroundStyle(.secondary)
                 }
                 ForEach(reminded) { goal in
-                    LabeledContent("\(goal.icon) \(goal.name)") {
+                    LabeledContent {
                         if let reminder = goal.reminder {
                             Text(String(format: "%02d:%02d", reminder.hour, reminder.minute)).monospacedDigit()
                         }
+                    } label: {
+                        Label { Text(goal.name) } icon: { GoalIcon(goal: goal, size: 20) }
                     }
                 }
             }

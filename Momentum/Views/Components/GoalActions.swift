@@ -120,8 +120,7 @@ struct GoalRing: View {
         LiveClock(isLive: live, fallback: store.now) { now in
             ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: lineWidth) {
                 if showsIcon {
-                    Text(goal.icon)
-                        .font(.system(size: lineWidth * 3.2))
+                    GoalGlyph(goal: goal, size: lineWidth * 2.6)
                 }
             }
         }

@@ -179,6 +179,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         for reminder in planned {
             let content = UNMutableNotificationContent()
             content.title = reminder.title
+            content.subtitle = reminder.subtitle
             content.body = reminder.body
             content.sound = .default
             content.categoryIdentifier = Category.reminder
@@ -203,7 +204,8 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             if authorization == .notDetermined { await requestAuthorization() }
             guard authorization == .authorized || authorization == .provisional else { return }
             let content = UNMutableNotificationContent()
-            content.title = "\(goal.icon) Time's up"
+            content.title = "Time's up"
+            content.subtitle = goal.name
             content.body = "\(Formatting.duration(session.plannedDuration ?? 0)) of \(goal.name) done. Take a breather."
             content.sound = .default
             content.categoryIdentifier = Category.sessionEnd

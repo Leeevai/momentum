@@ -226,7 +226,7 @@ struct FocusBanner: View {
             LiveClock(isLive: session.isRunning, fallback: .now) { now in
                 let planned = session.plannedDuration ?? 0
                 ProgressRing(progress: planned > 0 ? session.elapsed(at: now) / planned : 1, color: goal.color, lineWidth: 10) {
-                    Text(goal.icon).font(.system(size: 34))
+                    GoalGlyph(goal: goal, size: 32)
                 }
                 .opacity(session.isRunning ? 1 : 0.55)
             }

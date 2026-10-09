@@ -135,8 +135,7 @@ private struct MiniFocusPlayer: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(goal.icon)
-                .font(.title3)
+            GoalIcon(goal: goal, size: 28)
             VStack(alignment: .leading, spacing: 1) {
                 Text(goal.name)
                     .font(.caption.weight(.semibold))
