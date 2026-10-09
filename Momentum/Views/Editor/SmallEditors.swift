@@ -15,14 +15,24 @@ struct LogProgressSheet: View {
     @State private var date: Date
     @State private var note: String
 
-    init(goal: Goal, entry: LogEntry? = nil) {
+    /// `day` presets the date to that day (at the current time of day, or noon for today's future),
+    /// for logging a day that was missed.
+    init(goal: Goal, entry: LogEntry? = nil, day: Date? = nil) {
         self.goal = goal
         self.entry = entry
         let value = entry?.amount ?? goal.quickAddStep
         _amount = State(initialValue: value)
         _minutes = State(initialValue: max(1, Int((value / 60).rounded())))
-        _date = State(initialValue: entry?.date ?? .now)
+        _date = State(initialValue: entry?.date ?? day.map(Self.moment(on:)) ?? .now)
         _note = State(initialValue: entry?.note ?? "")
+    }
+
+    /// The current time of day on `day`, kept in the past.
+    private static func moment(on day: Date) -> Date {
+        let calendar = Calendar.current
+        let time = calendar.dateComponents([.hour, .minute], from: .now)
+        let moment = calendar.date(bySettingHour: time.hour ?? 12, minute: time.minute ?? 0, second: 0, of: day) ?? day
+        return min(moment, .now)
     }
 
     /// Page logs move a book's bookmark, so their amount is fixed once logged.

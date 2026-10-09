@@ -13,7 +13,7 @@ enum SheetRoute: Identifiable {
     case quickActions
     case newGoal
     case editGoal(Goal)
-    case log(goalID: UUID, entry: LogEntry? = nil)
+    case log(goalID: UUID, entry: LogEntry? = nil, day: Date? = nil)
     case link(goalID: UUID, link: GoalLink?)
     case book(goalID: UUID, book: Book?)
     case share(Goal)
@@ -23,7 +23,7 @@ enum SheetRoute: Identifiable {
         case .quickActions: "quick-actions"
         case .newGoal: "new"
         case .editGoal(let goal): "edit-\(goal.id)"
-        case .log(let id, let entry): "log-\(id)-\(entry?.id.uuidString ?? "new")"
+        case .log(let id, let entry, let day): "log-\(id)-\(entry?.id.uuidString ?? "new")-\(day?.timeIntervalSince1970 ?? 0)"
         case .link(let goal, let link): "link-\(goal)-\(link?.id.uuidString ?? "new")"
         case .book(let goal, let book): "book-\(goal)-\(book?.id.uuidString ?? "new")"
         case .share(let goal): "share-\(goal.id)"

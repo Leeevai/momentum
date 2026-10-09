@@ -103,6 +103,9 @@ struct HeatmapCard: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
 
+    /// Books log pages per book and milestones are checked off, so only these log by day.
+    private var logsByDay: Bool { goal.kind == .time || goal.kind == .count || goal.kind == .amount }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -121,8 +124,15 @@ struct HeatmapCard: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             }
-            Heatmap(engine: store.engine, goal: goal, now: store.now, maxCell: 15)
+            Heatmap(engine: store.engine, goal: goal, now: store.now, maxCell: 15, onSelect: logsByDay ? { day in
+                store.sheet = .log(goalID: goal.id, day: day)
+            } : nil)
                 .frame(height: 7 * 15 + 6 * 3)
+            if logsByDay {
+                Text("Click a day to log progress for it.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .glassCard(tint: goal.tint)
     }

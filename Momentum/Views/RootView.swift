@@ -77,8 +77,8 @@ private struct SheetContent: View {
             NewGoalFlow()
         case .editGoal(let goal):
             GoalEditor(goal: goal, isNew: false)
-        case .log(let goalID, let entry):
-            if let goal = store.goal(goalID) { LogProgressSheet(goal: goal, entry: entry) }
+        case .log(let goalID, let entry, let day):
+            if let goal = store.goal(goalID) { LogProgressSheet(goal: goal, entry: entry, day: day) }
         case .link(let goalID, let link):
             LinkEditor(goalID: goalID, link: link)
         case .book(let goalID, let book):

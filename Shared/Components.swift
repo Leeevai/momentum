@@ -80,6 +80,8 @@ struct Heatmap: View {
     let now: Date
     var spacing: CGFloat = 3
     var maxCell: CGFloat = 14
+    /// Makes days clickable (to log for that day) and adds a tooltip with the day's amount.
+    var onSelect: ((Date) -> Void)?
 
     var body: some View {
         GeometryReader { geometry in
@@ -90,9 +92,7 @@ struct Heatmap: View {
                 ForEach(weeks.indices, id: \.self) { column in
                     VStack(spacing: spacing) {
                         ForEach(0..<7, id: \.self) { row in
-                            RoundedRectangle(cornerRadius: cell * 0.28, style: .continuous)
-                                .fill(fill(for: weeks[column][row]))
-                                .frame(width: cell, height: cell)
+                            cellView(weeks[column][row], size: cell)
                         }
                     }
                 }
@@ -101,6 +101,34 @@ struct Heatmap: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Activity history for \(goal.name)")
+    }
+
+    @ViewBuilder
+    private func cellView(_ day: Date?, size: CGFloat) -> some View {
+        let square = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+            .fill(fill(for: day))
+            .frame(width: size, height: size)
+        if let day, let onSelect {
+            square
+                .help(tooltip(for: day))
+                .contentShape(Rectangle())
+                .onTapGesture { onSelect(day) }
+        } else {
+            square
+        }
+    }
+
+    private func tooltip(for day: Date) -> String {
+        let date = day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+        let amount = engine.amount(for: goal, on: day, now: now)
+        switch goal.kind {
+        case .milestones:
+            return engine.intensity(for: goal, on: day, now: now) > 0 ? "\(date): milestone completed" : date
+        case .books:
+            return "\(date): \(Formatting.number(amount)) \(Formatting.unit("pages", for: amount))"
+        case .time, .count, .amount:
+            return "\(date): \(goal.format(amount))"
+        }
     }
 
     private func fill(for day: Date?) -> Color {
