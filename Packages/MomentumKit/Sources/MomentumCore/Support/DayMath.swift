@@ -16,6 +16,12 @@ enum DayMath {
         return min(23, Int(intoDay / 3600))
     }
 
+    /// Whether `date` is exactly the start of a local day in `timeZone`.
+    static func isMidnight(_ date: Date, _ timeZone: TimeZone) -> Bool {
+        let seconds = date.timeIntervalSince1970 + Double(timeZone.secondsFromGMT(for: date))
+        return seconds - (seconds / 86_400).rounded(.down) * 86_400 == 0
+    }
+
     /// Year, month and day of a day number (Howard Hinnant's civil_from_days).
     static func civil(_ days: Int) -> (year: Int, month: Int, day: Int) {
         let z = days + 719_468

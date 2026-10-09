@@ -192,7 +192,9 @@ extension ProgressEngine {
     /// The hour of day most of a goal's recent progress started in, given enough history.
     func peakHour(for goal: Goal, now: Date) -> Int? {
         let since = day(-60, from: now)
-        let recent = entries(for: goal).filter { $0.date >= since && $0.amount > 0 }
+        let zone = calendar.timeZone
+        // A session's piece logged from midnight continues one started the night before.
+        let recent = entries(for: goal).filter { $0.date >= since && $0.amount > 0 && !($0.source == .timer && DayMath.isMidnight($0.date, zone)) }
         guard recent.count >= 8 else { return nil }
         var byHour = [Double](repeating: 0, count: 24)
         for entry in recent {

@@ -226,7 +226,7 @@ struct AchievementStats {
         case .activeDays:
             return Double(activeDayKeys.count)
         case .perfectDays:
-            return Double(perfectDays.count)
+            return Double(dayRecord.filter { $0 == true }.count)
         case .perfectRun:
             return Double(longestPerfectRun)
         case .comeback:
@@ -280,9 +280,13 @@ struct AchievementStats {
 
     private var timeGoalIDs: Set<UUID> { Set(data.goals.filter { $0.kind == .time }.map(\.id)) }
 
+    /// The hours sessions started in. A session across midnight logs its second day from 00:00,
+    /// which is a continuation, not a start, so entries dated exactly at midnight are left out.
     private var sessionStartHours: [Int] {
         let zone = calendar.timeZone
-        return data.entries.filter { $0.source == .timer && $0.amount >= 60 }.map { DayMath.localHour($0.date, zone) }
+        return data.entries
+            .filter { $0.source == .timer && $0.amount >= 60 && !DayMath.isMidnight($0.date, zone) }
+            .map { DayMath.localHour($0.date, zone) }
     }
 
     private func bestStreak(unit: String) -> Int {
@@ -294,47 +298,55 @@ struct AchievementStats {
         engine.activityDays.values.reduce(into: Set<Int>()) { $0.formUnion($1) }
     }
 
-    /// Whether any goal saw progress again after 7 or more days without any.
+    /// Whether any goal saw progress logged again after 7 or more days without any. Only logs
+    /// count: finish dates alone (an imported library) aren't coming back to anything.
     private var hasComeback: Bool {
-        engine.activityDays.values.contains { keys in
-            let days = keys.map(DayMath.days(fromKey:)).sorted()
+        engine.dailyTotals.values.contains { totals in
+            let days = totals.filter { $0.value > 0 }.keys.map(DayMath.days(fromKey:)).sorted()
             return zip(days, days.dropFirst()).contains { earlier, later in later - earlier >= 8 }
         }
     }
 
-    /// Past days (and today, once done) on which every daily goal due was finished, oldest first.
+    /// Each day from the first daily goal to today, oldest first: true when every daily goal due
+    /// was finished, false when one wasn't, nil when nothing was due (a rest day for weekday goals).
     /// Only daily goals decide it: a weekly target isn't due on any one day.
-    private var perfectDays: [Date] {
+    private var dayRecord: [Bool?] {
         let daily = data.goals.filter { $0.effectivePeriod == .daily && $0.kind != .milestones && $0.kind != .books }
         guard let first = daily.map({ engine.firstDay(of: $0) }).min() else { return [] }
         let today = engine.startOfDay(now)
         var day = max(first, engine.day(-730, from: today))
-        var result: [Date] = []
+        var result: [Bool?] = []
         while day <= today {
             let due = daily.filter { goal in
                 engine.isRequired(goal, on: day) && engine.firstDay(of: goal) <= day
                     && (goal.archivedAt.map { $0 > day } ?? true)
             }
-            if !due.isEmpty && due.allSatisfy({ engine.isMet($0, periodContaining: day, now: now) }) {
-                result.append(day)
+            if due.isEmpty {
+                result.append(nil)
+            } else {
+                let allMet = due.allSatisfy { engine.isMet($0, periodContaining: day, now: now) }
+                // Today can't spoil a run while it's still open.
+                result.append(allMet ? true : (day == today ? nil : false))
             }
             day = engine.day(1, from: day)
         }
         return result
     }
 
+    /// The most perfect days in a row, rest days with nothing due neither counting nor breaking it.
     private var longestPerfectRun: Int {
         var best = 0
         var run = 0
-        var previous: Date?
-        for day in perfectDays {
-            if let previous, engine.day(1, from: previous) == day {
+        for perfect in dayRecord {
+            switch perfect {
+            case true?:
                 run += 1
-            } else {
-                run = 1
+                best = max(best, run)
+            case false?:
+                run = 0
+            case nil:
+                continue
             }
-            best = max(best, run)
-            previous = day
         }
         return best
     }
