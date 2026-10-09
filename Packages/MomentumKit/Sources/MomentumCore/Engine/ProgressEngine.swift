@@ -203,6 +203,14 @@ public struct ProgressEngine: Sendable {
         return min(1, currentAmount(for: goal, now: now) / target)
     }
 
+    /// Progress for a ring, which keeps going past the target: 1.5 is a lap and a half. Capped at
+    /// two laps, where a ring has nothing left to show.
+    public func ringProgress(for goal: Goal, now: Date) -> Double {
+        let target = target(for: goal)
+        guard target > 0 else { return 0 }
+        return min(2, max(0, currentAmount(for: goal, now: now) / target))
+    }
+
     public func isComplete(_ goal: Goal, now: Date) -> Bool {
         let target = target(for: goal)
         return target > 0 && currentAmount(for: goal, now: now) >= target
