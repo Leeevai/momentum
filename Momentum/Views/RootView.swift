@@ -47,6 +47,7 @@ struct RootView: View {
                     .id(toast.id)
             }
         }
+        .sessionRatingOverlay(store, bottomInset: 20)
         .confirmationDialog(
             "Delete \(store.confirmingDelete?.name ?? "goal")?",
             isPresented: Binding(get: { store.confirmingDelete != nil }, set: { if !$0 { store.confirmingDelete = nil } }),

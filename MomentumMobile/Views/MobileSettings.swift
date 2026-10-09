@@ -19,6 +19,7 @@ struct MobileSettings: View {
                     Picker("Default session length", selection: binding(\.defaultFocusMinutes, preferences)) {
                         ForEach(FocusLengthMenu.lengths, id: \.self) { Text("\($0) minutes").tag($0) }
                     }
+                    Toggle("Ask how each session went", isOn: binding(\.asksSessionQuality, preferences))
                     Picker("Focus sound", selection: binding(\.focusSound, preferences)) {
                         ForEach(FocusSound.allCases) { Label($0.title, systemImage: $0.symbolName).tag($0) }
                     }

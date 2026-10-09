@@ -189,9 +189,18 @@ private struct HistoryRow: View {
                 .foregroundStyle(entry.amount < 0 ? Color.secondary : goal.tint)
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
-                Text(amountText)
-                    .font(.body.weight(.medium))
-                    .monospacedDigit()
+                HStack(spacing: 6) {
+                    Text(amountText)
+                        .font(.body.weight(.medium))
+                        .monospacedDigit()
+                    if let quality = entry.quality {
+                        Image(systemName: quality.symbolName)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(quality.tint)
+                            .help(quality.title)
+                            .accessibilityLabel(quality.title)
+                    }
+                }
                 if !detail.isEmpty {
                     Text(detail)
                         .font(.caption)
@@ -209,6 +218,17 @@ private struct HistoryRow: View {
         .onTapGesture(count: 2) { store.sheet = .log(goalID: goal.id, entry: entry) }
         .contextMenu {
             Button("Edit…") { store.sheet = .log(goalID: goal.id, entry: entry) }
+            if entry.source == .timer {
+                Menu("How It Went") {
+                    Picker("How It Went", selection: Binding(get: { entry.quality }, set: { store.rate(entry, as: $0) })) {
+                        ForEach(FocusQuality.allCases) { quality in
+                            Label(quality.title, systemImage: quality.symbolName).tag(FocusQuality?.some(quality))
+                        }
+                        Text("Not Rated").tag(FocusQuality?.none)
+                    }
+                    .pickerStyle(.inline)
+                }
+            }
             Divider()
             Button("Delete Entry", role: .destructive) { store.deleteEntry(entry) }
         }

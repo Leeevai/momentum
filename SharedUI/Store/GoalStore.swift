@@ -84,6 +84,8 @@ final class GoalStore {
     var toast: Toast?
     /// The user's latest change, for haptics.
     private(set) var haptic: HapticEvent?
+    /// A focus session that just ended, to ask how it went.
+    var sessionRating: SessionRating?
     /// The full-screen focus mode.
     var isFocusModePresented = false
     /// Coach tips dismissed today.
@@ -171,6 +173,7 @@ final class GoalStore {
         let result = persistence.update(change)
         knownModification = result.modification
         if let event = HapticEvent(from: result.before, to: result.after) { haptic = event }
+        askHowItWent(from: result.before, to: result.after)
         if let undoName {
             let patch = DataPatch(from: result.before, to: result.after)
             if !patch.isEmpty { registerUndo(patch, name: undoName) }
@@ -518,6 +521,26 @@ extension GoalStore {
     }
 
     func stopFocus() { perform("Stop Focus") { $0.stopFocus() } }
+
+    func rate(_ rating: SessionRating, as quality: FocusQuality) {
+        perform("Rate Session") { $0.rateSession(rating.entryIDs, quality: quality) }
+    }
+
+    func rate(_ entry: LogEntry, as quality: FocusQuality?) {
+        perform("Rate Session") { $0.rateSession([entry.id], quality: quality) }
+    }
+
+    /// Offers the rating question for a session this change ended, if it was long enough.
+    private func askHowItWent(from before: AppData, to after: AppData) {
+        guard after.preferences.asksSessionQuality, let ended = before.session,
+              after.session.map({ !$0.isSameSession(as: ended) }) ?? true,
+              after.entries.count > before.entries.count, let goal = after.goal(ended.goalID) else { return }
+        let logged = after.entries.suffix(after.entries.count - before.entries.count)
+            .filter { $0.source == .timer && $0.goalID == ended.goalID }
+        let seconds = logged.reduce(0) { $0 + $1.amount }
+        guard seconds >= SessionRating.minimumSeconds else { return }
+        sessionRating = SessionRating(goal: goal, entryIDs: Set(logged.map(\.id)), seconds: seconds)
+    }
 
     /// Starts a challenge today, or changes the length of the one running (keeping its start).
     func startChallenge(_ goal: Goal, days: Int, keepingStart: Bool = false) {

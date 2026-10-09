@@ -88,6 +88,10 @@ private struct FocusSettings: View {
                 Text("Used by Shortcuts, Siri and Pomodoro blocks when a goal has no length of its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Ask how each session went", isOn: binding(\.asksSessionQuality, preferences))
+                Text("One tap after a session of five minutes or more: scattered, steady or in the flow. Insights shows when your sessions go best.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Section("Pomodoro") {
                 Toggle("Chain sessions with breaks", isOn: pomodoroBinding(\.isEnabled, pomodoro))
