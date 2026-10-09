@@ -59,7 +59,7 @@ struct JournalView: View {
 
     private var dayColumn: some View {
         ScrollView {
-            DayDetail(day: selected)
+            DayDetail(day: selected) { day in select(day) }
                 .id(selected)
                 .transition(.asymmetric(insertion: .move(edge: movingForward ? .trailing : .leading).combined(with: .opacity),
                                         removal: .opacity))
@@ -250,6 +250,8 @@ private struct MonthStats: View {
 private struct DayDetail: View {
     @Environment(GoalStore.self) private var store
     let day: Date
+    /// Opens another day, from "On this day".
+    var onSelect: (Date) -> Void = { _ in }
 
     var body: some View {
         let engine = store.engine
@@ -320,6 +322,10 @@ private struct DayDetail: View {
                     }
                 }
 
+                let memories = store.data.memories(for: id)
+                if !memories.isEmpty {
+                    OnThisDayCard(memories: memories, onSelect: onSelect)
+                }
                 if !summary.due.isEmpty || !summary.active.isEmpty {
                     DayGoals(summary: summary)
                 }
@@ -351,6 +357,73 @@ private struct DayDetail: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(tint: tint, cornerRadius: 22)
+    }
+}
+
+/// What was written on this date a week, a month and a year back.
+private struct OnThisDayCard: View {
+    let memories: [JournalMemory]
+    let onSelect: (Date) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("On this day", systemImage: "clock.arrow.circlepath")
+                .font(.headline)
+                .foregroundStyle(.purple)
+            ForEach(memories) { memory in
+                Button {
+                    onSelect(memory.entry.day.date())
+                } label: {
+                    row(memory)
+                }
+                .buttonStyle(.plain)
+                .help("Open \(memory.entry.day.date().formatted(date: .complete, time: .omitted))")
+                if memory.id != memories.last?.id {
+                    Divider()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(tint: .purple, cornerRadius: 22)
+    }
+
+    private func row(_ memory: JournalMemory) -> some View {
+        let entry = memory.entry
+        return HStack(alignment: .top, spacing: 12) {
+            Image(systemName: entry.mood?.symbolName ?? "book.closed.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(entry.mood?.tint ?? .purple)
+                .font(.title3)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(memory.span.title)
+                        .font(.subheadline.weight(.semibold))
+                    Text(entry.day.date(), format: .dateTime.weekday(.wide).month(.abbreviated).day().year())
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if !entry.win.isEmpty {
+                    Label(entry.win, systemImage: "trophy.fill")
+                        .symbolRenderingMode(.multicolor)
+                        .font(.callout)
+                } else if !entry.intention.isEmpty {
+                    Text(entry.intention)
+                        .font(.system(.callout, design: .serif).italic())
+                }
+                if !entry.reflection.isEmpty {
+                    Text(entry.reflection)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
     }
 }
 
