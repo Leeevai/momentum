@@ -111,7 +111,9 @@ private struct GoalHeader: View {
 
     private func reminderTime(_ reminder: ReminderSchedule) -> String {
         let date = Calendar.current.date(bySettingHour: reminder.hour, minute: reminder.minute, second: 0, of: .now) ?? .now
-        return date.formatted(date: .omitted, time: .shortened)
+        let time = date.formatted(date: .omitted, time: .shortened)
+        guard let every = reminder.repeatMinutes else { return time }
+        return "\(time), every \(every >= 60 ? "\(every / 60)h" : "\(every)m")"
     }
 }
 

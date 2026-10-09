@@ -10,6 +10,8 @@ All notable changes to Momentum are recorded here. The format follows
 - Hover a day in a goal's activity heatmap to see its amount; click it to log progress for that day.
 - Session statistics for time goals: how many, the average length and the longest.
 - Insights shows where focus time went by category, as an interactive donut.
+- Reminders can repeat through the day (every 1, 2 or 3 hours until a set time), and stop once
+  the goal is done. The water template uses it.
 - Import a Goodreads library export into a books goal: shelves, finish dates, ratings and pages
   carry over, and books already on the list are skipped.
 
@@ -18,6 +20,9 @@ All notable changes to Momentum are recorded here. The format follows
   the app no longer re-reads its own saves.
 
 ### Fixed
+- Once today's goal was done, tomorrow's first reminder could be skipped too.
+- A book finished exactly at midnight on New Year's Day counted toward both years.
+- Reminders and nudges could fire an hour off on daylight-saving days.
 - A new focus session could inherit the previous session's note in the Today banner.
 - A negative page count in the book editor could crash the app.
 

@@ -11,6 +11,8 @@ struct GoalEditor: View {
     @State private var draft: Goal
     @State private var hasReminder: Bool
     @State private var reminderTime: Date
+    @State private var reminderRepeat: Int?
+    @State private var reminderUntil: Date
     @State private var hasDeadline: Bool
 
     init(goal: Goal, isNew: Bool, onBack: (() -> Void)? = nil) {
@@ -20,6 +22,8 @@ struct GoalEditor: View {
         _hasReminder = State(initialValue: goal.reminder?.isEnabled ?? false)
         let reminder = goal.reminder ?? ReminderSchedule()
         _reminderTime = State(initialValue: Calendar.current.date(bySettingHour: reminder.hour, minute: reminder.minute, second: 0, of: .now) ?? .now)
+        _reminderRepeat = State(initialValue: reminder.repeatMinutes)
+        _reminderUntil = State(initialValue: Calendar.current.date(bySettingHour: reminder.repeatUntilMinute / 60, minute: reminder.repeatUntilMinute % 60, second: 0, of: .now) ?? .now)
         _hasDeadline = State(initialValue: goal.deadline != nil)
     }
 
@@ -188,8 +192,17 @@ struct GoalEditor: View {
             }
             Toggle("Daily reminder", isOn: $hasReminder.animation())
             if hasReminder {
-                DatePicker("Remind me at", selection: $reminderTime, displayedComponents: .hourAndMinute)
-                Text("Skipped automatically on days the goal is already done.")
+                DatePicker(reminderRepeat == nil ? "Remind me at" : "First reminder", selection: $reminderTime, displayedComponents: .hourAndMinute)
+                Picker("Repeat", selection: $reminderRepeat.animation()) {
+                    Text("Once a day").tag(Int?.none)
+                    Text("Every hour").tag(Int?.some(60))
+                    Text("Every 2 hours").tag(Int?.some(120))
+                    Text("Every 3 hours").tag(Int?.some(180))
+                }
+                if reminderRepeat != nil {
+                    DatePicker("Until", selection: $reminderUntil, displayedComponents: .hourAndMinute)
+                }
+                Text("Skipped automatically once the goal is done.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -242,8 +255,16 @@ struct GoalEditor: View {
         goal.unit = goal.unit.trimmingCharacters(in: .whitespacesAndNewlines)
         if !hasDeadline || goal.period != .total { goal.deadline = nil }
         if hasReminder {
-            let parts = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
-            goal.reminder = ReminderSchedule(isEnabled: true, hour: parts.hour ?? 18, minute: parts.minute ?? 0)
+            let calendar = Calendar.current
+            let parts = calendar.dateComponents([.hour, .minute], from: reminderTime)
+            let until = calendar.dateComponents([.hour, .minute], from: reminderUntil)
+            goal.reminder = ReminderSchedule(
+                isEnabled: true,
+                hour: parts.hour ?? 18,
+                minute: parts.minute ?? 0,
+                repeatMinutes: reminderRepeat,
+                repeatUntilMinute: (until.hour ?? 20) * 60 + (until.minute ?? 0)
+            )
         } else {
             goal.reminder = nil
         }
