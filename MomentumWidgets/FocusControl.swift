@@ -3,11 +3,11 @@ import MomentumCore
 import SwiftUI
 import WidgetKit
 
-// Control Center and menu bar controls arrived on the Mac in macOS 26.
+// Control Center and menu bar controls arrived on the Mac in macOS 26, on iPhone in iOS 18.
 #if compiler(>=6.2)
 
 /// A Control Center toggle: start focusing on the goal you timed most recently, or stop.
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 18.0, *)
 struct FocusControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "FocusControl", provider: FocusControlProvider()) { state in
@@ -22,13 +22,13 @@ struct FocusControl: ControlWidget {
     }
 }
 
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 18.0, *)
 struct FocusControlState {
     var isRunning: Bool
     var goalName: String?
 }
 
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 18.0, *)
 struct FocusControlProvider: ControlValueProvider {
     var previewValue: FocusControlState { FocusControlState(isRunning: false, goalName: "Deep work") }
 
@@ -41,7 +41,7 @@ struct FocusControlProvider: ControlValueProvider {
     }
 }
 
-@available(macOS 26.0, *)
+@available(macOS 26.0, iOS 18.0, *)
 struct SetFocusRunningIntent: SetValueIntent {
     static let title: LocalizedStringResource = "Focus"
     static let isDiscoverable = false

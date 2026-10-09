@@ -9,8 +9,12 @@ struct MomentumWidgetBundle: WidgetBundle {
         GoalWidget()
         FocusWidget()
         StreaksWidget()
+        #if os(iOS)
+        TodayAccessoryWidget()
+        FocusLiveActivity()
+        #endif
         #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, iOS 18.0, *) {
             FocusControl()
         }
         #endif
@@ -206,11 +210,16 @@ struct WidgetGoalRing: View {
 }
 
 extension View {
+    /// No background of its own: Lock Screen widgets sit on the wallpaper.
+    func accessoryBackground() -> some View {
+        containerBackground(for: .widget) { Color.clear }
+    }
+
     /// Widget background: a soft gradient tinted by `tint`.
     func widgetBackground(_ tint: Color) -> some View {
         containerBackground(for: .widget) {
             ZStack {
-                Color(nsColor: .windowBackgroundColor)
+                Color.windowBackground
                 LinearGradient(colors: [tint.opacity(0.16), tint.opacity(0.03)], startPoint: .topLeading, endPoint: .bottomTrailing)
             }
         }

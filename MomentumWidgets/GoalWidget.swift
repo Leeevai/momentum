@@ -182,7 +182,7 @@ private struct GoalDetailPanel: View {
             if let book = goal.currentBook {
                 HStack(alignment: .top, spacing: 8) {
                     if let cover = CoverCache.image(for: book) {
-                        Image(nsImage: cover)
+                        Image(platformImage: cover)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: compact ? 30 : 40, height: compact ? 44 : 60)

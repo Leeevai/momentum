@@ -17,6 +17,7 @@ struct MomentumMobileApp: App {
             store.reload()
             store.advancePomodoro()
             store.sync?.pull()
+            store.effects.syncLiveActivity(store.data)
         }
     }
 

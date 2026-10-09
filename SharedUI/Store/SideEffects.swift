@@ -38,6 +38,7 @@ final class SideEffects {
         notifications.syncSessionEnd(data.session, goal: data.session.flatMap { engine.goal($0.goalID) }, pomodoro: data.preferences.pomodoro)
         notifications.syncRestEnd(data.rest, goal: data.rest.flatMap { engine.goal($0.goalID) })
         syncFocusSound(data)
+        syncLiveActivity(data)
         cacheCovers(data)
     }
 
@@ -61,6 +62,9 @@ final class SideEffects {
         }
         if old.rest != new.rest {
             notifications.syncRestEnd(new.rest, goal: new.rest.flatMap { engine.goal($0.goalID) })
+        }
+        if old.session != new.session || old.rest != new.rest || old.goals != new.goals {
+            syncLiveActivity(new)
         }
         if old.session?.isRunning != new.session?.isRunning || old.preferences != new.preferences {
             syncFocusSound(new)
@@ -96,6 +100,15 @@ final class SideEffects {
                 try? FileManager.default.removeItem(at: CoverCache.directoryURL.appendingPathComponent(file))
             }
         }
+    }
+
+    /// The focus timer on the Lock Screen and in the Dynamic Island (iPhone). Only an app in
+    /// the foreground can start one, so the app also calls this when it becomes active.
+    func syncLiveActivity(_ data: AppData) {
+        guard isEnabled else { return }
+        #if os(iOS)
+        Task { await FocusActivityController.sync(with: data) }
+        #endif
     }
 
     /// Plays the chosen sound while a session runs; fades it out on pause or stop.

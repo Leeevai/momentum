@@ -15,3 +15,5 @@ PROVISIONING_PROFILE_SPECIFIER =
 // The app and its widgets share data through this group. macOS accepts a group
 // prefixed with the team ID without a provisioning profile.
 APP_GROUP_ID = $(DEVELOPMENT_TEAM).$(BUNDLE_ID_PREFIX).momentum
+// iOS names groups "group.…", and they must be registered with the team to run on a device.
+IOS_APP_GROUP_ID = group.$(BUNDLE_ID_PREFIX).momentum
