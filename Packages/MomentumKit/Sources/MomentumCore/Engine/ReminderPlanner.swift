@@ -61,8 +61,13 @@ public enum ReminderPlanner {
         guard let fire = wallClock(preferences.streakNudgeMinute, on: today, calendar: calendar), fire > now else { return [] }
         let tomorrow = engine.day(1, from: now)
         return engine.activeGoals.compactMap { goal in
-            guard goal.kind != .milestones, goal.kind != .books, goal.effectivePeriod != .total,
-                  !goal.isOnBreak(at: fire), !engine.keepsStreak(goal, periodContaining: now, now: now) else { return nil }
+            guard goal.kind != .milestones, !goal.isOnBreak(at: fire) else { return nil }
+            // A challenge on track with today still to do: the strongest reason to finish the day.
+            if let challenge = engine.challengeStatus(for: goal, now: now), challenge.isOnTrack, challenge.days.contains(.today) {
+                return challengeNudge(goal, challenge, engine: engine, fire: fire, today: today, now: now)
+            }
+            guard goal.kind != .books, goal.effectivePeriod != .total,
+                  !engine.keepsStreak(goal, periodContaining: now, now: now) else { return nil }
             // Only the period's last day puts the streak at risk tonight.
             let period = engine.interval(of: goal.effectivePeriod, containing: now)
             guard period.end <= tomorrow, engine.isRequired(goal, on: today) || goal.effectivePeriod != .daily else { return nil }
@@ -79,6 +84,25 @@ public enum ReminderPlanner {
                 body: "\(left) of \(goal.name) to go. You've got this."
             )
         }
+    }
+
+    private static func challengeNudge(_ goal: Goal, _ challenge: ChallengeStatus, engine: ProgressEngine, fire: Date,
+                                       today: Date, now: Date) -> PlannedReminder {
+        let body: String
+        if goal.effectivePeriod == .daily && goal.kind != .books {
+            let left = goal.format(max(0, engine.streakThreshold(for: goal) - engine.currentAmount(for: goal, now: now)))
+            body = "\(left) of \(goal.name) keeps it going. \(challenge.remaining - 1) to go after tonight."
+        } else {
+            body = "A little \(goal.name) today keeps it going."
+        }
+        return PlannedReminder(
+            identifier: "\(identifierPrefix)nudge.\(goal.id.uuidString).\(engine.dayKey(today))",
+            goalID: goal.id,
+            fireDate: fire,
+            title: "Day \(challenge.dayNumber) of your \(challenge.challenge.title)",
+            subtitle: goal.name,
+            body: body
+        )
     }
 
     /// A summary on the last evening of the week, an hour after the streak-nudge time.

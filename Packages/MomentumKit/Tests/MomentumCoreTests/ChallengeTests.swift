@@ -90,3 +90,18 @@ struct ChallengeTests {
         #expect(plain.challenge == nil)
     }
 }
+
+@Suite("Challenge nudges")
+struct ChallengeNudgeTests {
+    @Test("A challenge day still to do gets the evening nudge, even before there's a streak")
+    func nudge() {
+        let goal = checkInGoal()
+        var data = AppData(goals: [goal])
+        data.startChallenge(on: goal.id, days: 30, from: DayID(referenceNow, calendar: testCalendar))
+        let nudges = ReminderPlanner.streakNudges(engine(data), now: referenceNow)
+        #expect(nudges.map(\.title) == ["Day 1 of your 30-day challenge"])
+
+        data.log(1, for: goal.id, at: referenceNow)
+        #expect(ReminderPlanner.streakNudges(engine(data), now: referenceNow).isEmpty)
+    }
+}
