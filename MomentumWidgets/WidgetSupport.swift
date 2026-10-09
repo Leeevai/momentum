@@ -8,6 +8,7 @@ struct MomentumWidgetBundle: WidgetBundle {
         TodayWidget()
         GoalWidget()
         ChallengeWidget()
+        MoodWidget()
         FocusWidget()
         StreaksWidget()
         #if os(iOS)

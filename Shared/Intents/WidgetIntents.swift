@@ -202,3 +202,49 @@ struct QuickAddIntent: AppIntent {
         return .result()
     }
 }
+
+/// Rates today's mood from the Mood widget.
+struct SetMoodIntent: AppIntent {
+    static let title: LocalizedStringResource = "Set Today's Mood"
+    static let isDiscoverable = false
+
+    @Parameter(title: "Mood")
+    var mood: Int
+
+    init() {}
+
+    init(_ mood: Mood) {
+        self.mood = mood.rawValue
+    }
+
+    func perform() async throws -> some IntentResult {
+        guard let chosen = Mood(rawValue: mood) else { return .result() }
+        SharedStore.update { data in
+            data.updateJournal(for: DayID(.now)) { $0.mood = chosen }
+        }
+        return .result()
+    }
+}
+
+/// Rates today's energy from the Mood widget.
+struct SetEnergyIntent: AppIntent {
+    static let title: LocalizedStringResource = "Set Today's Energy"
+    static let isDiscoverable = false
+
+    @Parameter(title: "Energy")
+    var energy: Int
+
+    init() {}
+
+    init(_ energy: Energy) {
+        self.energy = energy.rawValue
+    }
+
+    func perform() async throws -> some IntentResult {
+        guard let chosen = Energy(rawValue: energy) else { return .result() }
+        SharedStore.update { data in
+            data.updateJournal(for: DayID(.now)) { $0.energy = chosen }
+        }
+        return .result()
+    }
+}

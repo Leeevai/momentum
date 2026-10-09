@@ -299,30 +299,6 @@ private struct ScaleOption: View {
     }
 }
 
-extension Mood {
-    var tint: Color {
-        switch self {
-        case .rough: .purple
-        case .low: .blue
-        case .okay: .gray
-        case .good: .teal
-        case .great: .orange
-        }
-    }
-}
-
-extension Energy {
-    var tint: Color {
-        switch self {
-        case .drained: .red
-        case .low: .orange
-        case .steady: .yellow
-        case .high: .green
-        case .charged: .mint
-        }
-    }
-}
-
 /// An icon tile, title and subtitle at the top of a sheet.
 struct SheetHeader: View {
     let symbol: String

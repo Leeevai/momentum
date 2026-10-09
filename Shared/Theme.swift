@@ -39,6 +39,31 @@ extension Goal {
     var tint: Color { color.color }
 }
 
+extension Mood {
+    var tint: Color {
+        switch self {
+        case .rough: .purple
+        case .low: .blue
+        case .okay: .gray
+        case .good: .teal
+        case .great: .orange
+        }
+    }
+}
+
+extension Energy {
+    var tint: Color {
+        switch self {
+        case .drained: .red
+        case .low: .orange
+        case .steady: .yellow
+        case .high: .green
+        case .charged: .mint
+        }
+    }
+}
+
+
 extension Color {
     /// Blends two colors: perceptually on macOS 15 and iOS 18 and later, in sRGB before that.
     func blended(with other: Color, by fraction: Double) -> Color {
