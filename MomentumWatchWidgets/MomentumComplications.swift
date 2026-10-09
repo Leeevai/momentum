@@ -33,8 +33,8 @@ struct ComplicationProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ComplicationEntry) -> Void) {
-        let snapshot = WatchSnapshotStore.load() ?? WatchSnapshot(done: 2, total: 5)
-        completion(ComplicationEntry(date: .now, snapshot: snapshot.current(on: DayID(.now))))
+        let snapshot = WatchSnapshotStore.load()?.current(on: DayID(.now)) ?? WatchSnapshot(done: 2, total: 5)
+        completion(ComplicationEntry(date: .now, snapshot: snapshot))
     }
 
     /// The watch app reloads the timeline whenever the iPhone sends a snapshot, and the clocks
