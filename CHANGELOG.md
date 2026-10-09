@@ -6,8 +6,20 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-10-09
+
 ### Added
 - Dark and tinted app icons for iPhone and iPad Home Screens.
+
+### Fixed
+- Choosing Save Image when sharing a progress card or your week crashed the iPhone app.
+- A data file that couldn't be read (damaged, or written by a newer version) was replaced with
+  almost nothing at the next change; now nothing is saved over it, and the app says so.
+- An enormous amount logged through Shortcuts could crash every screen showing that goal.
+- Settings stuttered with a long history, re-encoding everything on each redraw.
+- A countdown could crash at the instant its end passed.
+- The watch app and its complications now declare their privacy reasons, and the Mac app its
+  export compliance, as App Store submission requires.
 
 ## [2.1.0] - 2026-10-09
 
@@ -216,7 +228,8 @@ An unpublished prototype.
 - Today and Goal widgets with start/stop and check-in buttons.
 - Menu bar timer.
 
-[Unreleased]: https://github.com/Leeevai/momentum/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/Leeevai/momentum/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/Leeevai/momentum/releases/tag/v2.1.1
 [2.1.0]: https://github.com/Leeevai/momentum/releases/tag/v2.1.0
 [2.0.0]: https://github.com/Leeevai/momentum/releases/tag/v2.0.0
 [1.1.0]: https://github.com/Leeevai/momentum/releases/tag/v1.1.0
