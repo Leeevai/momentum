@@ -150,9 +150,8 @@ struct GoalEditor: View {
         }
     }
 
-    /// Challenges suit goals with something to do each day.
     private var offersChallenge: Bool {
-        draft.effectivePeriod == .daily || draft.kind == .books
+        draft.supportsChallenge || draft.challenge != nil
     }
 
     private var challengeLength: Binding<Int?> {
@@ -162,6 +161,14 @@ struct GoalEditor: View {
                 draft.challenge = days.map { Challenge(start: draft.challenge?.start ?? DayID(.now), days: $0) }
             }
         )
+    }
+
+    /// The lengths on offer: those that leave days to go (and the current one, so the picker
+    /// can show it).
+    private var challengeLengths: [Int] {
+        guard let challenge = draft.challenge else { return Challenge.lengths }
+        let elapsed = store.engine.challengeStatus(for: draft, now: store.now)?.dayNumber ?? 0
+        return Challenge.lengths.filter { $0 > elapsed || $0 == challenge.days }
     }
 
     private var challengeCaption: String {
@@ -187,7 +194,7 @@ struct GoalEditor: View {
             Section("Challenge") {
                 Picker("Challenge", selection: challengeLength.animation()) {
                     Text("None").tag(Int?.none)
-                    ForEach(Challenge.lengths, id: \.self) { Text("\($0) days").tag(Int?.some($0)) }
+                    ForEach(challengeLengths, id: \.self) { Text("\($0) days").tag(Int?.some($0)) }
                 }
                 Text(challengeCaption)
                     .font(.caption)

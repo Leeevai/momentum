@@ -77,19 +77,24 @@ struct ChallengeMenu: View {
     let goal: Goal
 
     var body: some View {
-        if let challenge = goal.challenge {
-            Button("Start Over Today") { store.startChallenge(goal, days: challenge.days) }
-            Menu("Change Length") { lengths }
+        if goal.challenge != nil {
+            Button("Start Over Today") { store.restartChallenge(goal) }
+            Menu("Change Length") { lengths(longerThan: elapsedDays) }
             Divider()
             Button("End Challenge", role: .destructive) { store.endChallenge(goal) }
         } else {
-            lengths
+            lengths(longerThan: 0)
         }
     }
 
-    private var lengths: some View {
-        ForEach(Challenge.lengths, id: \.self) { days in
+    /// Lengths that leave days to go: shortening a challenge to its past would end it at once.
+    private func lengths(longerThan elapsed: Int) -> some View {
+        ForEach(Challenge.lengths.filter { $0 > elapsed && $0 != goal.challenge?.days }, id: \.self) { days in
             Button("\(days) Days") { store.startChallenge(goal, days: days, keepingStart: true) }
         }
+    }
+
+    private var elapsedDays: Int {
+        store.engine.challengeStatus(for: goal, now: store.now)?.dayNumber ?? 0
     }
 }

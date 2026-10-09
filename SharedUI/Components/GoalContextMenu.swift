@@ -16,8 +16,10 @@ struct GoalContextMenu: View {
         Button("Edit…") { store.sheet = .editGoal(goal) }
         Button("Share Progress…") { store.sheet = .share(goal) }
         Button("Duplicate") { store.duplicate(goal) }
-        Menu(goal.challenge == nil ? "Start a Challenge" : "Challenge") {
-            ChallengeMenu(goal: goal)
+        if goal.supportsChallenge || goal.challenge != nil {
+            Menu(goal.challenge == nil ? "Start a Challenge" : "Challenge") {
+                ChallengeMenu(goal: goal)
+            }
         }
         if goal.isOnBreak(at: .now) {
             Button("End Break") { store.endBreak(goal) }

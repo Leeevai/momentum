@@ -142,13 +142,8 @@ final class SideEffects {
         case .award: "Funk"
         }
         NSSound(named: name)?.play()
-        #else
-        switch sound {
-        case .goalCompleted, .award: UINotificationFeedbackGenerator().notificationOccurred(.success)
-        case .blockCompleted: UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        case .blockStarted: UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-        }
         #endif
+        // On iPhone these moments are felt instead, through `appHaptics`, from the same changes.
     }
 
     func dayDidChange(engine: ProgressEngine) {

@@ -33,19 +33,19 @@ enum QuickActions {
             items.append(item("Focus on \(goal.name)", subtitle: remainingText(goal, engine: engine, now: now),
                               symbol: "play.circle", link: .focus(goal.id)))
         }
-        let hour = Calendar.current.component(.hour, from: now)
-        if hour >= 18 {
-            items.append(item("Reflect on Today", subtitle: nil, symbol: "moon.stars", link: .reflect))
-        } else if hour < 12 {
-            items.append(item("Plan Your Day", subtitle: nil, symbol: "sun.horizon", link: .plan))
-        }
+        // Not "plan" or "reflect": the actions are only rebuilt when the app goes to the
+        // background, which can be hours before they're shown.
+        items.append(item("Journal", subtitle: nil, symbol: "book.closed", link: .journal))
         items.append(item("New Goal", subtitle: nil, symbol: "plus", link: .newGoal))
         return Array(items.prefix(4))
     }
 
+    /// "45m to go today", "3h to go this week".
     private static func remainingText(_ goal: Goal, engine: ProgressEngine, now: Date) -> String {
-        let left = engine.target(for: goal) - engine.amount(for: goal, on: now, now: now)
-        return left > 0 ? "\(goal.format(left)) to go today" : "Start a session"
+        let left = engine.target(for: goal) - engine.currentAmount(for: goal, now: now)
+        guard left > 0 else { return "Start a session" }
+        let period = goal.effectivePeriod == .total ? "" : " " + goal.effectivePeriod.currentLabel.lowercased()
+        return "\(goal.format(left)) to go\(period)"
     }
 
     private static func item(_ title: String, subtitle: String?, symbol: String, link: DeepLink) -> UIApplicationShortcutItem {

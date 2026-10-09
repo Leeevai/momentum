@@ -184,6 +184,14 @@ final class GoalStore {
         apply(result.after, userInitiated: true)
     }
 
+    /// A change the app makes on its own (settling what a merge left): saved and synced like any
+    /// other, but with no haptic, question, celebration or undo, since the user did nothing.
+    private func performQuietly(_ change: (inout AppData) -> Void) {
+        let result = persistence.update(change)
+        knownModification = result.modification
+        apply(result.after, userInitiated: false)
+    }
+
     /// Picks up changes made by the widgets or Shortcuts. The folder watcher also fires for the
     /// app's own saves; those leave the file as the app last saw it, so they are skipped.
     func reload() {
@@ -207,11 +215,13 @@ final class GoalStore {
         }
         knownModification = result.modification
         apply(result.after, userInitiated: false, fromAnotherDevice: true)
-        // A merge can leave a timer on a goal that's gone, or a session and a break at once;
-        // settling that is a change of this device's own, so it syncs back out.
-        if result.after.session != nil || result.after.rest != nil {
-            var probe = result.after
-            if probe.settleTimer() { perform { $0.settleTimer() } }
+        // A merge can drop a session running here that no device ended, leave a timer on a goal
+        // that's gone, or a session and a break at once. Settling that is a change of this
+        // device's own, so it syncs back out.
+        let local = result.before.session
+        var probe = result.after
+        if probe.settleAfterMerge(keeping: local) {
+            performQuietly { $0.settleAfterMerge(keeping: local) }
         }
     }
 
@@ -552,6 +562,11 @@ extension GoalStore {
         perform(goal.challenge == nil ? "Start Challenge" : "Change Challenge") {
             $0.startChallenge(on: goal.id, days: days, from: start)
         }
+    }
+
+    func restartChallenge(_ goal: Goal) {
+        guard let days = goal.challenge?.days else { return }
+        perform("Restart Challenge") { $0.startChallenge(on: goal.id, days: days, from: DayID(.now)) }
     }
 
     func endChallenge(_ goal: Goal) {

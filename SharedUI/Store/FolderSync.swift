@@ -50,8 +50,13 @@ final class FolderSync {
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         let envelopes = SyncFolder(url: url, deviceID: deviceID).readPeers()
         guard !envelopes.isEmpty else { return }
-        SharedStore.transform(stamping: false) { data in
+        let merged = SharedStore.transform(stamping: false) { data in
             for envelope in envelopes { data = SyncMerge.merge(data, envelope.data) }
+        }
+        // What the app settles after its own merges, settled here too, as this device's change.
+        var probe = merged.after
+        if probe.settleAfterMerge(keeping: merged.before.session) {
+            SharedStore.transform { $0.settleAfterMerge(keeping: merged.before.session) }
         }
     }
 

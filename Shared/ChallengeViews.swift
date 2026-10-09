@@ -10,7 +10,7 @@ struct ChallengeBadge: View {
     var size: CGFloat = 66
 
     var body: some View {
-        ProgressRing(progress: Double(status.kept) / Double(max(status.challenge.days, 1)),
+        ProgressRing(progress: status.keptFraction,
                      color: status.isWon ? .yellow : color, lineWidth: size * 0.1) {
             if status.isWon {
                 Image(systemName: "trophy.fill")

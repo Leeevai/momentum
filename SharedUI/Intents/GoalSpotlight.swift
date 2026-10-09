@@ -30,21 +30,32 @@ extension GoalEntity: IndexedEntity {
 }
 
 /// Keeps the goals in Spotlight: re-indexed when one is added, renamed, archived or deleted.
+/// Updates run one after another, so a quick delete and undo can't land out of order.
 @MainActor
 enum GoalSpotlight {
-    private static var indexed: [GoalEntity] = []
+    /// What was last sent to the index; nil until the first update of this launch.
+    private static var indexed: [GoalEntity]?
+    private static var pending: Task<Void, Never>?
 
     static func update(from data: AppData) {
         guard #available(iOS 18.0, macOS 15.0, *) else { return }
         let entities = data.goals.filter { !$0.isArchived }.map(GoalEntity.init)
         guard entities != indexed else { return }
-        let removed = Set(indexed.map(\.id)).subtracting(entities.map(\.id))
+        // The first update of a launch starts over: goals deleted on another device while the
+        // app was closed aren't in `indexed` to be removed.
+        let removed = indexed.map { Set($0.map(\.id)).subtracting(entities.map(\.id)) }
         indexed = entities
-        Task.detached(priority: .utility) {
+        let previous = pending
+        pending = Task.detached(priority: .utility) {
+            await previous?.value
             let index = CSSearchableIndex.default()
             do {
-                if !removed.isEmpty {
-                    try await index.deleteAppEntities(identifiedBy: Array(removed), ofType: GoalEntity.self)
+                if let removed {
+                    if !removed.isEmpty {
+                        try await index.deleteAppEntities(identifiedBy: Array(removed), ofType: GoalEntity.self)
+                    }
+                } else {
+                    try await index.deleteAppEntities(ofType: GoalEntity.self)
                 }
                 try await index.indexAppEntities(entities)
             } catch {
