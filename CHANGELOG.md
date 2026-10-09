@@ -30,6 +30,7 @@ The first public release: a full rebuild of the 0.1 prototype.
 - Widgets: Today, Goal (configurable), Focus and Streaks, all interactive.
 - Menu bar timer and panel; Settings; App Shortcuts for Shortcuts, Spotlight and Siri.
 - Goal templates, categories, archive, duplicate, full undo, keyboard shortcuts.
+- Share cards: an image of a goal's ring, streak, numbers and history to save, copy or share.
 - JSON backup and restore, CSV export, and automatic daily copies (the last 14 days) you can
   restore from Settings.
 - Liquid Glass design on macOS 26 and later, with a material fallback on macOS 14 and 15.

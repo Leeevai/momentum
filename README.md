@@ -82,6 +82,7 @@ right from the desktop** without opening the app.
 - **Shortcuts and Siri**: *Start focusing in Momentum*, *Log progress in Momentum*, *How am I doing in Momentum*.
 - **Control Center** (macOS 26): a focus toggle for Control Center and the menu bar.
 - **Editable history**: fix the time, amount or note of anything you logged.
+- **Share cards**: a polished image of any goal's ring, streak and history to save, copy or share.
 - **Templates** for common goals, **categories** for grouping, **archive**, **duplicate**, and full **undo**.
 - **Export** a JSON backup or a CSV of every entry; **import** a backup. Momentum also keeps a
   daily copy of your data for the last 14 days.

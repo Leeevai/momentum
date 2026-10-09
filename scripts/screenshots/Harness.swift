@@ -95,6 +95,13 @@ MainActor.assumeIsolated {
             ("sheet-link", AnyView(LinkEditor(goalID: deepWork.id, link: deepWork.links.first)), CGSize(width: 460, height: 330)),
             ("settings", AnyView(SettingsView()), CGSize(width: 500, height: 600)),
         ]
+        for goal in [deepWork, books] {
+            if let image = ShareCard.image(for: goal, engine: store.engine), let tiff = image.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: extras.appendingPathComponent("share-\(goal.kind.rawValue).png"))
+                print("wrote share-\(goal.kind.rawValue).png")
+            }
+        }
         for (name, view, size) in sheets {
             let original = output
             withExtrasOutput(extras) {
