@@ -57,9 +57,11 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
         let face = FaceState(day: snapshot.day, done: snapshot.done, total: snapshot.total,
                              session: snapshot.session.map(SyncState.sessionKey), isRunning: snapshot.session?.isRunning ?? false)
         guard face != lastFace else { return }
+        // The remaining count is zero when none of the app's complications is on the face. Not
+        // `isComplicationEnabled`: that stays false for a WidgetKit complication that is there.
         if !pushesFace {
             lastFace = face
-        } else if session.isComplicationEnabled, session.remainingComplicationUserInfoTransfers > 0 {
+        } else if session.remainingComplicationUserInfoTransfers > 0 {
             session.transferCurrentComplicationUserInfo([Key.snapshot: encoded])
             lastFace = face
         }
