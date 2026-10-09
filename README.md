@@ -242,9 +242,11 @@ widgets and other devices, and [CONTRIBUTING.md](CONTRIBUTING.md) to get involve
 - [x] Sync between devices
 - [x] An iPhone and iPad app, with Lock Screen widgets and a Live Activity
 - [x] Pomodoro cycles, a daily journal, awards and a coach
+- [x] Apple Watch, with complications
+- [x] Challenges and session ratings
 - [ ] App Store releases
-- [x] Apple Watch
 - [ ] Translations
+- [ ] Sync through iCloud without picking a folder
 
 ## License
 
