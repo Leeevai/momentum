@@ -164,6 +164,37 @@ struct WeekSummaryIntent: AppIntent {
     }
 }
 
+/// "How's my challenge going in Momentum": the day, what's left, and any misses.
+struct ChallengeStatusIntent: AppIntent {
+    static let title: LocalizedStringResource = "Challenge Status"
+    static let description = IntentDescription("Says which day of a goal's challenge it is and how it's going.")
+
+    @Parameter(title: "Goal", description: "Leave empty for the first goal with a challenge.")
+    var goal: GoalEntity?
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let engine = ProgressEngine(data: SharedStore.load())
+        let now = Date()
+        let chosen = goal.flatMap { engine.goal($0.id) } ?? engine.activeGoals.first { $0.challenge != nil }
+        guard let chosen, let status = engine.challengeStatus(for: chosen, now: now) else {
+            return .result(dialog: "No challenge is running. Start one from a goal's page.")
+        }
+        let days = status.challenge.days
+        if status.dayNumber == 0 {
+            return .result(dialog: "\(chosen.name): your \(days)-day challenge starts soon.")
+        }
+        if status.isWon {
+            return .result(dialog: "\(chosen.name): all \(days) days kept. Challenge complete!")
+        }
+        if status.isFinished {
+            return .result(dialog: "\(chosen.name): finished with \(status.kept) of \(days) days kept.")
+        }
+        let misses = status.missed == 0 ? "no misses yet" : "\(status.missed) missed"
+        let today = status.days.contains(.today) ? " Today still needs doing." : " Today's done."
+        return .result(dialog: "\(chosen.name): day \(status.dayNumber) of \(days), \(status.remaining) to go, \(misses).\(today)")
+    }
+}
+
 enum MomentumIntentError: Error, CustomLocalizedStringResourceConvertible {
     case goalNotFound
     case notATimeGoal(String)
@@ -197,6 +228,10 @@ struct MomentumShortcuts: AppShortcutsProvider {
             "Log my mood in \(.applicationName)",
             "Today felt \(\.$mood) in \(.applicationName)",
         ], shortTitle: "Log Mood", systemImageName: "cloud.sun")
+        AppShortcut(intent: ChallengeStatusIntent(), phrases: [
+            "How's my challenge going in \(.applicationName)",
+            "Check my challenge in \(.applicationName)",
+        ], shortTitle: "Challenge Status", systemImageName: "flag.2.crossed")
         AppShortcut(intent: WeekSummaryIntent(), phrases: [
             "How was my week in \(.applicationName)",
             "Review my week in \(.applicationName)",
