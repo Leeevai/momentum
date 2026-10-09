@@ -1,7 +1,8 @@
 // Draws the Momentum app icon and writes every size the macOS and iOS asset catalogs need.
 // Usage: swift scripts/make_icon.swift [preview.png]
 // Writes Momentum/Assets.xcassets/AppIcon.appiconset (macOS) and
-// MomentumMobile/Assets.xcassets/AppIcon.appiconset (iOS, opaque as the App Store requires).
+// MomentumMobile/Assets.xcassets/AppIcon.appiconset (iOS: opaque as the App Store requires, plus
+// the dark and tinted versions iOS 18 shows on a dark or tinted Home Screen).
 //
 // The design: a deep indigo field, one bold ring swept from amber to violet with a glowing head
 // (momentum), around a frosted glass disc holding an upward arrow. Full-bleed, since macOS and
@@ -30,7 +31,17 @@ func interpolate(_ stops: [(CGFloat, UInt32)], at t: CGFloat) -> CGColor {
     return CGColor(srgbRed: a.0 + (b.0 - a.0) * f, green: a.1 + (b.1 - a.1) * f, blue: a.2 + (b.2 - a.2) * f, alpha: 1)
 }
 
-func renderIcon(pixels: Int) -> NSBitmapImageRep {
+/// The Home Screen appearances iOS draws an icon in.
+enum Style {
+    /// The full icon, on its indigo field.
+    case standard
+    /// No field: iOS puts the mark on its own dark background.
+    case dark
+    /// Shades of white on nothing, which iOS colors with the user's tint.
+    case tinted
+}
+
+func renderIcon(pixels: Int, style: Style = .standard) -> NSBitmapImageRep {
     let size = CGFloat(pixels)
     guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels, bitsPerSample: 8,
                                      samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
@@ -41,15 +52,18 @@ func renderIcon(pixels: Int) -> NSBitmapImageRep {
     let space = CGColorSpace(name: CGColorSpace.sRGB)!
     let center = CGPoint(x: size / 2, y: size / 2)
 
-    // Background: indigo to violet, lit from the top left.
-    let background = CGGradient(colorsSpace: space, colors: [color(0x2A1B6E), color(0x14103A), color(0x0B0A24)] as CFArray, locations: [0, 0.55, 1])!
-    cg.drawLinearGradient(background, start: CGPoint(x: 0, y: size), end: CGPoint(x: size, y: 0), options: [])
-    let glow = CGGradient(colorsSpace: space, colors: [color(0x7B4DFF, 0.55), color(0x7B4DFF, 0)] as CFArray, locations: [0, 1])!
-    cg.drawRadialGradient(glow, startCenter: CGPoint(x: size * 0.25, y: size * 0.82), startRadius: 0,
-                          endCenter: CGPoint(x: size * 0.25, y: size * 0.82), endRadius: size * 0.75, options: [])
-    let warm = CGGradient(colorsSpace: space, colors: [color(0xFF4F8B, 0.28), color(0xFF4F8B, 0)] as CFArray, locations: [0, 1])!
-    cg.drawRadialGradient(warm, startCenter: CGPoint(x: size * 0.85, y: size * 0.12), startRadius: 0,
-                          endCenter: CGPoint(x: size * 0.85, y: size * 0.12), endRadius: size * 0.6, options: [])
+    // Background: indigo to violet, lit from the top left. The dark and tinted icons have none.
+    if style == .standard {
+        let background = CGGradient(colorsSpace: space, colors: [color(0x2A1B6E), color(0x14103A), color(0x0B0A24)] as CFArray, locations: [0, 0.55, 1])!
+        cg.drawLinearGradient(background, start: CGPoint(x: 0, y: size), end: CGPoint(x: size, y: 0), options: [])
+        let glow = CGGradient(colorsSpace: space, colors: [color(0x7B4DFF, 0.55), color(0x7B4DFF, 0)] as CFArray, locations: [0, 1])!
+        cg.drawRadialGradient(glow, startCenter: CGPoint(x: size * 0.25, y: size * 0.82), startRadius: 0,
+                              endCenter: CGPoint(x: size * 0.25, y: size * 0.82), endRadius: size * 0.75, options: [])
+        let warm = CGGradient(colorsSpace: space, colors: [color(0xFF4F8B, 0.28), color(0xFF4F8B, 0)] as CFArray, locations: [0, 1])!
+        cg.drawRadialGradient(warm, startCenter: CGPoint(x: size * 0.85, y: size * 0.12), startRadius: 0,
+                              endCenter: CGPoint(x: size * 0.85, y: size * 0.12), endRadius: size * 0.6, options: [])
+    }
+    let tinted = style == .tinted
 
     let radius = size * 0.315
     let width = size * 0.105
@@ -60,7 +74,7 @@ func renderIcon(pixels: Int) -> NSBitmapImageRep {
     // Track.
     cg.setLineWidth(width)
     cg.setLineCap(.round)
-    cg.setStrokeColor(CGColor(gray: 1, alpha: 0.08))
+    cg.setStrokeColor(CGColor(gray: 1, alpha: style == .standard ? 0.08 : 0.16))
     cg.addArc(center: center, radius: radius, startAngle: 0, endAngle: .pi * 2, clockwise: false)
     cg.strokePath()
 
@@ -69,16 +83,19 @@ func renderIcon(pixels: Int) -> NSBitmapImageRep {
     arc.addArc(center: center, radius: radius, startAngle: start, endAngle: end, clockwise: true)
     let stroke = arc.copy(strokingWithWidth: width, lineCap: .round, lineJoin: .round, miterLimit: 1)
     cg.saveGState()
-    cg.setShadow(offset: .zero, blur: size * 0.06, color: color(0xFF5C8A, 0.7))
+    cg.setShadow(offset: .zero, blur: size * 0.06, color: tinted ? CGColor(gray: 1, alpha: 0.5) : color(0xFF5C8A, 0.7))
     cg.addPath(stroke)
-    cg.setFillColor(color(0xFF6A7A))
+    cg.setFillColor(tinted ? CGColor(gray: 0.8, alpha: 1) : color(0xFF6A7A))
     cg.fillPath()
     cg.restoreGState()
     cg.saveGState()
     cg.addPath(stroke)
     cg.clip()
     // A conic sweep, drawn as thin wedges: violet at the tail (12 o'clock) to amber at the head.
-    let stops: [(CGFloat, UInt32)] = [(0, 0x8A5CFF), (0.25, 0xD94BD0), (0.5, 0xFF5C8A), (0.75, 0xFF8A4C), (1, 0xFFC94A)]
+    // Tinted: from grey to white, so the tint deepens toward the head.
+    let stops: [(CGFloat, UInt32)] = tinted
+        ? [(0, 0x8C8C8C), (1, 0xFFFFFF)]
+        : [(0, 0x8A5CFF), (0.25, 0xD94BD0), (0.5, 0xFF5C8A), (0.75, 0xFF8A4C), (1, 0xFFC94A)]
     let wedges = 720
     for index in 0..<wedges {
         let t0 = CGFloat(index) / CGFloat(wedges)
@@ -94,7 +111,7 @@ func renderIcon(pixels: Int) -> NSBitmapImageRep {
         cg.fillPath()
     }
     // The round cap at the tail sits before the sweep starts: give it the tail color.
-    cg.setFillColor(color(0x8A5CFF))
+    cg.setFillColor(tinted ? color(0x8C8C8C) : color(0x8A5CFF))
     let tail = CGMutablePath()
     tail.move(to: center)
     tail.addArc(center: center, radius: radius + width, startAngle: start + 0.5, endAngle: start, clockwise: true)
@@ -105,8 +122,8 @@ func renderIcon(pixels: Int) -> NSBitmapImageRep {
     // The ring's head: a bright, glowing cap where the motion is.
     let head = CGPoint(x: center.x + radius * cos(end), y: center.y + radius * sin(end))
     cg.saveGState()
-    cg.setShadow(offset: .zero, blur: size * 0.05, color: color(0xFFE08A, 0.95))
-    cg.setFillColor(color(0xFFE9A8))
+    cg.setShadow(offset: .zero, blur: size * 0.05, color: tinted ? CGColor(gray: 1, alpha: 0.95) : color(0xFFE08A, 0.95))
+    cg.setFillColor(tinted ? CGColor(gray: 1, alpha: 1) : color(0xFFE9A8))
     cg.fillEllipse(in: CGRect(x: head.x - width * 0.42, y: head.y - width * 0.42, width: width * 0.84, height: width * 0.84))
     cg.restoreGState()
 
@@ -181,12 +198,20 @@ let contents: [String: Any] = ["images": images, "info": ["author": "xcode", "ve
 try JSONSerialization.data(withJSONObject: contents, options: [.prettyPrinted, .sortedKeys])
     .write(to: outputDirectory.appendingPathComponent("Contents.json"))
 
-// iOS: one opaque 1024 image, which Xcode scales for every device.
+// iOS: one opaque 1024 image, which Xcode scales for every device, and its dark and tinted
+// versions (these may be transparent: iOS draws its own background behind them).
 let large = renderIcon(pixels: 1024)
 try FileManager.default.createDirectory(at: mobileDirectory, withIntermediateDirectories: true)
 try opaquePNG(large).write(to: mobileDirectory.appendingPathComponent("icon_1024.png"))
+try png(renderIcon(pixels: 1024, style: .dark)).write(to: mobileDirectory.appendingPathComponent("icon_1024_dark.png"))
+try png(renderIcon(pixels: 1024, style: .tinted)).write(to: mobileDirectory.appendingPathComponent("icon_1024_tinted.png"))
+func appearance(_ value: String) -> [[String: String]] { [["appearance": "luminosity", "value": value]] }
 let mobileContents: [String: Any] = [
-    "images": [["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024.png"]],
+    "images": [
+        ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024.png"],
+        ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024_dark.png", "appearances": appearance("dark")],
+        ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024_tinted.png", "appearances": appearance("tinted")],
+    ],
     "info": ["author": "xcode", "version": 1],
 ]
 try JSONSerialization.data(withJSONObject: mobileContents, options: [.prettyPrinted, .sortedKeys])
