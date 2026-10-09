@@ -3,6 +3,8 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(GoalStore.self) private var store
+    /// A per-Mac convenience, so it lives in user defaults rather than the shared data.
+    @AppStorage("dismissedWidgetTip") private var dismissedWidgetTip = false
 
     private let columns = [GridItem(.adaptive(minimum: 300, maximum: 520), spacing: 16)]
 
@@ -26,6 +28,10 @@ struct TodayView: View {
                 if engine.activeGoals.isEmpty {
                     WelcomeView()
                 } else {
+                    if !dismissedWidgetTip {
+                        WidgetTip { withAnimation { dismissedWidgetTip = true } }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                     if !upNext.isEmpty {
                         section("Up next", systemImage: "arrow.forward.circle", goals: upNext)
                     } else if !today.isEmpty {
@@ -83,6 +89,31 @@ struct TodayView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(tint: .green, highlighted: false)
+    }
+}
+
+/// Points first-time users at the desktop widgets.
+private struct WidgetTip: View {
+    var onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: "rectangle.3.group.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(LinearGradient(colors: [.orange, .pink], startPoint: .top, endPoint: .bottom))
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Put Momentum on your desktop")
+                    .font(.headline)
+                Text("Right-click the desktop, choose Edit Widgets, and search for Momentum. Widgets start timers, check in and log pages without opening the app.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Button("Got it", action: onDismiss)
+                .buttonStyle(PillButtonStyle(tint: .orange, prominent: false, compact: true))
+        }
+        .glassCard(tint: .orange)
     }
 }
 
