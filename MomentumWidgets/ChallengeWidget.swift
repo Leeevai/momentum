@@ -52,7 +52,7 @@ struct ChallengeWidgetView: View {
                 ChallengeMedium(goal: goal, status: status, entry: entry)
                     .widgetBackground(goal.tint)
             }
-        } else {
+        } else if family == .systemSmall || family == .systemMedium {
             VStack(spacing: 6) {
                 Image(systemName: "flag.2.crossed.fill")
                     .font(.title2)
@@ -63,6 +63,14 @@ struct ChallengeWidgetView: View {
                     .foregroundStyle(.secondary)
             }
             .widgetBackground(.orange)
+        } else {
+            // The Lock Screen has room for a symbol and a word.
+            ViewThatFits {
+                Label("No challenge", systemImage: "flag.2.crossed")
+                Image(systemName: "flag.2.crossed")
+            }
+            .font(.headline)
+            .accessoryBackground()
         }
     }
 }
@@ -73,7 +81,7 @@ private struct ChallengeCircular: View {
     let status: ChallengeStatus
 
     var body: some View {
-        Gauge(value: Double(status.kept), in: 0...Double(max(status.challenge.days, 1))) {
+        Gauge(value: status.keptFraction) {
             Image(systemName: status.isWon ? "trophy.fill" : "flag.fill")
         } currentValueLabel: {
             if status.isWon {
@@ -100,7 +108,7 @@ private struct ChallengeRectangular: View {
             Text(ChallengeText.short(status))
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
-            Gauge(value: Double(status.kept), in: 0...Double(max(status.challenge.days, 1))) { EmptyView() }
+            Gauge(value: status.keptFraction) { EmptyView() }
                 .gaugeStyle(.accessoryLinearCapacity)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

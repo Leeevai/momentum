@@ -41,12 +41,13 @@ struct MoodWidgetView: View {
         return VStack(alignment: .leading, spacing: 6) {
             header
             Spacer(minLength: 0)
+            // Sized for the narrowest small widget (an iPhone SE's, about 116 points inside).
             VStack(spacing: 6) {
-                HStack(spacing: 8) {
-                    ForEach(Mood.allCases.prefix(3)) { moodButton($0, selected: mood, size: 38) }
+                HStack(spacing: 6) {
+                    ForEach(Mood.allCases.prefix(3)) { moodButton($0, selected: mood, size: 34) }
                 }
-                HStack(spacing: 8) {
-                    ForEach(Mood.allCases.suffix(2)) { moodButton($0, selected: mood, size: 38) }
+                HStack(spacing: 6) {
+                    ForEach(Mood.allCases.suffix(2)) { moodButton($0, selected: mood, size: 34) }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -57,17 +58,17 @@ struct MoodWidgetView: View {
     private var medium: some View {
         let mood = today?.mood
         let energy = today?.energy
-        return HStack(spacing: 14) {
+        return HStack(spacing: 12) {
             header
-                .frame(width: 104, alignment: .leading)
+                .frame(width: 92, alignment: .leading)
             VStack(alignment: .leading, spacing: 10) {
                 row("Mood") {
-                    ForEach(Mood.allCases) { moodButton($0, selected: mood, size: 32) }
+                    ForEach(Mood.allCases) { moodButton($0, selected: mood, size: 29) }
                 }
                 row("Energy") {
                     ForEach(Energy.allCases) { level in
                         Button(intent: SetEnergyIntent(level)) {
-                            circle(level.symbolName, tint: level.tint, title: level.title, selected: level == energy, size: 32)
+                            circle(level.symbolName, tint: level.tint, title: level.title, selected: level == energy, size: 29)
                         }
                     }
                 }
@@ -96,7 +97,7 @@ struct MoodWidgetView: View {
             Text(title)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            HStack(spacing: 6) { content() }
+            HStack(spacing: 5) { content() }
         }
     }
 

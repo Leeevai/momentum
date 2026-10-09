@@ -13,6 +13,11 @@ struct SessionRating: Identifiable, Equatable {
     static let minimumSeconds: Double = 5 * 60
     /// How long the question waits before it goes away by itself.
     static let lifetime: Duration = .seconds(20)
+    /// A question not seen within this long (the session was stopped from the menu bar with no
+    /// window open, or while the app was in the background) isn't asked later.
+    static let staleAfter: TimeInterval = 120
+
+    var isStale: Bool { Date().timeIntervalSince(endedAt) > Self.staleAfter }
 }
 
 extension FocusQuality {
@@ -66,7 +71,9 @@ struct SessionRatingBanner: View {
         .shadow(color: .black.opacity(0.18), radius: 24, y: 10)
         .padding(.horizontal, 16)
         .task(id: rating.id) {
-            try? await Task.sleep(for: SessionRating.lifetime)
+            if !rating.isStale {
+                try? await Task.sleep(for: SessionRating.lifetime)
+            }
             dismiss()
         }
     }
@@ -124,7 +131,7 @@ extension View {
     /// Shows the session question at the bottom, raised by `bottomInset` (above a tab bar).
     func sessionRatingOverlay(_ store: GoalStore, bottomInset: CGFloat) -> some View {
         overlay(alignment: .bottom) {
-            if let rating = store.sessionRating {
+            if let rating = store.sessionRating, !rating.isStale {
                 SessionRatingBanner(rating: rating)
                     .padding(.bottom, bottomInset)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
