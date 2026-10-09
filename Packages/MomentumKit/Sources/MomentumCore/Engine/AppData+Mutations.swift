@@ -39,6 +39,7 @@ extension AppData {
         copy.createdAt = now
         copy.archivedAt = nil
         copy.breaks = []
+        copy.challenge = nil
         copy.milestones = original.milestones.map { Milestone(title: $0.title, dueDate: $0.dueDate) }
         copy.books = original.books.map { Book(title: $0.title, author: $0.author, totalPages: $0.totalPages, link: $0.link, addedAt: now) }
         copy.links = original.links.map { GoalLink(title: $0.title, url: $0.url, bookmark: $0.bookmark, opensWithFocus: $0.opensWithFocus) }

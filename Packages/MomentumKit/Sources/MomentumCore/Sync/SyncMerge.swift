@@ -10,7 +10,8 @@ import Foundation
 public enum SyncMerge {
     public static func merge(_ local: AppData, _ remote: AppData) -> AppData {
         var sync = SyncState(stamps: local.sync.stamps.merging(remote.sync.stamps, uniquingKeysWith: max),
-                             tombstones: local.sync.tombstones.merging(remote.sync.tombstones, uniquingKeysWith: max))
+                             tombstones: local.sync.tombstones.merging(remote.sync.tombstones, uniquingKeysWith: max),
+                             endedSessions: local.sync.endedSessions.merging(remote.sync.endedSessions, uniquingKeysWith: max))
 
         func pick<T: Codable & Equatable>(_ a: T?, _ b: T?, key: String, stampsA: SyncState, stampsB: SyncState) -> T? {
             switch (a, b) {
@@ -108,13 +109,17 @@ public enum SyncMerge {
         return tieBreak(a, b)
     }
 
-    /// Picks the same one of two different values whichever side asks, by comparing their JSON.
+    /// Picks the same one of two different values whichever side asks, by comparing their JSON:
+    /// the longer one, then the greater. Longer first, because a version that doesn't know a
+    /// field drops it when it reads a record and rewrites it unchanged otherwise; preferring the
+    /// copy that still has the field keeps that version from erasing it everywhere.
     private static func tieBreak<T: Encodable>(_ a: T, _ b: T) -> T {
         // Full-precision dates: two values a fraction of a second apart must still differ here.
         let encoder = DateCoding.encoder()
         encoder.outputFormatting = .sortedKeys
         let first = (try? encoder.encode(a)) ?? Data()
         let second = (try? encoder.encode(b)) ?? Data()
+        if first.count != second.count { return first.count > second.count ? a : b }
         return first.lexicographicallyPrecedes(second) ? b : a
     }
 }

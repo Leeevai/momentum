@@ -26,18 +26,22 @@ public struct ChallengeStatus: Equatable, Sendable {
     /// Days still to play, today included while it isn't kept.
     public var remaining: Int { days.count { $0 == .today || $0 == .upcoming } }
     public var isFinished: Bool { remaining == 0 }
-    /// Finished without a miss.
-    public var isWon: Bool { isFinished && missed == 0 }
+    /// Finished without a miss, with at least one day kept (a challenge spent entirely on a
+    /// break isn't won).
+    public var isWon: Bool { isFinished && missed == 0 && kept > 0 }
     /// Kept or free so far: no day missed.
     public var isOnTrack: Bool { missed == 0 }
     /// The share of the challenge behind it.
     public var fraction: Double { Double(days.count - remaining) / Double(max(days.count, 1)) }
+    /// The share of days kept or free: what a ring fills with, so a won challenge with days off
+    /// still closes.
+    public var keptFraction: Double { Double(kept + days.count { $0 == .free }) / Double(max(days.count, 1)) }
 }
 
 extension ProgressEngine {
     /// The state of `goal`'s challenge, if it has one.
     public func challengeStatus(for goal: Goal, now: Date) -> ChallengeStatus? {
-        guard let challenge = goal.challenge else { return nil }
+        guard let challenge = goal.challenge, challenge.days > 0 else { return nil }
         let first = startOfDay(challenge.start.date(in: calendar))
         let today = dayKey(now)
         var days: [ChallengeStatus.Day] = []

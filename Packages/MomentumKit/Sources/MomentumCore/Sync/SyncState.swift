@@ -15,11 +15,21 @@ public struct SyncState: Codable, Equatable, Sendable {
     /// The goal order as last arranged (by a reorder, an add or a delete), stamped as "order".
     /// Nil until the first such change; the goals' own order stands in for it.
     public var order: [UUID]?
+    /// Focus sessions that ended (stopped, discarded or replaced), by `sessionKey`, with when.
+    /// It only grows, and merges by union, so a device can tell a session nobody ended (one the
+    /// merge merely replaced with an older view of the timer) from one that ended elsewhere.
+    public var endedSessions: [String: Date]
 
-    public init(stamps: [String: Date] = [:], tombstones: [String: Date] = [:], order: [UUID]? = nil) {
+    public init(stamps: [String: Date] = [:], tombstones: [String: Date] = [:], order: [UUID]? = nil, endedSessions: [String: Date] = [:]) {
         self.stamps = stamps
         self.tombstones = tombstones
         self.order = order
+        self.endedSessions = endedSessions
+    }
+
+    /// Names a session the same way on every device: its goal and the moment it started.
+    public static func sessionKey(_ session: FocusSession) -> String {
+        "\(session.goalID.uuidString)@\(session.startedAt.timeIntervalSinceReferenceDate)"
     }
 
     /// Deletions are remembered this long, so a device that was away for months still learns of
@@ -49,13 +59,14 @@ public struct SyncState: Codable, Equatable, Sendable {
         return deleted >= date
     }
 
-    private enum CodingKeys: String, CodingKey { case stamps, tombstones, order }
+    private enum CodingKeys: String, CodingKey { case stamps, tombstones, order, endedSessions }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         stamps = try c.decode(.stamps, default: [:])
         tombstones = try c.decode(.tombstones, default: [:])
         order = try c.decodeIfPresent([UUID].self, forKey: .order)
+        endedSessions = try c.decode(.endedSessions, default: [:])
     }
 }
 
@@ -111,11 +122,19 @@ public enum SyncStamper {
             for day in old.keys where new[day] == nil { removed(SyncState.journal(day)) }
         }
 
-        if before.session != after.session { sync.stamps[SyncState.session] = now }
+        if before.session != after.session {
+            sync.stamps[SyncState.session] = now
+            if let ended = before.session, after.session.map({ !$0.isSameSession(as: ended) }) ?? true {
+                sync.endedSessions[SyncState.sessionKey(ended)] = now
+            }
+        }
         if before.rest != after.rest { sync.stamps[SyncState.rest] = now }
         if before.preferences != after.preferences { sync.stamps[SyncState.preferences] = now }
 
         sync.tombstones = sync.tombstones.filter { now.timeIntervalSince($0.value) < SyncState.tombstoneLifetime }
+        if sync.endedSessions.contains(where: { now.timeIntervalSince($0.value) >= SyncState.tombstoneLifetime }) {
+            sync.endedSessions = sync.endedSessions.filter { now.timeIntervalSince($0.value) < SyncState.tombstoneLifetime }
+        }
         after.sync = sync
     }
 }

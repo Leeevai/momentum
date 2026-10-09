@@ -31,6 +31,33 @@ extension AppData {
         return before.0 != session || before.1 != rest
     }
 
+    /// After merging other devices' copies in: a session that was running here before the merge,
+    /// that no device has ended, and that the merge replaced (another device's older view of the
+    /// timer won on time) is kept. If another session started meanwhile, this one stops where that
+    /// one started, its time saved, as starting a session elsewhere would have done on one device.
+    /// Returns whether anything changed.
+    @discardableResult
+    public mutating func keepUnendedSession(_ local: FocusSession?, calendar: Calendar = .current) -> Bool {
+        guard let local, session.map({ !$0.isSameSession(as: local) }) ?? true,
+              sync.endedSessions[SyncState.sessionKey(local)] == nil, goal(local.goalID) != nil else { return false }
+        if let other = session {
+            session = local
+            stopFocus(at: max(other.startedAt, local.startedAt), calendar: calendar)
+            session = other
+        } else {
+            session = local
+        }
+        return true
+    }
+
+    /// Everything a device settles after merging others' copies in, as a change of its own.
+    @discardableResult
+    public mutating func settleAfterMerge(keeping local: FocusSession?, calendar: Calendar = .current) -> Bool {
+        let kept = keepUnendedSession(local, calendar: calendar)
+        let settled = settleTimer()
+        return kept || settled
+    }
+
     /// Moves the Pomodoro rhythm along: saves a block that reached its length and starts its
     /// break, or starts the next block when a break ends and auto-start is on. A break under a
     /// running session is left for `settleTimer`.

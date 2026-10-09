@@ -200,6 +200,7 @@ extension Goal {
         field(\.reminder)
         field(\.stackAfter)
         field(\.breaks)
+        field(\.challenge)
         field(\.createdAt)
         field(\.archivedAt)
         milestones = Self.revert(milestones, to: previous.milestones, from: changed.milestones)
