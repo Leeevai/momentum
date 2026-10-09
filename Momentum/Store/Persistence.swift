@@ -12,6 +12,10 @@ protocol DataPersistence: AnyObject {
     func backUpDaily()
     /// Daily backups, newest first.
     func dailyBackups() -> [URL]
+    /// When the stored data last changed.
+    func modificationDate() -> Date?
+    /// The modification date this app's latest write produced, to recognize its own saves.
+    func lastWriteModification() -> Date?
 }
 
 final class SharedFilePersistence: DataPersistence {
@@ -29,6 +33,10 @@ final class SharedFilePersistence: DataPersistence {
     func backUpDaily() { SharedStore.fileStore.backUpDaily() }
 
     func dailyBackups() -> [URL] { (try? SharedStore.fileStore.dailyBackups()) ?? [] }
+
+    func modificationDate() -> Date? { SharedStore.fileStore.modificationDate() }
+
+    func lastWriteModification() -> Date? { SharedStore.fileStore.lastWriteModification }
 }
 
 final class InMemoryPersistence: DataPersistence {
@@ -50,4 +58,8 @@ final class InMemoryPersistence: DataPersistence {
     func backUpDaily() {}
 
     func dailyBackups() -> [URL] { [] }
+
+    func modificationDate() -> Date? { nil }
+
+    func lastWriteModification() -> Date? { nil }
 }

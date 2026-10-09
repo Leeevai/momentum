@@ -200,7 +200,7 @@ private struct DataSettings: View {
         }
         .formStyle(.grouped)
         .frame(height: 480)
-        .fileExporter(isPresented: $exportingJSON, document: ExportDocument(data: (try? FileStore.encode(store.data)) ?? Data(), type: .json),
+        .fileExporter(isPresented: $exportingJSON, document: ExportDocument(data: (try? FileStore.encode(store.data, pretty: true)) ?? Data(), type: .json),
                       contentType: .json, defaultFilename: "Momentum Backup \(Date.now.formatted(.iso8601.year().month().day()))") { result in
             report(result, what: "Backup")
         }

@@ -65,11 +65,14 @@ final class GoalStore {
     @ObservationIgnored private var watcher: DispatchSourceFileSystemObject?
     @ObservationIgnored private var dayTimer: Timer?
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
+    /// The data file's modification date as of the last read or write by this app.
+    @ObservationIgnored private var knownModification: Date?
     @ObservationIgnored private let logger = Logger(subsystem: "dev.momentum.app", category: "GoalStore")
 
     init(persistence: DataPersistence = SharedFilePersistence(), effects: SideEffects? = nil) {
         let initial = persistence.load()
         self.persistence = persistence
+        self.knownModification = persistence.modificationDate()
         self.data = initial
         self.engine = ProgressEngine(data: initial)
         self.effects = effects ?? SideEffects()
@@ -94,17 +97,27 @@ final class GoalStore {
     func perform(_ undoName: String? = nil, _ change: (inout AppData) -> Void) {
         let previous = data
         let updated = persistence.update(change)
+        knownModification = persistence.lastWriteModification()
         if let undoName { registerUndo(restoring: previous, name: undoName) }
         apply(updated, userInitiated: true)
     }
 
+    /// Picks up changes made by the widgets or Shortcuts. The folder watcher also fires for the
+    /// app's own saves; those leave the file as the app last saw it, so they are skipped.
     func reload() {
+        let modification = persistence.modificationDate()
+        if let modification, modification == knownModification {
+            now = .now
+            return
+        }
+        knownModification = modification
         apply(persistence.load(), userInitiated: false)
     }
 
     /// Replaces all data, e.g. from an import. The previous file is kept as a backup.
     func replaceAll(with newData: AppData) {
         persistence.replace(with: newData)
+        knownModification = persistence.lastWriteModification()
         apply(persistence.load(), userInitiated: false)
     }
 
@@ -128,6 +141,7 @@ final class GoalStore {
             MainActor.assumeIsolated {
                 let current = store.data
                 store.apply(store.persistence.update { $0 = snapshot }, userInitiated: false)
+                store.knownModification = store.persistence.lastWriteModification()
                 store.registerUndo(restoring: current, name: name)
             }
         }
