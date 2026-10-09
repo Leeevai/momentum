@@ -71,18 +71,29 @@ struct SetPausedIntent: AppIntent {
     static let title: LocalizedStringResource = "Pause or Resume Session"
     static let isDiscoverable = false
 
+    @Parameter(title: "Goal ID")
+    var goalID: String
+
     @Parameter(title: "Paused")
     var paused: Bool
 
     init() {}
 
-    init(paused: Bool) {
+    init(goalID: String, paused: Bool) {
+        self.goalID = goalID
         self.paused = paused
+    }
+
+    init(goalID: UUID, paused: Bool) {
+        self.init(goalID: goalID.uuidString, paused: paused)
     }
 
     func perform() async throws -> some IntentResult {
         LiveActivitySync.catchUp()
         let data = SharedStore.update { data in
+            // Only the session the button was drawn for: by the time of the tap another device
+            // may have stopped it and started one on a different goal.
+            guard data.session?.goalID.uuidString == goalID else { return }
             if paused { data.pauseFocus() } else { data.resumeFocus() }
         }
         await LiveActivitySync.after(data)

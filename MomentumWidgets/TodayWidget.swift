@@ -72,7 +72,7 @@ private struct TodaySmall: View {
                         .minimumScaleFactor(0.6)
                     Spacer(minLength: 2)
                     HStack(spacing: 6) {
-                        Button(intent: SetPausedIntent(paused: session.isRunning)) {
+                        Button(intent: SetPausedIntent(goalID: goal.id, paused: session.isRunning)) {
                             Image(systemName: session.isRunning ? "pause.fill" : "play.fill")
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 5)

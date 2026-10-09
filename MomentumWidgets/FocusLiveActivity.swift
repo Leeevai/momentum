@@ -169,7 +169,7 @@ private struct ActivityButtons: View {
         HStack(spacing: 8) {
             switch state.phase {
             case .focusing, .paused:
-                Button(intent: SetPausedIntent(paused: state.phase != .paused)) {
+                Button(intent: SetPausedIntent(goalID: attributes.goalID, paused: state.phase != .paused)) {
                     Image(systemName: state.phase == .paused ? "play.fill" : "pause.fill")
                 }
                 .buttonStyle(ActivityButtonStyle(tint: .white.opacity(0.18)))

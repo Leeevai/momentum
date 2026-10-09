@@ -50,7 +50,7 @@ struct FocusWidgetView: View {
             }
             Spacer(minLength: 0)
             HStack(spacing: 8) {
-                Button(intent: SetPausedIntent(paused: session.isRunning)) {
+                Button(intent: SetPausedIntent(goalID: goal.id, paused: session.isRunning)) {
                     Label(session.isRunning ? "Pause" : "Resume", systemImage: session.isRunning ? "pause.fill" : "play.fill")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
