@@ -24,7 +24,9 @@ The first public release: a full rebuild of the 0.1 prototype.
   end at midnight.
 - Editable history: change the time, amount or note of any entry.
 - A Control Center focus toggle on macOS 26.
-- Insights: focus per day by goal, weekday and time-of-day patterns, hit rates, books and milestones.
+- Insights: focus per day by goal compared with the period before, weekday and time-of-day
+  patterns, hit rates, books and milestones.
+- Quick actions (⌘K): find any goal and start, log or open it from the keyboard.
 - Widgets: Today, Goal (configurable), Focus and Streaks, all interactive.
 - Menu bar timer and panel; Settings; App Shortcuts for Shortcuts, Spotlight and Siri.
 - Goal templates, categories, archive, duplicate, full undo, keyboard shortcuts.

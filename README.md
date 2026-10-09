@@ -59,8 +59,8 @@ the days you read.
 - **Streak protection**: an evening nudge when a streak would end at midnight.
 
 ### Insights
-Focus time per day by goal, your strongest weekday, the hour you focus best, hit rates, streaks,
-books and milestones, over 7 days up to a year.
+Focus time per day by goal, compared with the period before, your strongest weekday, the hour you
+focus best, hit rates, streaks, books and milestones, over 7 days up to a year.
 
 ### Widgets
 Four interactive widgets in every size. **Start and stop timers, check in, and log pages
@@ -104,6 +104,7 @@ right from the desktop** without opening the app.
 
 | Shortcut | Action |
 |----------|--------|
+| ⌘K | Quick actions: find a goal, then start, log or open it |
 | ⌘N | New goal |
 | ⌘1 / ⌘2 | Today / Insights |
 | ⌘3 to ⌘9 | Jump to a goal |
