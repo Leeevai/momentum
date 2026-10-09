@@ -54,6 +54,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
+
+    /// Clicking the Dock icon with no window open brings the main window back. The menu-bar
+    /// item is always alive, so it listens for this and opens the window.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { NotificationCenter.default.post(name: .reopenMainWindow, object: nil) }
+        return true
+    }
+}
+
+extension Notification.Name {
+    static let reopenMainWindow = Notification.Name("MomentumReopenMainWindow")
 }
 
 struct MomentumCommands: Commands {
@@ -85,6 +96,12 @@ struct MomentumCommands: Commands {
                     .keyboardShortcut(KeyEquivalent(Character(String(index + 3))), modifiers: .command)
             }
         }
+        CommandGroup(replacing: .help) {
+            Button("Momentum Help") { showHelp() }
+            Button("Report an Issue…") {
+                if let url = URL(string: "https://github.com/Leeevai/momentum/issues/new/choose") { NSWorkspace.shared.open(url) }
+            }
+        }
         CommandMenu("Focus") {
             if let session = store.data.session, let goal = store.goal(session.goalID) {
                 Button(session.isRunning ? "Pause \(goal.name)" : "Resume \(goal.name)") { store.togglePause() }
@@ -106,6 +123,10 @@ struct MomentumCommands: Commands {
                 }
             }
         }
+    }
+
+    private func showHelp() {
+        if let url = URL(string: "https://github.com/Leeevai/momentum#readme") { NSWorkspace.shared.open(url) }
     }
 
     private func show(_ route: Route) {

@@ -5,8 +5,17 @@ import SwiftUI
 /// The menu-bar item: a live timer while focusing, otherwise today's progress.
 struct MenuBarLabel: View {
     @Environment(GoalStore.self) private var store
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        label
+            .onReceive(NotificationCenter.default.publisher(for: .reopenMainWindow)) { _ in
+                openWindow(id: "main")
+            }
+    }
+
+    @ViewBuilder
+    private var label: some View {
         if store.data.preferences.showsTimerInMenuBar, let session = store.data.session, let goal = store.goal(session.goalID) {
             LiveClock(isLive: session.isRunning, fallback: .now) { now in
                 Text("\(goal.icon) \(label(session, now: now))")
