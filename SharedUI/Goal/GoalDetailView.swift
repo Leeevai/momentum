@@ -51,6 +51,9 @@ struct GoalDetailContent: View {
         VStack(alignment: .leading, spacing: 22) {
             GoalHeader(goal: goal, hero: hero)
             HeroPanel(goal: goal, hero: hero)
+            if let challenge = engine.challengeStatus(for: goal, now: now) {
+                ChallengeCard(goal: goal, status: challenge)
+            }
             if let pace = engine.pace(for: goal, now: now), pace.status != .done {
                 PaceCard(goal: goal, pace: pace)
             }

@@ -433,6 +433,7 @@ final class GoalStore {
         after.session = nil
         let previous = ProgressEngine(data: before)
         let current = ProgressEngine(data: after)
+        announceWonChallenges(previous: previous, current: current, now: moment)
         for goal in current.activeGoals where current.isComplete(goal, now: moment) {
             guard let earlier = previous.goal(goal.id), !previous.isComplete(earlier, now: moment) else { continue }
             effects.play(.goalCompleted, preferences: data.preferences)
@@ -441,6 +442,17 @@ final class GoalStore {
                 celebration = Celebration(goal: goal, next: next)
             }
             return
+        }
+    }
+
+    /// A banner for a challenge this change finished without a miss.
+    private func announceWonChallenges(previous: ProgressEngine, current: ProgressEngine, now: Date) {
+        for goal in current.activeGoals where goal.challenge != nil {
+            guard let status = current.challengeStatus(for: goal, now: now), status.isWon,
+                  let earlier = previous.goal(goal.id), earlier.challenge == goal.challenge,
+                  previous.challengeStatus(for: earlier, now: now)?.isWon == false else { continue }
+            show(Toast(kind: .message(title: "\(status.challenge.title) complete",
+                                      detail: "\(goal.name): every day, kept.", symbol: "trophy.fill")))
         }
     }
 
@@ -506,6 +518,18 @@ extension GoalStore {
     }
 
     func stopFocus() { perform("Stop Focus") { $0.stopFocus() } }
+
+    /// Starts a challenge today, or changes the length of the one running (keeping its start).
+    func startChallenge(_ goal: Goal, days: Int, keepingStart: Bool = false) {
+        let start = keepingStart ? goal.challenge?.start ?? DayID(.now) : DayID(.now)
+        perform(goal.challenge == nil ? "Start Challenge" : "Change Challenge") {
+            $0.startChallenge(on: goal.id, days: days, from: start)
+        }
+    }
+
+    func endChallenge(_ goal: Goal) {
+        perform("End Challenge") { $0.endChallenge(on: goal.id) }
+    }
 
     /// Opens a time goal with its timer running: starts one unless it's already going.
     func focus(onGoal id: UUID) {

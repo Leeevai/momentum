@@ -57,9 +57,14 @@ struct GoalCard: View {
                 Spacer(minLength: 4)
                 VStack(alignment: .trailing, spacing: 6) {
                     StreakBadge(count: streak.current, unit: streak.unit)
-                    Text(goal.effectivePeriod.currentLabel)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.tertiary)
+                    if let challenge = engine.challengeStatus(for: goal, now: now), challenge.dayNumber > 0,
+                       !challenge.isFinished || challenge.isWon {
+                        ChallengeChip(status: challenge, tint: goal.tint)
+                    } else {
+                        Text(goal.effectivePeriod.currentLabel)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
 

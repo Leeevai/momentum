@@ -150,12 +150,46 @@ struct GoalEditor: View {
         }
     }
 
+    /// Challenges suit goals with something to do each day.
+    private var offersChallenge: Bool {
+        draft.effectivePeriod == .daily || draft.kind == .books
+    }
+
+    private var challengeLength: Binding<Int?> {
+        Binding(
+            get: { draft.challenge?.days },
+            set: { days in
+                draft.challenge = days.map { Challenge(start: draft.challenge?.start ?? DayID(.now), days: $0) }
+            }
+        )
+    }
+
+    private var challengeCaption: String {
+        guard let challenge = draft.challenge else {
+            return "Commit to a run of days. Every day it's due counts, and an award waits at the end."
+        }
+        if challenge.start == DayID(.now) { return "Starts today. Days off and breaks don't count against it." }
+        let started = challenge.start.date().formatted(.dateTime.month(.abbreviated).day())
+        return "Started \(started). To start over, use the goal's page."
+    }
+
     @ViewBuilder
     private var schedule: some View {
         if draft.kind.usesPeriod && draft.period == .daily {
             Section("Days") {
                 WeekdayChooser(selection: $draft.weekdays, tint: draft.tint)
                 Text("Days off never break your streak.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        if offersChallenge {
+            Section("Challenge") {
+                Picker("Challenge", selection: challengeLength.animation()) {
+                    Text("None").tag(Int?.none)
+                    ForEach(Challenge.lengths, id: \.self) { Text("\($0) days").tag(Int?.some($0)) }
+                }
+                Text(challengeCaption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

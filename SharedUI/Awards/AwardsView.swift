@@ -370,7 +370,7 @@ enum AwardFormat {
         case .milestonesCompleted: "milestones"
         case .journalReflections, .journalPlans: "days"
         case .activeGoals: "goals"
-        case .anyProgress, .comeback, .earlyBird, .nightOwl, .goalsFinished, .habitStack, .event: ""
+        case .anyProgress, .comeback, .earlyBird, .nightOwl, .goalsFinished, .habitStack, .challengeWon, .event: ""
         }
         if unit.isEmpty { return item.isEarned ? "Earned" : "Not yet" }
         let value = min(item.value, achievement.target)
