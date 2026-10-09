@@ -110,12 +110,17 @@ public struct DataPatch: Sendable {
             }
         }
         for (day, change) in journal {
+            // Field by field, so a mood synced in or written since survives undoing the plan.
+            let empty = JournalEntry(day: day, modifiedAt: .distantPast)
+            var entry = data.journalEntry(for: day) ?? empty
+            entry.revert(to: change.before ?? empty, from: change.after ?? empty)
             data.journal.removeAll { $0.day == day }
-            if let previous = change.before { data.journal.append(previous) }
+            if !entry.isEmpty { data.journal.append(entry) }
         }
         data.journal.sort { $0.day < $1.day }
-        // The break goes back only if it is still the one this action left.
-        if let rest, data.rest == rest.after {
+        // The break goes back only if it is still the one this action left, and never on top of
+        // a session started since.
+        if let rest, data.rest == rest.after, rest.before == nil || data.session == nil {
             data.rest = rest.before
         }
         if let previous = preferences?.before {
@@ -152,6 +157,21 @@ public struct DataPatch: Sendable {
         return goals.enumerated()
             .sorted { (rank[$0.element.id] ?? order.count + $0.offset, $0.offset) < (rank[$1.element.id] ?? order.count + $1.offset, $1.offset) }
             .map(\.element)
+    }
+}
+
+extension JournalEntry {
+    /// Undoes the change from `previous` to `changed` field by field, keeping other edits.
+    mutating func revert(to previous: JournalEntry, from changed: JournalEntry) {
+        func field<T: Equatable>(_ keyPath: WritableKeyPath<JournalEntry, T>) {
+            if previous[keyPath: keyPath] != changed[keyPath: keyPath] { self[keyPath: keyPath] = previous[keyPath: keyPath] }
+        }
+        field(\.intention)
+        field(\.priorities)
+        field(\.reflection)
+        field(\.win)
+        field(\.mood)
+        field(\.energy)
     }
 }
 

@@ -183,7 +183,8 @@ extension AppData {
         var entry = journalEntry(for: day) ?? JournalEntry(day: day, modifiedAt: now)
         let before = entry
         change(&entry)
-        entry.priorities = Array(entry.priorities.uniqued().prefix(JournalEntry.maxPriorities))
+        let existing = Set(goals.map(\.id))
+        entry.priorities = Array(entry.priorities.uniqued().filter(existing.contains).prefix(JournalEntry.maxPriorities))
         guard entry != before else { return }
         entry.modifiedAt = now
         journal.removeAll { $0.day == day }
@@ -196,7 +197,10 @@ extension AppData {
     /// Adds `goalID` to the day's priorities, or removes it if it is there. Ignored once three
     /// are picked.
     public mutating func togglePriority(_ goalID: UUID, on day: DayID, at now: Date = .now) {
+        // A deleted goal doesn't hold one of the three places.
+        let existing = Set(goals.map(\.id))
         updateJournal(for: day, at: now) { entry in
+            entry.priorities.removeAll { !existing.contains($0) }
             if let index = entry.priorities.firstIndex(of: goalID) {
                 entry.priorities.remove(at: index)
             } else if entry.priorities.count < JournalEntry.maxPriorities {

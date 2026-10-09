@@ -308,10 +308,14 @@ public struct ProgressEngine: Sendable {
         hasher.combine(firstDay(of: goal))
         hasher.combine(goal.milestones.compactMap(\.completedAt))
         hasher.combine(goal.books.compactMap(\.finishedAt))
-        // Order-independent sums over the daily totals.
+        // An order-independent sum of a full hash of each day's total: swapping amounts between
+        // days, or moving entries forward and back, changes it.
         var totals = 0
         for (key, amount) in dailyTotals[goal.id] ?? [:] {
-            totals &+= key &* 1_000_003 &+ amount.hashValue
+            var day = Hasher()
+            day.combine(key)
+            day.combine(amount)
+            totals &+= day.finalize()
         }
         hasher.combine(totals)
         if let session = data.session, session.goalID == goal.id {
