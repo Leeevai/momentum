@@ -19,8 +19,16 @@ struct MenuBarLabel: View {
         if store.data.preferences.showsTimerInMenuBar, let session = store.data.session, let goal = store.goal(session.goalID) {
             LiveClock(isLive: session.isRunning, fallback: .now) { now in
                 HStack(spacing: 4) {
-                    Image(systemName: goal.symbol)
+                    Image(systemName: session.isRunning ? goal.symbol : "pause.fill")
                     Text(label(session, now: now))
+                        .monospacedDigit()
+                }
+            }
+        } else if store.data.preferences.showsTimerInMenuBar, let rest = store.data.rest, !rest.isOver(at: store.now) {
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                HStack(spacing: 4) {
+                    Image(systemName: rest.isLong ? "cup.and.saucer.fill" : "leaf.fill")
+                    Text(Formatting.clock(rest.remaining(at: context.date)))
                         .monospacedDigit()
                 }
             }
@@ -37,11 +45,10 @@ struct MenuBarLabel: View {
     }
 
     private func label(_ session: FocusSession, now: Date) -> String {
-        let prefix = session.isRunning ? "" : "⏸ "
         if let remaining = session.remaining(at: now), remaining > 0 {
-            return prefix + Formatting.clock(remaining)
+            return Formatting.clock(remaining)
         }
-        return prefix + Formatting.clock(session.elapsed(at: now))
+        return Formatting.clock(session.elapsed(at: now))
     }
 }
 
@@ -76,6 +83,8 @@ struct MenuBarPanel: View {
 
             if let session = store.data.session, let goal = store.goal(session.goalID) {
                 MenuSessionCard(goal: goal, session: session)
+            } else if let rest = store.data.rest, let goal = store.goal(rest.goalID) {
+                MenuRestCard(goal: goal, rest: rest)
             }
 
             if store.data.goals.isEmpty {
@@ -122,6 +131,40 @@ struct MenuBarPanel: View {
         }
         .padding(14)
         .frame(width: 340)
+    }
+}
+
+private struct MenuRestCard: View {
+    @Environment(GoalStore.self) private var store
+    let goal: Goal
+    let rest: RestPeriod
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let over = rest.isOver(at: context.date)
+            HStack(spacing: 10) {
+                Image(systemName: over ? "bell.fill" : (rest.isLong ? "cup.and.saucer.fill" : "leaf.fill"))
+                    .font(.title3)
+                    .foregroundStyle(.mint)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(over ? "Break's over" : (rest.isLong ? "Long break" : "Short break"))
+                        .font(.callout.weight(.semibold))
+                    Text(over ? "Block \(rest.nextBlock) of \(goal.name) is next" : Formatting.clock(rest.remaining(at: context.date)))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Spacer()
+                Button { store.startNextBlock() } label: { Image(systemName: "play.fill") }
+                    .buttonStyle(CircleButtonStyle(tint: goal.tint, size: 26))
+                    .help("Start block \(rest.nextBlock)")
+                Button { store.endRest() } label: { Image(systemName: over ? "checkmark" : "forward.end.fill") }
+                    .buttonStyle(CircleButtonStyle(tint: .secondary, size: 26, prominent: false))
+                    .help(over ? "Done for now" : "Skip break")
+            }
+        }
+        .glassCard(tint: .mint, cornerRadius: 14, padding: 10, highlighted: true)
     }
 }
 
