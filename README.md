@@ -155,7 +155,8 @@ and the widgets, on every device you sync. Goal rings **lap past 100%**, so a bi
 - **Fast with years of history**: on five years of heavy use, rebuilding progress after a change
   takes about 5 ms and every streak about 4 ms.
 - **Private by design**: no account, no analytics, no tracking. The only network request is the
-  book search you type, sent to [Open Library](https://openlibrary.org).
+  book search you type, sent to [Open Library](https://openlibrary.org). See the
+  [privacy policy](docs/PRIVACY.md).
 
 ## Screenshots
 

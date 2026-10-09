@@ -39,6 +39,7 @@ Momentum for iPhone, iPad and Mac.
 | Age rating | 4+ (no objectionable content) |
 | Price | Free, or paid once; there are no accounts or subscriptions to support |
 | App Privacy | **Data Not Collected** |
+| Privacy Policy URL | https://github.com/Leeevai/momentum/blob/main/docs/PRIVACY.md |
 | Support URL | https://github.com/Leeevai/momentum/issues |
 | Marketing URL | https://github.com/Leeevai/momentum |
 
