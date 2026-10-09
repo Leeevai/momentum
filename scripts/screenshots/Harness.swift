@@ -7,7 +7,7 @@ import WidgetKit
 
 nonisolated(unsafe) var output = URL(fileURLWithPath: CommandLine.arguments[1])
 let app = NSApplication.shared
-app.setActivationPolicy(.accessory)
+app.setActivationPolicy(.regular)
 // Screenshots show a returning user: no first-run tip. Registered defaults stay in memory.
 UserDefaults.standard.register(defaults: ["dismissedWidgetTip": true])
 
@@ -33,15 +33,22 @@ let windowImage: WindowImageFunction = {
     return unsafeBitCast(dlsym(handle, "CGWindowListCreateImage"), to: WindowImageFunction.self)
 }()
 
+/// A borderless window that can become key, so controls and glass render in their active state.
+final class KeyWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
 @MainActor
 func snapshot<V: View>(_ view: V, size: CGSize, dark: Bool, name: String) {
-    let window = NSWindow(contentRect: CGRect(origin: CGPoint(x: -20_000, y: -20_000), size: size), styleMask: [.borderless], backing: .buffered, defer: false)
+    let window = KeyWindow(contentRect: CGRect(origin: CGPoint(x: -20_000, y: -20_000), size: size), styleMask: [.borderless], backing: .buffered, defer: false)
     window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
     window.backgroundColor = .windowBackgroundColor
     let host = NSHostingView(rootView: view.frame(width: size.width, height: size.height))
     host.frame = CGRect(origin: .zero, size: size)
     window.contentView = host
-    window.orderFrontRegardless()
+    window.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
     // Let layout, images and tasks settle.
     RunLoop.main.run(until: Date().addingTimeInterval(1.5))
     // kCGWindowListOptionIncludingWindow = 1 << 3; kCGWindowImageBoundsIgnoreFraming | BestResolution.
