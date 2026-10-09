@@ -31,7 +31,8 @@ final class SideEffects {
         MomentumShortcuts.updateAppShortcutParameters()
         notifications.activate()
         scheduleReplan(engine: engine)
-        notifications.syncSessionEnd(data.session, goal: data.session.flatMap { engine.goal($0.goalID) })
+        notifications.syncSessionEnd(data.session, goal: data.session.flatMap { engine.goal($0.goalID) }, pomodoro: data.preferences.pomodoro)
+        notifications.syncRestEnd(data.rest, goal: data.rest.flatMap { engine.goal($0.goalID) })
         syncFocusSound(data)
         cacheCovers(data)
     }
@@ -48,8 +49,11 @@ final class SideEffects {
             // Siri and Spotlight phrases name goals ("Focus on Deep work"); keep them current.
             MomentumShortcuts.updateAppShortcutParameters()
         }
-        if old.session != new.session {
-            notifications.syncSessionEnd(new.session, goal: new.session.flatMap { engine.goal($0.goalID) })
+        if old.session != new.session || old.preferences.pomodoro != new.preferences.pomodoro {
+            notifications.syncSessionEnd(new.session, goal: new.session.flatMap { engine.goal($0.goalID) }, pomodoro: new.preferences.pomodoro)
+        }
+        if old.rest != new.rest {
+            notifications.syncRestEnd(new.rest, goal: new.rest.flatMap { engine.goal($0.goalID) })
         }
         if old.session?.isRunning != new.session?.isRunning || old.preferences != new.preferences {
             syncFocusSound(new)
@@ -127,12 +131,14 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     private enum Category {
         static let reminder = "goal.reminder"
         static let sessionEnd = "session.end"
+        static let restEnd = "rest.end"
     }
     private enum Action {
         static let start = "start"
         static let quickAdd = "quick-add"
         static let stop = "stop"
         static let extend = "extend"
+        static let nextBlock = "next-block"
     }
 
     func activate() {
@@ -145,6 +151,9 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             UNNotificationCategory(identifier: Category.sessionEnd, actions: [
                 UNNotificationAction(identifier: Action.stop, title: "Stop and save"),
                 UNNotificationAction(identifier: Action.extend, title: "5 more minutes"),
+            ], intentIdentifiers: []),
+            UNNotificationCategory(identifier: Category.restEnd, actions: [
+                UNNotificationAction(identifier: Action.nextBlock, title: "Start next block"),
             ], intentIdentifiers: []),
         ])
         Task { await refreshAuthorization() }
@@ -197,24 +206,56 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
 
     /// Keeps the "time's up" notification in step with the session: scheduled while a planned
     /// session runs, removed when it pauses or stops.
-    func syncSessionEnd(_ session: FocusSession?, goal: Goal?) {
+    func syncSessionEnd(_ session: FocusSession?, goal: Goal?, pomodoro: PomodoroSettings) {
         center.removePendingNotificationRequests(withIdentifiers: [Self.sessionEndID])
         guard let session, let goal, let end = session.plannedEnd, end > .now else { return }
         Task {
             if authorization == .notDetermined { await requestAuthorization() }
             guard authorization == .authorized || authorization == .provisional else { return }
             let content = UNMutableNotificationContent()
-            content.title = "Time's up"
+            let length = Formatting.duration(session.plannedDuration ?? 0)
+            if pomodoro.isEnabled {
+                let isLong = session.block >= pomodoro.blocksPerCycle
+                let minutes = isLong ? pomodoro.longBreakMinutes : pomodoro.shortBreakMinutes
+                content.title = "Block \(session.block) done"
+                content.body = "\(length) of \(goal.name) saved. Enjoy a \(minutes)-minute \(isLong ? "long " : "")break."
+            } else {
+                content.title = "Time's up"
+                content.body = "\(length) of \(goal.name) done. Take a breather."
+            }
             content.subtitle = goal.name
-            content.body = "\(Formatting.duration(session.plannedDuration ?? 0)) of \(goal.name) done. Take a breather."
             content.sound = .default
-            content.categoryIdentifier = Category.sessionEnd
+            content.categoryIdentifier = pomodoro.isEnabled ? "" : Category.sessionEnd
             content.userInfo = ["goal": goal.id.uuidString]
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, end.timeIntervalSinceNow), repeats: false)
             do {
                 try await center.add(UNNotificationRequest(identifier: Self.sessionEndID, content: content, trigger: trigger))
             } catch {
                 logger.error("Could not schedule the session end: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    static let restEndID = "rest.end"
+
+    /// "Break's over" when a Pomodoro break ends, unless the next block starts by itself.
+    func syncRestEnd(_ rest: RestPeriod?, goal: Goal?) {
+        center.removePendingNotificationRequests(withIdentifiers: [Self.restEndID])
+        guard let rest, let goal, rest.end > .now, store?.data.preferences.pomodoro.autoStartsNextBlock != true else { return }
+        Task {
+            guard authorization == .authorized || authorization == .provisional else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Break's over"
+            content.subtitle = goal.name
+            content.body = "Ready for block \(rest.nextBlock)?"
+            content.sound = .default
+            content.categoryIdentifier = Category.restEnd
+            content.userInfo = ["goal": goal.id.uuidString]
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, rest.end.timeIntervalSinceNow), repeats: false)
+            do {
+                try await center.add(UNNotificationRequest(identifier: Self.restEndID, content: content, trigger: trigger))
+            } catch {
+                logger.error("Could not schedule the break end: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -240,7 +281,9 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
                 store.stopFocus()
             case Action.extend:
                 store.extendFocus()
-                store.effects.notifications.syncSessionEnd(store.data.session, goal: goalID.flatMap(store.goal))
+                store.effects.notifications.syncSessionEnd(store.data.session, goal: goalID.flatMap(store.goal), pomodoro: store.data.preferences.pomodoro)
+            case Action.nextBlock:
+                store.startNextBlock()
             default:
                 if let goalID { store.select(goalID) }
                 NSApp.activate()
