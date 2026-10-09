@@ -13,6 +13,12 @@ xcodebuild -project Momentum.xcodeproj -scheme Momentum -configuration Release \
 BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$BUILT/Contents/Info.plist")
 
 osascript -e "tell application id \"$BUNDLE_ID\" to quit" 2>/dev/null || true
+for _ in {1..10}; do pgrep -f "$INSTALLED/Contents/MacOS/" >/dev/null || break; sleep 0.5; done
+# Quitting through AppleScript needs Automation permission. Whatever still runs from the old copy
+# is stopped, the widget extension included (the system keeps it alive): an old extension left
+# running fails every widget reload against the new copy.
+pkill -TERM -f "$INSTALLED/Contents/MacOS/" 2>/dev/null || true
+pkill -TERM -f "$INSTALLED/Contents/PlugIns/" 2>/dev/null || true
 sleep 1
 rm -rf "$INSTALLED"
 ditto "$BUILT" "$INSTALLED"
