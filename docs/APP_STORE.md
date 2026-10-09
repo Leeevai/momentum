@@ -65,9 +65,15 @@ optional.
 ## Screenshots
 
 App Store sizes: 6.9" iPhone (1320 × 2868), 13" iPad (2064 × 2752), and Mac (2880 × 1800).
-Debug builds of the iPhone app open demo data with `MOMENTUM_DEMO=1`, a tab with `MOMENTUM_TAB`
+
+```bash
+./scripts/app-store-screenshots.sh   # iPhone 6.9" and iPad 13", light and dark, into AppStoreScreenshots/
+```
+
+It runs the debug build on the simulators with a clean status bar. Debug builds of the iPhone
+app open demo data with `MOMENTUM_DEMO=1` (`empty` for a first run), a tab with `MOMENTUM_TAB`
 (`journal`, `insights`, `awards`, `goal`) and a sheet with `MOMENTUM_SHEET` (`new`, `plan`,
-`reflect`, `edit`); in the simulator:
+`reflect`, `edit`, `review`, `focus`); by hand:
 
 ```bash
 SIMCTL_CHILD_MOMENTUM_DEMO=1 SIMCTL_CHILD_MOMENTUM_TAB=journal xcrun simctl launch booted <bundle id>
