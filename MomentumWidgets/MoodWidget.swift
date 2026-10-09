@@ -21,54 +21,99 @@ struct MoodWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: MomentumEntry
 
+    private var today: JournalEntry? { entry.data.journalEntry(for: DayID(entry.date)) }
+
     var body: some View {
-        let today = entry.data.journalEntry(for: DayID(entry.date))
-        let mood = today?.mood
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: mood?.symbolName ?? "cloud.sun")
-                    .symbolRenderingMode(.multicolor)
-                    .font(.title3)
-                Text(mood.map { "A \($0.title.lowercased()) day" } ?? "How's today?")
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+        Group {
+            if family == .systemSmall {
+                small
+            } else {
+                medium
             }
+        }
+        .buttonStyle(.plain)
+        .widgetBackground(today?.mood?.tint ?? .teal)
+    }
+
+    /// The question, and five mood buttons in two rows.
+    private var small: some View {
+        let mood = today?.mood
+        return VStack(alignment: .leading, spacing: 6) {
+            header
             Spacer(minLength: 0)
-            row(Mood.allCases, selected: mood) { choice in
-                Button(intent: SetMoodIntent(choice)) {
-                    label(symbol: choice.symbolName, tint: choice.tint, title: choice.title, selected: choice == mood)
+            VStack(spacing: 6) {
+                HStack(spacing: 8) {
+                    ForEach(Mood.allCases.prefix(3)) { moodButton($0, selected: mood, size: 38) }
+                }
+                HStack(spacing: 8) {
+                    ForEach(Mood.allCases.suffix(2)) { moodButton($0, selected: mood, size: 38) }
                 }
             }
-            if family != .systemSmall {
-                row(Energy.allCases, selected: today?.energy) { level in
-                    Button(intent: SetEnergyIntent(level)) {
-                        label(symbol: level.symbolName, tint: level.tint, title: level.title, selected: level == today?.energy)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// The question on the left; mood and energy, a row each, on the right.
+    private var medium: some View {
+        let mood = today?.mood
+        let energy = today?.energy
+        return HStack(spacing: 14) {
+            header
+                .frame(width: 104, alignment: .leading)
+            VStack(alignment: .leading, spacing: 10) {
+                row("Mood") {
+                    ForEach(Mood.allCases) { moodButton($0, selected: mood, size: 32) }
+                }
+                row("Energy") {
+                    ForEach(Energy.allCases) { level in
+                        Button(intent: SetEnergyIntent(level)) {
+                            circle(level.symbolName, tint: level.tint, title: level.title, selected: level == energy, size: 32)
+                        }
                     }
                 }
             }
         }
-        .buttonStyle(.plain)
-        .widgetBackground(mood?.tint ?? .teal)
     }
 
-    private func row<Item: Identifiable & Equatable, Content: View>(_ items: [Item], selected: Item?, @ViewBuilder button: @escaping (Item) -> Content) -> some View {
-        HStack(spacing: 4) {
-            ForEach(items) { item in
-                button(item)
-                    .frame(maxWidth: .infinity)
-            }
+    private var header: some View {
+        let mood = today?.mood
+        return VStack(alignment: .leading, spacing: 4) {
+            Image(systemName: mood?.symbolName ?? "cloud.sun.fill")
+                .symbolRenderingMode(.multicolor)
+                .font(.system(size: family == .systemSmall ? 22 : 30))
+            Text(mood.map { "A \($0.title.lowercased()) day" } ?? "How's today?")
+                .font(.headline)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            Text(mood == nil ? "Tap to rate it" : "Tap to change")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
     }
 
-    private func label(symbol: String, tint: Color, title: String, selected: Bool) -> some View {
+    private func row<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 6) { content() }
+        }
+    }
+
+    private func moodButton(_ choice: Mood, selected: Mood?, size: CGFloat) -> some View {
+        Button(intent: SetMoodIntent(choice)) {
+            circle(choice.symbolName, tint: choice.tint, title: choice.title, selected: choice == selected, size: size)
+        }
+    }
+
+    private func circle(_ symbol: String, tint: Color, title: String, selected: Bool, size: CGFloat) -> some View {
         Image(systemName: symbol)
-            .font(.system(size: family == .systemSmall ? 14 : 15, weight: .semibold))
+            .font(.system(size: size * 0.45, weight: .semibold))
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(tint)
-            .frame(width: family == .systemSmall ? 26 : 30, height: family == .systemSmall ? 26 : 30)
-            .background(Circle().fill(tint.opacity(selected ? 0.32 : 0.12)))
-            .overlay(Circle().strokeBorder(tint.opacity(selected ? 0.8 : 0), lineWidth: 1.5))
+            .frame(width: size, height: size)
+            .background(Circle().fill(tint.opacity(selected ? 0.34 : 0.13)))
+            .overlay(Circle().strokeBorder(tint.opacity(selected ? 0.85 : 0), lineWidth: 1.5))
             .accessibilityLabel(title)
     }
 }
