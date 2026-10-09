@@ -4,6 +4,19 @@ All notable changes to Momentum are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Hover a day in a goal's activity heatmap to see its amount; click it to log progress for that day.
+
+### Changed
+- Much faster on long histories: streak history is cached, the data file is written compactly, and
+  the app no longer re-reads its own saves.
+
+### Fixed
+- A new focus session could inherit the previous session's note in the Today banner.
+- A negative page count in the book editor could crash the app.
+
 ## [1.0.0] - 2026-10-08
 
 The first public release: a full rebuild of the 0.1 prototype.
