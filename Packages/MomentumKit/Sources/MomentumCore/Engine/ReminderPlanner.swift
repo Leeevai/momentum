@@ -25,21 +25,25 @@ public enum ReminderPlanner {
         for goal in engine.activeGoals {
             guard let reminder = goal.reminder, reminder.isEnabled else { continue }
             let streak = engine.streak(for: goal, now: now)
+            let current = engine.interval(of: goal.effectivePeriod, containing: now)
+            let doneThisPeriod = engine.isComplete(goal, now: now)
             for offset in 0..<days {
                 let day = engine.day(offset, from: now)
-                guard let fire = calendar.date(bySettingHour: reminder.hour, minute: reminder.minute, second: 0, of: day),
-                      fire > now,
-                      engine.isScheduled(goal, on: day),
-                      !goal.isOnBreak(at: fire) else { continue }
-                let inCurrentPeriod = engine.interval(of: goal.effectivePeriod, containing: now).contains(fire)
-                if inCurrentPeriod && engine.isComplete(goal, now: now) { continue }
-                planned.append(PlannedReminder(
-                    identifier: "\(identifierPrefix)\(goal.id.uuidString).\(engine.dayKey(day))",
-                    goalID: goal.id,
-                    fireDate: fire,
-                    title: "\(goal.icon) \(goal.name)",
-                    body: body(for: goal, engine: engine, streak: streak, isToday: offset == 0, now: now)
-                ))
+                guard engine.isScheduled(goal, on: day) else { continue }
+                for minute in reminder.times {
+                    guard let fire = wallClock(minute, on: day, calendar: calendar),
+                          fire > now,
+                          !goal.isOnBreak(at: fire) else { continue }
+                    // Half-open: the next period starts exactly at this one's end.
+                    if doneThisPeriod && fire >= current.start && fire < current.end { continue }
+                    planned.append(PlannedReminder(
+                        identifier: "\(identifierPrefix)\(goal.id.uuidString).\(engine.dayKey(day)).\(minute)",
+                        goalID: goal.id,
+                        fireDate: fire,
+                        title: "\(goal.icon) \(goal.name)",
+                        body: body(for: goal, engine: engine, streak: streak, isToday: offset == 0, now: now)
+                    ))
+                }
             }
         }
         return Array(planned.sorted { $0.fireDate < $1.fireDate }.prefix(limit))
@@ -52,7 +56,7 @@ public enum ReminderPlanner {
         guard preferences.streakNudgesEnabled else { return [] }
         let calendar = engine.calendar
         let today = engine.startOfDay(now)
-        guard let fire = calendar.date(byAdding: .minute, value: preferences.streakNudgeMinute, to: today), fire > now else { return [] }
+        guard let fire = wallClock(preferences.streakNudgeMinute, on: today, calendar: calendar), fire > now else { return [] }
         let tomorrow = engine.day(1, from: now)
         return engine.activeGoals.compactMap { goal in
             guard goal.kind != .milestones, goal.kind != .books, goal.effectivePeriod != .total,
@@ -81,7 +85,7 @@ public enum ReminderPlanner {
         let week = engine.interval(of: .weekly, containing: now)
         let lastDay = engine.day(-1, from: week.end)
         let minute = min(23 * 60, preferences.streakNudgeMinute + 60)
-        guard let fire = engine.calendar.date(byAdding: .minute, value: minute, to: lastDay), fire > now else { return nil }
+        guard let fire = wallClock(minute, on: lastDay, calendar: engine.calendar), fire > now else { return nil }
 
         let report = engine.insights(days: 7, now: now)
         let scores = engine.activeGoals.compactMap { engine.isOnTargetThisWeek($0, now: now) }
@@ -99,6 +103,12 @@ public enum ReminderPlanner {
             title: "Your week in Momentum",
             body: summary.prefix(1).uppercased() + summary.dropFirst() + "."
         )
+    }
+
+    /// The time `minute` minutes after midnight on the clock, which on a daylight-saving day is
+    /// not the same as adding minutes to the start of the day.
+    static func wallClock(_ minute: Int, on day: Date, calendar: Calendar) -> Date? {
+        calendar.date(bySettingHour: minute / 60, minute: minute % 60, second: 0, of: day)
     }
 
     private static func body(for goal: Goal, engine: ProgressEngine, streak: ProgressEngine.Streak, isToday: Bool, now: Date) -> String {

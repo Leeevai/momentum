@@ -37,9 +37,9 @@ public struct GoalTemplate: Identifiable, Sendable {
         GoalTemplate(id: "write-book", subtitle: "50,000 words, one session at a time", prototype: Goal(
             name: "Write a novel", icon: "✍️", color: .purple, category: "Creative", kind: .amount, unit: "words",
             period: .total, target: 50_000, quickAddStep: 500)),
-        GoalTemplate(id: "water", subtitle: "8 glasses a day", prototype: Goal(
+        GoalTemplate(id: "water", subtitle: "8 glasses a day, with a nudge every 2 hours", prototype: Goal(
             name: "Drink water", icon: "💧", color: .cyan, category: "Health", kind: .count, unit: "glasses",
-            period: .daily, target: 8)),
+            period: .daily, target: 8, reminder: ReminderSchedule(hour: 9, minute: 0, repeatMinutes: 120, repeatUntilMinute: 19 * 60))),
         GoalTemplate(id: "run", subtitle: "Run 100 km a month", prototype: Goal(
             name: "Running", icon: "👟", color: .mint, category: "Fitness", kind: .amount, unit: "km",
             period: .monthly, target: 100, quickAddStep: 5)),

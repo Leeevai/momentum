@@ -202,3 +202,43 @@ struct WeeklyRecapTests {
         #expect(engine(data).isOnTargetThisWeek(goal, now: referenceNow) == false)
     }
 }
+
+@Suite("Repeating reminders")
+struct RepeatingReminderTests {
+    @Test("A repeating reminder fires through the day until its end time")
+    func repeats() {
+        let schedule = ReminderSchedule(hour: 9, minute: 0, repeatMinutes: 120, repeatUntilMinute: 17 * 60)
+        #expect(schedule.times == [540, 660, 780, 900, 1020])
+        #expect(ReminderSchedule(hour: 18).times == [1080])
+    }
+
+    @Test("Today's remaining repeats are planned, and none once the goal is done")
+    func plansRemaining() {
+        var goal = checkInGoal()
+        goal.reminder = ReminderSchedule(hour: 9, minute: 0, repeatMinutes: 120, repeatUntilMinute: 17 * 60)
+        var data = AppData(goals: [goal])
+        data.preferences.weeklyRecapEnabled = false
+        // 3 pm reference: 15:00 is not after now, so 17:00 is the only one left today.
+        let today = ReminderPlanner.plan(engine(data), now: referenceNow, days: 1)
+        #expect(today.map(\.fireDate) == [date(2026, 10, 8, 17)])
+        #expect(Set(ReminderPlanner.plan(engine(data), now: referenceNow, days: 2).map(\.identifier)).count == 6)
+
+        data.log(1, for: goal.id, at: referenceNow)
+        #expect(ReminderPlanner.plan(engine(data), now: referenceNow, days: 1).isEmpty)
+    }
+
+    @Test("Reminder times follow the wall clock on a daylight-saving day")
+    func dst() {
+        // Chicago falls back on Sunday 1 November 2026.
+        let fire = ReminderPlanner.wallClock(18 * 60, on: date(2026, 11, 1, 0), calendar: testCalendar)
+        #expect(fire == date(2026, 11, 1, 18))
+    }
+
+    @Test("Older reminders decode as once a day")
+    func decodesOld() throws {
+        let json = #"{"version": 2, "goals": [{"name": "Old", "kind": "count", "target": 1, "reminder": {"isEnabled": true, "hour": 8, "minute": 30}}]}"#
+        let reminder = try #require(FileStore.decode(Data(json.utf8)).goals.first?.reminder)
+        #expect(reminder.repeatMinutes == nil)
+        #expect(reminder.times == [510])
+    }
+}

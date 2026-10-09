@@ -192,16 +192,41 @@ public struct Milestone: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
-/// A daily notification at a fixed time, skipped on days the goal is already done.
+/// A notification at a fixed time, skipped on days the goal is already done. It can repeat
+/// through the day ("drink water every two hours until 6 pm").
 public struct ReminderSchedule: Codable, Hashable, Sendable {
     public var isEnabled: Bool
     public var hour: Int
     public var minute: Int
+    /// Repeat every this many minutes after the first reminder; nil for once a day.
+    public var repeatMinutes: Int?
+    /// The last time a repeating reminder may fire, in minutes after midnight.
+    public var repeatUntilMinute: Int
 
-    public init(isEnabled: Bool = true, hour: Int = 18, minute: Int = 0) {
+    public init(isEnabled: Bool = true, hour: Int = 18, minute: Int = 0, repeatMinutes: Int? = nil, repeatUntilMinute: Int = 20 * 60) {
         self.isEnabled = isEnabled
         self.hour = hour
         self.minute = minute
+        self.repeatMinutes = repeatMinutes
+        self.repeatUntilMinute = repeatUntilMinute
+    }
+
+    /// Minutes after midnight of each reminder in a day.
+    public var times: [Int] {
+        let first = hour * 60 + minute
+        guard let repeatMinutes, repeatMinutes > 0 else { return [first] }
+        return Array(stride(from: first, through: max(first, min(repeatUntilMinute, 23 * 60 + 59)), by: repeatMinutes))
+    }
+
+    private enum CodingKeys: String, CodingKey { case isEnabled, hour, minute, repeatMinutes, repeatUntilMinute }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        isEnabled = try c.decode(.isEnabled, default: true)
+        hour = try c.decode(.hour, default: 18)
+        minute = try c.decode(.minute, default: 0)
+        repeatMinutes = try c.decodeIfPresent(Int.self, forKey: .repeatMinutes)
+        repeatUntilMinute = try c.decode(.repeatUntilMinute, default: 20 * 60)
     }
 }
 
