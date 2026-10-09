@@ -9,6 +9,8 @@ struct SettingsView: View {
         TabView {
             GeneralSettings()
                 .tabItem { Label("General", systemImage: "gearshape") }
+            FocusSettings()
+                .tabItem { Label("Focus", systemImage: "timer") }
             NotificationSettings()
                 .tabItem { Label("Notifications", systemImage: "bell.badge") }
             DataSettings()
@@ -44,20 +46,8 @@ private struct GeneralSettings: View {
                 }
                 Toggle("Show the focus timer in the menu bar", isOn: binding(\.showsTimerInMenuBar, preferences))
             }
-            Section("Focus") {
-                Picker("Default session length", selection: binding(\.defaultFocusMinutes, preferences)) {
-                    ForEach(FocusLengthMenu.lengths, id: \.self) { Text("\($0) minutes").tag($0) }
-                }
-                Text("Used by Shortcuts and Siri when no length is given. Each goal can set its own.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Picker("Focus sound", selection: binding(\.focusSound, preferences)) {
-                    ForEach(FocusSound.allCases) { Label($0.title, systemImage: $0.symbolName).tag($0) }
-                }
-                Slider(value: binding(\.focusSoundVolume, preferences), in: 0.05...1) {
-                    Text("Volume")
-                }
-                .disabled(preferences.focusSound == .off)
+            Section("Coach and journal") {
+                Toggle("Invite me to plan the morning and reflect in the evening", isOn: binding(\.journalPromptsEnabled, preferences))
             }
             Section("Feedback") {
                 Toggle("Celebrate finished goals with confetti", isOn: binding(\.celebratesCompletion, preferences))
@@ -70,6 +60,57 @@ private struct GeneralSettings: View {
 
     private func binding<Value>(_ keyPath: WritableKeyPath<Preferences, Value>, _ preferences: Preferences) -> Binding<Value> {
         Binding(get: { preferences[keyPath: keyPath] }, set: { value in store.updatePreferences { $0[keyPath: keyPath] = value } })
+    }
+}
+
+private struct FocusSettings: View {
+    @Environment(GoalStore.self) private var store
+
+    var body: some View {
+        let preferences = store.data.preferences
+        let pomodoro = preferences.pomodoro
+        Form {
+            Section {
+                Picker("Default session length", selection: binding(\.defaultFocusMinutes, preferences)) {
+                    ForEach(FocusLengthMenu.lengths, id: \.self) { Text("\($0) minutes").tag($0) }
+                }
+                Text("Used by Shortcuts, Siri and Pomodoro blocks when a goal has no length of its own.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Pomodoro") {
+                Toggle("Chain sessions with breaks", isOn: pomodoroBinding(\.isEnabled, pomodoro))
+                Group {
+                    Stepper("Short break: \(pomodoro.shortBreakMinutes) min", value: pomodoroBinding(\.shortBreakMinutes, pomodoro), in: 1...30)
+                    Stepper("Long break: \(pomodoro.longBreakMinutes) min", value: pomodoroBinding(\.longBreakMinutes, pomodoro), in: 5...60, step: 5)
+                    Stepper("Long break after \(pomodoro.blocksPerCycle) blocks", value: pomodoroBinding(\.blocksPerCycle, pomodoro), in: 2...8)
+                    Toggle("Start the next block when a break ends", isOn: pomodoroBinding(\.autoStartsNextBlock, pomodoro))
+                }
+                .disabled(!pomodoro.isEnabled)
+                Text("When a planned session reaches its length, it is saved and a break begins. Finish a whole cycle to earn Full Cycle.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Sound") {
+                Picker("Focus sound", selection: binding(\.focusSound, preferences)) {
+                    ForEach(FocusSound.allCases) { Label($0.title, systemImage: $0.symbolName).tag($0) }
+                }
+                Slider(value: binding(\.focusSoundVolume, preferences), in: 0.05...1) {
+                    Text("Volume")
+                }
+                .disabled(preferences.focusSound == .off)
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 520)
+    }
+
+    private func binding<Value>(_ keyPath: WritableKeyPath<Preferences, Value>, _ preferences: Preferences) -> Binding<Value> {
+        Binding(get: { preferences[keyPath: keyPath] }, set: { value in store.updatePreferences { $0[keyPath: keyPath] = value } })
+    }
+
+    private func pomodoroBinding<Value>(_ keyPath: WritableKeyPath<PomodoroSettings, Value>, _ settings: PomodoroSettings) -> Binding<Value> {
+        Binding(get: { settings[keyPath: keyPath] }, set: { value in store.updatePreferences { $0.pomodoro[keyPath: keyPath] = value } })
     }
 }
 
