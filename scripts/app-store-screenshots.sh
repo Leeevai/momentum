@@ -41,10 +41,10 @@ capture() {
   xcrun simctl status_bar "$udid" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
   xcrun simctl install "$udid" "$app"
   mkdir -p "$OUT/$label"
+  local appearance screen name tab sheet
   for appearance in light dark; do
     xcrun simctl ui "$udid" appearance "$appearance"
     for screen in "${SCREENS[@]}"; do
-      local name tab sheet
       read -r name tab sheet <<< "$screen"
       [[ "$sheet" == "-" ]] && sheet=""
       SIMCTL_CHILD_MOMENTUM_DEMO=1 SIMCTL_CHILD_MOMENTUM_TAB="$tab" SIMCTL_CHILD_MOMENTUM_SHEET="$sheet" \
