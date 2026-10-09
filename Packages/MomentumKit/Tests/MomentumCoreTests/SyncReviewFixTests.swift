@@ -343,9 +343,11 @@ struct SyncReviewFixTests {
             stamped(&mac, at: start) { $0.startFocus(on: goal.id, at: referenceNow.addingTimeInterval(start), calendar: testCalendar) }
             stamped(&mac, at: start + 600) { $0.stopFocus(at: referenceNow.addingTimeInterval(start + 600), calendar: testCalendar) }
         }
+        let expected: Double = 1500 + 60 * 600
         for merged in [SyncMerge.merge(mac, phone), SyncMerge.merge(phone, mac)] {
+            let total = merged.entries.map(\.amount).reduce(0, +)
             #expect(merged.session == nil)
-            #expect(merged.entries.reduce(0) { $0 + $1.amount } == 1500.0 + 60 * 600)
+            #expect(total == expected)
         }
     }
 }
