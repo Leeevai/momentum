@@ -4,34 +4,43 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// Log an amount at a chosen time, with a note: forgotten sessions, past workouts, words written.
+/// With an existing entry, edits it instead.
 struct LogProgressSheet: View {
     @Environment(GoalStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let goal: Goal
+    let entry: LogEntry?
     @State private var amount: Double
-    @State private var minutes = 25
-    @State private var date = Date()
-    @State private var note = ""
+    @State private var minutes: Int
+    @State private var date: Date
+    @State private var note: String
 
-    init(goal: Goal) {
+    init(goal: Goal, entry: LogEntry? = nil) {
         self.goal = goal
-        _amount = State(initialValue: goal.quickAddStep)
-        _minutes = State(initialValue: max(1, Int(goal.quickAddStep / 60)))
+        self.entry = entry
+        let value = entry?.amount ?? goal.quickAddStep
+        _amount = State(initialValue: value)
+        _minutes = State(initialValue: max(1, Int((value / 60).rounded())))
+        _date = State(initialValue: entry?.date ?? .now)
+        _note = State(initialValue: entry?.note ?? "")
     }
+
+    /// Page logs move a book's bookmark, so their amount is fixed once logged.
+    private var amountIsLocked: Bool { entry?.bookID != nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
                 GoalIcon(goal: goal, size: 40)
                 VStack(alignment: .leading) {
-                    Text("Log progress").font(.title3.weight(.bold))
+                    Text(entry == nil ? "Log progress" : "Edit entry").font(.title3.weight(.bold))
                     Text(goal.name).foregroundStyle(.secondary)
                 }
             }
             .padding(20)
             Form {
                 if goal.kind == .time {
-                    Stepper(value: $minutes, in: 1...720, step: 5) {
+                    Stepper(value: $minutes, in: 1...720, step: entry == nil ? 5 : 1) {
                         LabeledContent("Duration", value: Formatting.duration(Double(minutes * 60)))
                     }
                 } else {
@@ -41,7 +50,8 @@ struct LogProgressSheet: View {
                                 .labelsHidden()
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 100)
-                            Text(goal.displayUnit).foregroundStyle(.secondary)
+                                .disabled(amountIsLocked)
+                            Text(entry?.bookID != nil ? "pages" : goal.displayUnit).foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -52,22 +62,38 @@ struct LogProgressSheet: View {
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
             HStack {
+                if let entry {
+                    Button("Delete", role: .destructive) {
+                        store.deleteEntry(entry)
+                        dismiss()
+                    }
+                }
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("Log") {
-                    let value = goal.kind == .time ? Double(minutes * 60) : amount
-                    store.log(value, for: goal, at: date, note: note.trimmingCharacters(in: .whitespacesAndNewlines))
-                    dismiss()
-                }
-                .keyboardShortcut(.defaultAction)
-                .buttonStyle(PillButtonStyle(tint: goal.tint))
-                .disabled(goal.kind != .time && amount == 0)
+                Button(entry == nil ? "Log" : "Save") { save() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(PillButtonStyle(tint: goal.tint))
+                    .disabled(goal.kind != .time && amount == 0)
             }
             .padding(16)
         }
         .frame(width: 440, height: 400)
         .background(AmbientBackground(primary: goal.tint))
+    }
+
+    private func save() {
+        let value = goal.kind == .time ? Double(minutes * 60) : amount
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        if var edited = entry {
+            if !amountIsLocked { edited.amount = value }
+            edited.date = date
+            edited.note = trimmed
+            store.updateEntry(edited)
+        } else {
+            store.log(value, for: goal, at: date, note: trimmed)
+        }
+        dismiss()
     }
 }
 

@@ -12,7 +12,7 @@ enum Route: Hashable {
 enum SheetRoute: Identifiable {
     case newGoal
     case editGoal(Goal)
-    case log(goalID: UUID)
+    case log(goalID: UUID, entry: LogEntry? = nil)
     case link(goalID: UUID, link: GoalLink?)
     case book(goalID: UUID, book: Book?)
 
@@ -20,7 +20,7 @@ enum SheetRoute: Identifiable {
         switch self {
         case .newGoal: "new"
         case .editGoal(let goal): "edit-\(goal.id)"
-        case .log(let id): "log-\(id)"
+        case .log(let id, let entry): "log-\(id)-\(entry?.id.uuidString ?? "new")"
         case .link(let goal, let link): "link-\(goal)-\(link?.id.uuidString ?? "new")"
         case .book(let goal, let book): "book-\(goal)-\(book?.id.uuidString ?? "new")"
         }
@@ -216,6 +216,8 @@ extension GoalStore {
     }
 
     func deleteEntry(_ entry: LogEntry) { perform("Delete Entry") { $0.deleteEntry(entry.id) } }
+
+    func updateEntry(_ entry: LogEntry) { perform("Edit Entry") { $0.updateEntry(entry) } }
 
     func save(_ goal: Goal) { perform("Edit Goal") { $0.upsert(goal) } }
 

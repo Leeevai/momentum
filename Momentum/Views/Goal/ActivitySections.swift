@@ -195,9 +195,14 @@ private struct HistoryRow: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 7)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) { store.sheet = .log(goalID: goal.id, entry: entry) }
         .contextMenu {
+            Button("Edit…") { store.sheet = .log(goalID: goal.id, entry: entry) }
+            Divider()
             Button("Delete Entry", role: .destructive) { store.deleteEntry(entry) }
         }
+        .help("Double-click to edit")
     }
 
     private var amountText: String {
