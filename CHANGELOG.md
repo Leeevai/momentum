@@ -9,6 +9,12 @@ All notable changes to Momentum are recorded here. The format follows
 ### Added
 - Focus filters: in System Settings → Focus, choose which goal categories Momentum shows while a
   Focus is on. Today, the menu bar and the widgets follow it, with a "Show all" way past it.
+- Focus sounds: white, pink or brown noise during a focus session, generated on the fly, fading in
+  and out with the timer. Pick it from the session banner or Settings.
+
+### Changed
+- An unknown goal color or book status written by a newer version no longer makes the data file
+  unreadable.
 
 ## [1.1.0] - 2026-10-08
 

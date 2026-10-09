@@ -44,6 +44,7 @@ Every goal can be **daily** (on the weekdays you choose), **weekly**, **monthly*
 - **Links on every goal**: docs, repos, courses, app links like `notion://` or `obsidian://`, even local files and folders.
   Mark a link with ⚡︎ and it **opens automatically when a session starts**, so your workspace is ready.
 - **Time's up notifications** with *Stop and save* and *5 more minutes* buttons.
+- **Focus sounds**: white, pink or brown noise (rain) while the timer runs, generated on the fly.
 - A **live timer in the menu bar**, and a mini player in the sidebar.
 
 <p align="center">
