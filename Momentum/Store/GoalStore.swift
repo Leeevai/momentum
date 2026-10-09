@@ -94,12 +94,17 @@ final class GoalStore {
     // MARK: - Changing data
 
     /// Applies a change, saves it, and registers it for undo under `undoName`.
+    ///
+    /// Undo reverses only what this change touched (see `DataPatch`), so anything changed since,
+    /// by a widget, Shortcuts or another action, survives it.
     func perform(_ undoName: String? = nil, _ change: (inout AppData) -> Void) {
-        let previous = data
-        let updated = persistence.update(change)
+        let result = persistence.update(change)
         knownModification = persistence.lastWriteModification()
-        if let undoName { registerUndo(restoring: previous, name: undoName) }
-        apply(updated, userInitiated: true)
+        if let undoName {
+            let patch = DataPatch(from: result.before, to: result.after)
+            if !patch.isEmpty { registerUndo(patch, name: undoName) }
+        }
+        apply(result.after, userInitiated: true)
     }
 
     /// Picks up changes made by the widgets or Shortcuts. The folder watcher also fires for the
@@ -127,31 +132,41 @@ final class GoalStore {
     private func apply(_ newData: AppData, userInitiated: Bool) {
         now = .now
         guard newData != data else { return }
-        let previousEngine = engine
+        let previousData = data
         data = newData
         engine = ProgressEngine(data: newData)
-        effects.dataDidChange(from: previousEngine.data, to: newData, engine: engine)
-        if userInitiated { celebrateNewCompletions(since: previousEngine) }
+        effects.dataDidChange(from: previousData, to: newData, engine: engine)
+        if userInitiated { celebrateNewCompletions(from: previousData, to: newData) }
         if case .goal(let id) = route, newData.goal(id) == nil { route = .today }
     }
 
-    private func registerUndo(restoring snapshot: AppData, name: String) {
+    private func registerUndo(_ patch: DataPatch, name: String) {
         guard let undoManager else { return }
         undoManager.registerUndo(withTarget: self) { store in
             MainActor.assumeIsolated {
-                let current = store.data
-                store.apply(store.persistence.update { $0 = snapshot }, userInitiated: false)
+                let result = store.persistence.update { patch.undo(on: &$0) }
                 store.knownModification = store.persistence.lastWriteModification()
-                store.registerUndo(restoring: current, name: name)
+                store.apply(result.after, userInitiated: false)
+                // Registering inside an undo makes it the redo.
+                store.registerUndo(patch.reversed, name: name)
             }
         }
         undoManager.setActionName(name)
     }
 
-    private func celebrateNewCompletions(since previous: ProgressEngine) {
+    /// Celebrates goals this change completed. Both sides are judged on logged progress only: a
+    /// running timer counts live, which would make a session's own goal look done already when it
+    /// stops, and look newly done whenever anything else changes while it runs.
+    private func celebrateNewCompletions(from previousData: AppData, to newData: AppData) {
         let moment = Date()
-        for goal in engine.activeGoals where engine.isComplete(goal, now: moment) {
-            guard let before = previous.goal(goal.id), !previous.isComplete(before, now: moment) else { continue }
+        var before = previousData
+        before.session = nil
+        var after = newData
+        after.session = nil
+        let previous = ProgressEngine(data: before)
+        let current = ProgressEngine(data: after)
+        for goal in current.activeGoals where current.isComplete(goal, now: moment) {
+            guard let earlier = previous.goal(goal.id), !previous.isComplete(earlier, now: moment) else { continue }
             if data.preferences.playsSounds { NSSound(named: "Glass")?.play() }
             if data.preferences.celebratesCompletion { celebration = Celebration(goal: goal) }
             return

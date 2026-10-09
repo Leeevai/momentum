@@ -1,10 +1,12 @@
 import Foundation
 import MomentumCore
+import WidgetKit
 
 /// Where the app's data lives: the shared app-group file, or memory for previews and screenshots.
 protocol DataPersistence: AnyObject {
     func load() -> AppData
-    func update(_ change: (inout AppData) -> Void) -> AppData
+    /// Applies a change to the latest stored data; returns the data before and after.
+    func update(_ change: (inout AppData) -> Void) -> (before: AppData, after: AppData)
     func replace(with data: AppData)
     /// The folder to watch for changes made by other processes (the widgets), if any.
     var watchedDirectory: URL? { get }
@@ -21,11 +23,11 @@ protocol DataPersistence: AnyObject {
 final class SharedFilePersistence: DataPersistence {
     func load() -> AppData { SharedStore.load() }
 
-    func update(_ change: (inout AppData) -> Void) -> AppData { SharedStore.update(change) }
+    func update(_ change: (inout AppData) -> Void) -> (before: AppData, after: AppData) { SharedStore.transform(change) }
 
     func replace(with data: AppData) {
         SharedStore.fileStore.replace(with: data)
-        _ = SharedStore.update { _ in }
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     var watchedDirectory: URL? { SharedStore.directoryURL }
@@ -46,9 +48,10 @@ final class InMemoryPersistence: DataPersistence {
 
     func load() -> AppData { data }
 
-    func update(_ change: (inout AppData) -> Void) -> AppData {
+    func update(_ change: (inout AppData) -> Void) -> (before: AppData, after: AppData) {
+        let before = data
         change(&data)
-        return data
+        return (before, data)
     }
 
     func replace(with data: AppData) { self.data = data }

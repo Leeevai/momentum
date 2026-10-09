@@ -21,13 +21,21 @@ enum SharedStore {
     /// Applies a change to the latest data on disk, saves it, and refreshes every widget.
     @discardableResult
     static func update(_ change: (inout AppData) -> Void) -> AppData {
-        let data = fileStore.update(change)
-        WidgetCenter.shared.reloadAllTimelines()
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
-            ControlCenter.shared.reloadAllControls()
+        transform(change).after
+    }
+
+    /// Like `update`, also returning the data as it was before the change.
+    @discardableResult
+    static func transform(_ change: (inout AppData) -> Void) -> (before: AppData, after: AppData) {
+        let result = fileStore.transform(change)
+        if result.before != result.after {
+            WidgetCenter.shared.reloadAllTimelines()
+            #if compiler(>=6.2)
+            if #available(macOS 26.0, *) {
+                ControlCenter.shared.reloadAllControls()
+            }
+            #endif
         }
-        #endif
-        return data
+        return result
     }
 }

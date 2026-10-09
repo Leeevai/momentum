@@ -30,15 +30,24 @@ public final class FileStore: Sendable {
     /// Applies `change` to the latest data on disk and saves it.
     @discardableResult
     public func update(_ change: (inout AppData) -> Void) -> AppData {
-        var data = AppData()
+        transform(change).after
+    }
+
+    /// Like `update`, returning the data as it was on disk before the change too, so the change
+    /// can be described exactly (for undo).
+    @discardableResult
+    public func transform(_ change: (inout AppData) -> Void) -> (before: AppData, after: AppData) {
+        var before = AppData()
+        var after = AppData()
         coordinate(writing: true) { url in
-            data = self.read(url)
-            change(&data)
-            self.write(data, to: url)
+            before = self.read(url)
+            after = before
+            change(&after)
+            if after != before { self.write(after, to: url) }
             let modification = self.modificationDate()
             self.lastWrite.withLock { $0 = modification }
         }
-        return data
+        return (before, after)
     }
 
     /// Replaces everything, keeping the previous file next to it as a backup.
