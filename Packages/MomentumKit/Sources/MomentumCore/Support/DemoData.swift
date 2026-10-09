@@ -95,7 +95,8 @@ extension AppData {
                 for block in 0..<blocks {
                     let minutes = isToday ? 55 : 42 + random.next(upTo: 14)
                     data.entries.append(LogEntry(goalID: deepWork.id, date: at(offset, hour: 9 + block * 2, minute: random.next(upTo: 30)), amount: Double(minutes * 60), source: .timer,
-                                                 note: block == 0 && random.chance(0.3) ? ["Refactored the progress engine", "Wrote widget timelines", "Fixed the streak edge case", "Planned the next release"][random.next(upTo: 4)] : ""))
+                                                 note: block == 0 && random.chance(0.3) ? ["Refactored the progress engine", "Wrote widget timelines", "Fixed the streak edge case", "Planned the next release"][random.next(upTo: 4)] : "",
+                                                 quality: demoQuality(block: block, offset: offset)))
                 }
             }
             // Reading: pages most evenings.
@@ -184,5 +185,17 @@ struct SeededRandom: RandomNumberGenerator {
 
     mutating func chance(_ probability: Double) -> Bool {
         Double(nextValue() % 10_000) / 10_000 < probability
+    }
+}
+
+/// Ratings for the demo's deep work: mornings mostly in the flow, afternoons steadier, the last
+/// block of a long day often scattered, and some sessions never rated. Picked without the
+/// random source, so the rest of the demo stays as it was.
+private func demoQuality(block: Int, offset: Int) -> FocusQuality? {
+    guard offset > -60, offset % 5 != 0 else { return nil }
+    switch block {
+    case 0: return offset % 3 == 0 ? .steady : .flow
+    case 1: return offset % 4 == 0 ? .flow : .steady
+    default: return offset % 2 == 0 ? .scattered : .steady
     }
 }

@@ -63,6 +63,10 @@ struct MomentumMobileApp: App {
             case "review": store.sheet = .review
             default: break
             }
+            // MOMENTUM_RATING=1 shows the question asked after a session.
+            if environment["MOMENTUM_RATING"] == "1", let goal = data.goals.first(where: { $0.kind == .time }) {
+                store.sessionRating = SessionRating(goal: goal, entryIDs: [], seconds: 50 * 60)
+            }
             return store
         }
         #endif
