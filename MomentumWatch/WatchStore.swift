@@ -28,7 +28,7 @@ final class WatchStore: NSObject {
     }
 
     /// The snapshot as it stands today: one from yesterday shows daily goals starting over.
-    var snapshot: WatchSnapshot { received.current(on: DayID(.now)) }
+    var snapshot: WatchSnapshot { received.current(at: .now) }
 
     func item(_ id: UUID) -> WatchSnapshot.Item? { snapshot.item(id) }
 
@@ -41,12 +41,12 @@ final class WatchStore: NSObject {
     }
 
     /// Sends what was tapped, dated now. Straight to the phone when it's in reach and nothing
-    /// is queued ahead of it; otherwise in the queue, so commands arrive in the order tapped.
+    /// is on its way ahead of it; otherwise in the queue, so commands arrive in the order tapped.
     func perform(_ action: WatchAction) {
         guard let session, session.activationState == .activated,
               let encoded = try? WatchCommand(action: action, date: .now).encoded() else { return }
         let message: [String: Any] = [Key.action: encoded]
-        guard session.isReachable, session.outstandingUserInfoTransfers.isEmpty else {
+        guard session.isReachable, !isSending, session.outstandingUserInfoTransfers.isEmpty else {
             queue(message, on: session)
             return
         }
@@ -93,6 +93,8 @@ final class WatchStore: NSObject {
         for _ in 0..<40 where session.hasContentPending {
             try? await Task.sleep(for: .milliseconds(250))
         }
+        // What arrived is handed to the main actor to save; let that happen before suspending.
+        try? await Task.sleep(for: .milliseconds(300))
     }
 }
 

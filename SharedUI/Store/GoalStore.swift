@@ -184,14 +184,6 @@ final class GoalStore {
         apply(result.after, userInitiated: true)
     }
 
-    /// A change the app makes on its own (settling what a merge left): saved and synced like any
-    /// other, but with no haptic, question, celebration or undo, since the user did nothing.
-    private func performQuietly(_ change: (inout AppData) -> Void) {
-        let result = persistence.update(change)
-        knownModification = result.modification
-        apply(result.after, userInitiated: false)
-    }
-
     /// Picks up changes made by the widgets or Shortcuts. The folder watcher also fires for the
     /// app's own saves; those leave the file as the app last saw it, so they are skipped.
     func reload() {
@@ -210,19 +202,21 @@ final class GoalStore {
     /// elsewhere rather than doing something here.
     func merge(_ remotes: [AppData]) {
         guard !remotes.isEmpty else { return }
-        let result = persistence.update(stamping: false) { data in
+        let merged = persistence.update(stamping: false) { data in
             for remote in remotes { data = SyncMerge.merge(data, remote) }
+        }
+        // A merge can drop a session running here that no device ended, leave a timer on a goal
+        // that's gone, or a session and a break at once. Settling that is a change of this
+        // device's own (stamped, so it syncs back out), made before anything here reacts, so the
+        // app sees one change: a session that comes straight back never looks stopped and
+        // restarted (which would reopen its links and restart its sound).
+        var result = merged
+        var probe = merged.after
+        if probe.settleAfterMerge(from: merged.before) {
+            result = persistence.update(stamping: true) { $0.settleAfterMerge(from: merged.before) }
         }
         knownModification = result.modification
         apply(result.after, userInitiated: false, fromAnotherDevice: true)
-        // A merge can drop a session running here that no device ended, leave a timer on a goal
-        // that's gone, or a session and a break at once. Settling that is a change of this
-        // device's own, so it syncs back out.
-        let local = result.before.session
-        var probe = result.after
-        if probe.settleAfterMerge(keeping: local) {
-            performQuietly { $0.settleAfterMerge(keeping: local) }
-        }
     }
 
     /// Replaces all data, e.g. from an import. The previous file is kept as a backup.

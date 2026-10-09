@@ -40,7 +40,9 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
         queue.async { [self] in deliver(snapshot) }
     }
 
-    private func deliver(_ snapshot: WatchSnapshot) {
+    /// `pushesFace` is false when the watch asked (it gets the snapshot in the reply and reloads
+    /// its own complications), so the day's few complication pushes go to changes made elsewhere.
+    private func deliver(_ snapshot: WatchSnapshot, pushesFace: Bool = true) {
         let session = WCSession.default
         guard session.activationState == .activated, session.isWatchAppInstalled,
               let encoded = try? snapshot.encoded(), encoded != lastSent else { return }
@@ -54,7 +56,10 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
         // face needs a push of its own, which wakes it (a limited number of times a day).
         let face = FaceState(day: snapshot.day, done: snapshot.done, total: snapshot.total,
                              session: snapshot.session.map(SyncState.sessionKey), isRunning: snapshot.session?.isRunning ?? false)
-        if session.isComplicationEnabled, face != lastFace, session.remainingComplicationUserInfoTransfers > 0 {
+        guard face != lastFace else { return }
+        if !pushesFace {
+            lastFace = face
+        } else if session.isComplicationEnabled, session.remainingComplicationUserInfoTransfers > 0 {
             session.transferCurrentComplicationUserInfo([Key.snapshot: encoded])
             lastFace = face
         }
@@ -95,7 +100,7 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
         queue.async { [self] in
             let snapshot = handle(message)
             replyHandler((try? snapshot.encoded()).map { [Key.snapshot: $0] } ?? [:])
-            deliver(snapshot)
+            deliver(snapshot, pushesFace: false)
         }
     }
 

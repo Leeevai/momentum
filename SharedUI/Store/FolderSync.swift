@@ -55,8 +55,8 @@ final class FolderSync {
         }
         // What the app settles after its own merges, settled here too, as this device's change.
         var probe = merged.after
-        if probe.settleAfterMerge(keeping: merged.before.session) {
-            SharedStore.transform { $0.settleAfterMerge(keeping: merged.before.session) }
+        if probe.settleAfterMerge(from: merged.before) {
+            SharedStore.transform { $0.settleAfterMerge(from: merged.before) }
         }
     }
 

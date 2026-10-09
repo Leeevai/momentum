@@ -115,7 +115,7 @@ private struct RestRow: View {
                     .font(.system(size: 30, weight: .semibold, design: .rounded))
                     .monospacedDigit()
             }
-            Button("Start block \(rest.nextBlock)") { store.perform(.startNextBlock) }
+            Button("Start block \(rest.nextBlock)") { store.perform(.startNextBlock(restStart: rest.start)) }
                 .tint(item.color.color)
         }
     }

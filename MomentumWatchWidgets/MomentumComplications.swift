@@ -33,7 +33,7 @@ struct ComplicationProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ComplicationEntry) -> Void) {
-        let snapshot = WatchSnapshotStore.load()?.current(on: DayID(.now)) ?? WatchSnapshot(done: 2, total: 5)
+        let snapshot = WatchSnapshotStore.load()?.current(at: .now) ?? WatchSnapshot(done: 2, total: 5)
         completion(ComplicationEntry(date: .now, snapshot: snapshot))
     }
 
@@ -43,13 +43,13 @@ struct ComplicationProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<ComplicationEntry>) -> Void) {
         let snapshot = WatchSnapshotStore.load() ?? WatchSnapshot()
         let now = Date.now
-        var entries = [ComplicationEntry(date: now, snapshot: snapshot.current(on: DayID(now)))]
+        var entries = [ComplicationEntry(date: now, snapshot: snapshot.current(at: now))]
         if let end = snapshot.session?.plannedEnd, end > now {
-            entries.append(ComplicationEntry(date: end, snapshot: snapshot.current(on: DayID(end))))
+            entries.append(ComplicationEntry(date: end, snapshot: snapshot.current(at: end)))
         }
         let calendar = Calendar.current
         if let midnight = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) {
-            entries.append(ComplicationEntry(date: midnight, snapshot: snapshot.current(on: DayID(midnight))))
+            entries.append(ComplicationEntry(date: midnight, snapshot: snapshot.current(at: midnight)))
         }
         entries.sort { $0.date < $1.date }
         completion(Timeline(entries: entries, policy: .atEnd))
