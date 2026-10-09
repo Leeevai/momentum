@@ -5,7 +5,7 @@ import MomentumCore
 import SwiftUI
 import WidgetKit
 
-let output = URL(fileURLWithPath: CommandLine.arguments[1])
+nonisolated(unsafe) var output = URL(fileURLWithPath: CommandLine.arguments[1])
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 
@@ -78,4 +78,35 @@ MainActor.assumeIsolated {
         let store = makeStore()
         snapshot(MenuBarPanel().environment(store).background(Color(nsColor: .windowBackgroundColor)), size: CGSize(width: 340, height: 560), dark: dark, name: "menubar")
     }
+    // Sheets and Settings, for review rather than the README: written only when asked for.
+    if CommandLine.arguments.count > 2 {
+        let extras = URL(fileURLWithPath: CommandLine.arguments[2])
+        let store = makeStore()
+        let deepWork = store.data.goals[0]
+        let books = store.data.goals.first { $0.kind == .books }!
+        let sheets: [(String, AnyView, CGSize)] = [
+            ("sheet-new-goal", AnyView(NewGoalFlow()), CGSize(width: 640, height: 620)),
+            ("sheet-editor", AnyView(GoalEditor(goal: deepWork, isNew: false)), CGSize(width: 580, height: 720)),
+            ("sheet-log", AnyView(LogProgressSheet(goal: store.data.goals.first { $0.kind == .amount }!)), CGSize(width: 440, height: 400)),
+            ("sheet-book", AnyView(BookEditor(goalID: books.id, book: books.books.first { $0.status == .reading })), CGSize(width: 480, height: 600)),
+            ("sheet-link", AnyView(LinkEditor(goalID: deepWork.id, link: deepWork.links.first)), CGSize(width: 460, height: 330)),
+            ("settings", AnyView(SettingsView()), CGSize(width: 500, height: 600)),
+        ]
+        for (name, view, size) in sheets {
+            let original = output
+            withExtrasOutput(extras) {
+                snapshot(view.environment(store).background(Color(nsColor: .windowBackgroundColor)), size: size, dark: false, name: name)
+            }
+            _ = original
+        }
+    }
+}
+
+/// Points `snapshot` at another folder for the duration of `body`.
+@MainActor
+func withExtrasOutput(_ folder: URL, _ body: () -> Void) {
+    let saved = output
+    output = folder
+    body()
+    output = saved
 }

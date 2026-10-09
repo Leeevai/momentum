@@ -23,7 +23,7 @@ find "$ROOT/Momentum" -name '*.swift' ! -name 'MomentumApp.swift' -exec cp {} "$
 cp "$ROOT/scripts/screenshots/Harness.swift" "$WORK/src/main.swift"
 xcrun swiftc -sdk "$SDK" -target "$TARGET" -swift-version 5 -I "$WORK" -L "$WORK" -lMomentumCore \
   -Xlinker -rpath -Xlinker "$WORK" -o "$WORK/harness" "$WORK"/src/*.swift
-"$WORK/harness" "$OUT"
+"$WORK/harness" "$OUT" ${EXTRAS:+"$EXTRAS"}
 
 echo "Rendering widgets…"
 cp "$ROOT"/Shared/**/*.swift "$WORK/widgets/"
