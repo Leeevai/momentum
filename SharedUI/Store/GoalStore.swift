@@ -506,6 +506,13 @@ extension GoalStore {
 
     func stopFocus() { perform("Stop Focus") { $0.stopFocus() } }
 
+    /// Opens a time goal with its timer running: starts one unless it's already going.
+    func focus(onGoal id: UUID) {
+        guard let goal = goal(id), goal.kind == .time, !goal.isArchived else { return }
+        if !engine.isRunning(goal) { toggleFocus(goal) }
+        select(id)
+    }
+
     func discardFocus() { perform("Discard Session") { $0.discardFocus() } }
 
     func togglePause() { perform { $0.togglePauseFocus() } }

@@ -14,6 +14,7 @@ struct DeepLinkTests {
         .review,
         .newGoal,
         .goal(UUID(uuidString: "11111111-1111-1111-1111-111111111111")!),
+        .focus(UUID(uuidString: "11111111-1111-1111-1111-111111111111")!),
         .openLink(goal: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!, link: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!),
     ])
     func roundTrip(link: DeepLink) {

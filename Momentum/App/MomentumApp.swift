@@ -46,6 +46,7 @@ struct MomentumApp: App {
         case .reflect: store.sheet = .reflect(DayID(.now))
         case .review: store.sheet = .review
         case .goal(let id): store.select(id)
+        case .focus(let id): store.focus(onGoal: id)
         case .newGoal: store.sheet = .newGoal
         case .openLink(let goalID, let linkID):
             if let link = store.goal(goalID)?.links.first(where: { $0.id == linkID }) {

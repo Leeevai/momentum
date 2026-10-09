@@ -3,6 +3,7 @@ import SwiftUI
 
 @main
 struct MomentumMobileApp: App {
+    @UIApplicationDelegateAdaptor(MobileAppDelegate.self) private var appDelegate
     @State private var store = Self.makeStore()
     @Environment(\.scenePhase) private var scenePhase
 
@@ -11,8 +12,11 @@ struct MomentumMobileApp: App {
             MobileRoot()
                 .environment(store)
                 .onOpenURL { url in handle(url) }
+                .onAppear { QuickActions.handler = { url in handle(url) } }
         }
         .onChange(of: scenePhase) { _, phase in
+            // The quick actions are refreshed on the way out, so they match the day when next shown.
+            if phase == .background { QuickActions.update(from: store.engine) }
             guard phase == .active else { return }
             store.reload()
             store.advancePomodoro()
@@ -70,6 +74,7 @@ struct MomentumMobileApp: App {
         case .reflect: store.sheet = .reflect(DayID(.now))
         case .review: store.sheet = .review
         case .goal(let id): store.select(id)
+        case .focus(let id): store.focus(onGoal: id)
         case .newGoal: store.sheet = .newGoal
         case .openLink(let goalID, let linkID):
             if let link = store.goal(goalID)?.links.first(where: { $0.id == linkID }) { LinkOpener.open(link) }
