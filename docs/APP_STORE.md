@@ -95,6 +95,17 @@ xcrun simctl io booted screenshot journal.png
 
 The Mac screenshots come from `./scripts/screenshots/render.sh`.
 
+For the watch, pair a watch simulator with an iPhone simulator, install both apps, and launch the
+iPhone app with `MOMENTUM_DEMO=seed` (demo data written to the real data file, which the watch is
+sent from). Debug builds of the watch app open a goal with `MOMENTUM_WATCH_GOAL=<name>` and press
+one of its buttons with `MOMENTUM_WATCH_ACTION` (`start`, `pause`, `stop` or `log`):
+
+```bash
+SIMCTL_CHILD_MOMENTUM_DEMO=seed xcrun simctl launch <iPhone> <bundle id>
+SIMCTL_CHILD_MOMENTUM_WATCH_GOAL="Deep work" SIMCTL_CHILD_MOMENTUM_WATCH_ACTION=start \
+  xcrun simctl launch <watch> <bundle id>.watchkitapp
+```
+
 ## Before each submission
 
 1. Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in the project (all targets).
