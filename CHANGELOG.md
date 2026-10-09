@@ -28,6 +28,14 @@ All notable changes to Momentum are recorded here. The format follows
 - **Habit stacking**: do a goal right after another; Today orders them and the celebration
   offers the next one.
 - **A focus timeline** of the day's sessions on Today and in the Journal.
+- **Focus mode**: the running session full screen, over a glow in the goal's colors that breathes
+  about six times a minute; Pomodoro breaks show in place, and the iPhone stays awake.
+- **A week in review**: focus against the week before, perfect days, each goal's record, the
+  wins from the journal and awards earned, from the Journal or the weekly recap notification.
+- **Year in pixels**: every day of the past year, colored by progress or by mood.
+- **Siri and Shortcuts**: log today's mood (and a win), and hear your week in review.
+- Templates for steps, an instrument, yoga, sleep and coding every day.
+- On iPad, the tabs become a sidebar.
 - **A quick panel from any app** on the Mac, with a global shortcut (Control-Option-M by default).
 - **Mood in Insights**: how mood lines up with progress and focus.
 - Focus filters: in System Settings → Focus, choose which goal categories Momentum shows while a
@@ -46,6 +54,32 @@ All notable changes to Momentum are recorded here. The format follows
   it just wrote; undo and sync diff only what changed.
 - An unknown goal color or book status written by a newer version no longer makes the data file
   unreadable, and a damaged journal entry is skipped rather than failing the file.
+- Dates are saved to the exact fraction of a second, so a saved copy always equals the one in
+  memory; files with whole-second dates from earlier versions still open.
+
+### Fixed
+- Synced devices: a restored backup kept its history only until the next sync; a Pomodoro block
+  finished on two devices was logged twice; a session from one device and a break from another
+  could both stay active; files from devices gone for months could bring back deleted goals; a
+  file still downloading wasn't read again once it arrived.
+- Lock Screen and Live Activity buttons first catch up with other devices, so pausing a session
+  stopped on the Mac no longer brings it back; Stop no longer starts a new session on a second
+  tap; a paused block shows the time left, and the clock counts overtime past the planned end.
+- Undo: undoing a journal edit kept nothing written since, and undoing a skipped break could put
+  it back over a running session.
+- A cached streak could stay stale after entries moved between days.
+- Awards: Comeback no longer comes from imported finish dates, weekday goals can earn Flawless
+  Week, and a session running past midnight no longer earns Night Owl.
+- Goals couldn't be deleted on iPhone; switching tabs could leave widget links and award banners
+  doing nothing.
+- A reminder's Start stopped a timer already running; a goal's links reopened for every
+  Pomodoro block and for sessions started on another device; the day's change could go
+  unnoticed after a wake; a banner could be lost or cut short.
+- On iPhone, the break's end is always notified, and focus sound keeps playing with the screen
+  locked.
+- Dragging the volume slider rewrote the data file on every step.
+- A deleted goal held one of the day's three priorities; backup names followed the device
+  calendar.
 
 ## [1.1.0] - 2026-10-08
 
