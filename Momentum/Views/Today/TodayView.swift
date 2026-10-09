@@ -11,14 +11,20 @@ struct TodayView: View {
     var body: some View {
         let engine = store.engine
         let now = store.now
-        let today = engine.todayGoals(now: now)
+        let today = store.filteredForFocus(engine.todayGoals(now: now))
         let upNext = today.filter { !engine.isComplete($0, now: now) }
         let done = today.filter { engine.isComplete($0, now: now) }
-        let resting = engine.activeGoals.filter { $0.isOnBreak(at: now) && !engine.isRunning($0) }
+        let resting = store.filteredForFocus(engine.activeGoals.filter { $0.isOnBreak(at: now) && !engine.isRunning($0) })
 
         ScrollView {
             VStack(alignment: .leading, spacing: 26) {
                 TodayHeader(goals: today)
+
+                if let filter = store.activeFocusFilter {
+                    FocusFilterBanner(filter: filter) {
+                        withAnimation { store.ignoredFocusFilter = filter }
+                    }
+                }
 
                 if let session = store.data.session, let goal = store.goal(session.goalID) {
                     FocusBanner(goal: goal, session: session)
@@ -91,6 +97,26 @@ struct TodayView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(tint: .green, highlighted: false)
+    }
+}
+
+/// Shows which goals a macOS Focus is limiting Today to, with a way past it.
+private struct FocusFilterBanner: View {
+    let filter: FocusFilter
+    var onShowAll: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "moon.circle.fill")
+                .font(.title2)
+                .foregroundStyle(.indigo)
+            Text("Focus filter: showing \(filter.categories.sorted().formatted(.list(type: .and))) goals.")
+                .font(.callout)
+            Spacer()
+            Button("Show all", action: onShowAll)
+                .buttonStyle(PillButtonStyle(tint: .indigo, prominent: false, compact: true))
+        }
+        .glassCard(tint: .indigo, padding: 12)
     }
 }
 

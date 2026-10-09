@@ -56,6 +56,10 @@ final class GoalStore {
     var confirmingDelete: Goal?
     /// Text typed in the sidebar search field.
     var searchText = ""
+    /// The categories the current macOS Focus asks for, if a Focus filter is on.
+    private(set) var focusFilter: FocusFilter?
+    /// A Focus filter the user chose to see past ("Show all") until it changes.
+    var ignoredFocusFilter: FocusFilter?
 
     /// The main window's undo manager, attached by the root view.
     @ObservationIgnored weak var undoManager: UndoManager?
@@ -77,6 +81,7 @@ final class GoalStore {
         self.data = initial
         self.engine = ProgressEngine(data: initial)
         self.effects = effects ?? SideEffects()
+        self.focusFilter = persistence.watchedDirectory == nil ? nil : SharedStore.loadFocusFilter()
         self.effects.attach(to: self)
         self.effects.start(with: initial, engine: engine)
         watchForExternalChanges()
@@ -111,6 +116,7 @@ final class GoalStore {
     /// Picks up changes made by the widgets or Shortcuts. The folder watcher also fires for the
     /// app's own saves; those leave the file as the app last saw it, so they are skipped.
     func reload() {
+        refreshFocusFilter()
         // A cheap check first; the date that counts is the one read with the data.
         if let modification = persistence.modificationDate(), modification == knownModification {
             now = .now
@@ -130,6 +136,26 @@ final class GoalStore {
 
     /// Daily backups, newest first.
     var dailyBackups: [URL] { persistence.dailyBackups() }
+
+    /// The Focus filter in effect, unless the user chose to see past it.
+    var activeFocusFilter: FocusFilter? {
+        guard let focusFilter, focusFilter != ignoredFocusFilter else { return nil }
+        return focusFilter
+    }
+
+    /// `goals` narrowed by the active Focus filter, keeping a running timer's goal.
+    func filteredForFocus(_ goals: [Goal]) -> [Goal] {
+        activeFocusFilter?.apply(to: goals, session: data.session) ?? goals
+    }
+
+    private func refreshFocusFilter() {
+        guard persistence.watchedDirectory != nil else { return }
+        let current = SharedStore.loadFocusFilter()
+        if current != focusFilter {
+            focusFilter = current
+            if current == nil { ignoredFocusFilter = nil }
+        }
+    }
 
     private func apply(_ newData: AppData, userInitiated: Bool) {
         now = .now

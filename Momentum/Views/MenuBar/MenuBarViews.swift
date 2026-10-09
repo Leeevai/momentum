@@ -50,7 +50,7 @@ struct MenuBarPanel: View {
     var body: some View {
         let engine = store.engine
         let now = store.now
-        let goals = engine.todayGoals(now: now)
+        let goals = store.filteredForFocus(engine.todayGoals(now: now))
         let summary = engine.todaySummary(now: now)
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center) {
@@ -60,6 +60,11 @@ struct MenuBarPanel: View {
                     Text("\(summary.done) of \(summary.total) done · best streak \(engine.longestCurrentStreak(now: now))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let filter = store.activeFocusFilter {
+                        Label("Focus: \(filter.categories.sorted().formatted(.list(type: .and)))", systemImage: "moon.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.indigo)
+                    }
                 }
                 Spacer()
                 ProgressRing(progress: summary.total == 0 ? 0 : Double(summary.done) / Double(summary.total), color: .blue, lineWidth: 4)

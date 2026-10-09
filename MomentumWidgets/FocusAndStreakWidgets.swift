@@ -24,7 +24,7 @@ struct FocusWidgetView: View {
         if let session = entry.data.session, let goal = engine.goal(session.goalID) {
             running(session: session, goal: goal)
         } else {
-            idle(goals: engine.activeGoals.filter { $0.kind == .time && !$0.isOnBreak(at: entry.date) })
+            idle(goals: entry.filtered(engine.activeGoals).filter { $0.kind == .time && !$0.isOnBreak(at: entry.date) })
         }
     }
 
@@ -152,7 +152,7 @@ struct StreaksWidgetView: View {
 
     var body: some View {
         let engine = entry.engine
-        let ranked = engine.activeGoals
+        let ranked = entry.filtered(engine.activeGoals)
             .map { ($0, engine.streak(for: $0, now: entry.date)) }
             .sorted { $0.1.current > $1.1.current }
         if ranked.isEmpty {

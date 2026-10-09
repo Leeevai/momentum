@@ -109,7 +109,7 @@ private struct TodayList: View {
 
     var body: some View {
         let engine = entry.engine
-        let goals = engine.todayGoals(now: entry.date)
+        let goals = entry.filtered(engine.todayGoals(now: entry.date))
             .sorted { lhs, rhs in
                 let left = engine.isRunning(lhs) ? 0 : (engine.isComplete(lhs, now: entry.date) ? 2 : 1)
                 let right = engine.isRunning(rhs) ? 0 : (engine.isComplete(rhs, now: entry.date) ? 2 : 1)

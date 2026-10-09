@@ -21,8 +21,15 @@ struct MomentumEntry: TimelineEntry {
     let date: Date
     let engine: ProgressEngine
     var goalID: UUID?
+    /// The current macOS Focus's filter, for the list widgets.
+    var focusFilter: FocusFilter? = SharedStore.loadFocusFilter()
 
     var data: AppData { engine.data }
+
+    /// `goals` narrowed by the Focus filter, keeping a running timer's goal.
+    func filtered(_ goals: [Goal]) -> [Goal] {
+        focusFilter?.apply(to: goals, session: data.session) ?? goals
+    }
 
     /// The configured goal, or the first active one.
     var goal: Goal? {

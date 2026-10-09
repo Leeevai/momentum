@@ -1,5 +1,6 @@
 import Foundation
 import MomentumCore
+import OSLog
 import WidgetKit
 
 /// The data file both the app and the widget extension use, in their shared app group container.
@@ -31,6 +32,33 @@ enum SharedStore {
         if result.before != result.after { reloadWidgets() }
         return result
     }
+
+    // MARK: - Focus filter
+
+    private static var focusFilterURL: URL { directoryURL.appendingPathComponent("focus-filter.json") }
+
+    /// The categories the current macOS Focus asks Momentum to show, if any.
+    static func loadFocusFilter() -> FocusFilter? {
+        guard let bytes = try? Data(contentsOf: focusFilterURL) else { return nil }
+        return try? JSONDecoder().decode(FocusFilter.self, from: bytes)
+    }
+
+    /// Sets or clears the Focus filter and refreshes the widgets.
+    static func saveFocusFilter(_ filter: FocusFilter?) {
+        do {
+            if let filter, !filter.categories.isEmpty {
+                try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+                try JSONEncoder().encode(filter).write(to: focusFilterURL, options: .atomic)
+            } else if FileManager.default.fileExists(atPath: focusFilterURL.path) {
+                try FileManager.default.removeItem(at: focusFilterURL)
+            }
+        } catch {
+            logger.error("Could not save the Focus filter: \(error.localizedDescription, privacy: .public)")
+        }
+        reloadWidgets()
+    }
+
+    private static let logger = Logger(subsystem: "dev.momentum.shared", category: "SharedStore")
 
     /// Refreshes every widget and, on macOS 26, the Control Center focus control.
     static func reloadWidgets() {
