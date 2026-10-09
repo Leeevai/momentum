@@ -18,3 +18,6 @@ Config/Local.xcconfig
 
 # App Store screenshots, made by scripts/app-store-screenshots.sh
 AppStoreScreenshots/
+
+# Index files a stray build flag can write inside the project
+-Xcc/
