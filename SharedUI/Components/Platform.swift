@@ -91,21 +91,38 @@ enum Metrics {
 
 /// A file to save through `fileExporter`: a JSON backup or a CSV of entries.
 struct ExportDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.json, .commaSeparatedText] }
-    var data: Data
-    var type: UTType
+    enum Kind {
+        /// Everything, as JSON that imports back.
+        case backup
+        /// Every entry, as a spreadsheet.
+        case entries
+    }
 
-    init(data: Data, type: UTType) {
-        self.data = data
-        self.type = type
+    static var readableContentTypes: [UTType] { [.json, .commaSeparatedText] }
+    private let source: AppData?
+    private let kind: Kind
+    private var contents: Data?
+
+    /// A document made from `data` only when it's saved: building it encodes the whole history,
+    /// too slow to do each time the screen offering it redraws.
+    init(_ data: AppData, kind: Kind) {
+        source = data
+        self.kind = kind
     }
 
     init(configuration: ReadConfiguration) throws {
-        data = configuration.file.regularFileContents ?? Data()
-        type = configuration.contentType
+        source = nil
+        contents = configuration.file.regularFileContents ?? Data()
+        kind = configuration.contentType == .commaSeparatedText ? .entries : .backup
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: data)
+        if let contents { return FileWrapper(regularFileWithContents: contents) }
+        guard let source else { return FileWrapper(regularFileWithContents: Data()) }
+        let data = switch kind {
+        case .backup: try FileStore.encode(source, pretty: true)
+        case .entries: Data(CSVExporter.csv(for: source).utf8)
+        }
+        return FileWrapper(regularFileWithContents: data)
     }
 }

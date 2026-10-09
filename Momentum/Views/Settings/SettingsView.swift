@@ -306,6 +306,8 @@ private struct DataSettings: View {
     @State private var importing = false
     @State private var pendingImport: AppData?
     @State private var message: String?
+    /// The daily copies, listed when the tab appears rather than on every redraw.
+    @State private var backups: [URL] = []
 
     var body: some View {
         Form {
@@ -326,7 +328,6 @@ private struct DataSettings: View {
                     .foregroundStyle(.secondary)
             }
             Section("Automatic backups") {
-                let backups = store.dailyBackups
                 LabeledContent("Daily copies kept", value: "\(backups.count) of 14")
                 LabeledContent("Restore a daily copy") {
                     Button("Choose…") { chooseBackup(in: backups) }
@@ -346,11 +347,12 @@ private struct DataSettings: View {
         }
         .formStyle(.grouped)
         .frame(height: 480)
-        .fileExporter(isPresented: $exportingJSON, document: ExportDocument(data: (try? FileStore.encode(store.data, pretty: true)) ?? Data(), type: .json),
+        .onAppear { backups = store.dailyBackups }
+        .fileExporter(isPresented: $exportingJSON, document: ExportDocument(store.data, kind: .backup),
                       contentType: .json, defaultFilename: "Momentum Backup \(Date.now.formatted(.iso8601.year().month().day()))") { result in
             report(result, what: "Backup")
         }
-        .fileExporter(isPresented: $exportingCSV, document: ExportDocument(data: Data(CSVExporter.csv(for: store.data).utf8), type: .commaSeparatedText),
+        .fileExporter(isPresented: $exportingCSV, document: ExportDocument(store.data, kind: .entries),
                       contentType: .commaSeparatedText, defaultFilename: "Momentum Entries") { result in
             report(result, what: "CSV")
         }

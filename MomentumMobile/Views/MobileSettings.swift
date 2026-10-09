@@ -193,13 +193,14 @@ private struct MobileDataSection: View {
     @State private var importing = false
     @State private var pendingImport: AppData?
     @State private var message: String?
+    /// The daily copies, listed when the section appears rather than on every redraw.
+    @State private var backups: [URL] = []
 
     var body: some View {
         Section {
             Button { exportingJSON = true } label: { Label("Export a Backup", systemImage: "square.and.arrow.up") }
             Button { exportingCSV = true } label: { Label("Export Entries as CSV", systemImage: "tablecells") }
             Button { importing = true } label: { Label("Import a Backup", systemImage: "square.and.arrow.down") }
-            let backups = store.dailyBackups
             if !backups.isEmpty {
                 Menu {
                     ForEach(backups, id: \.self) { url in
@@ -217,14 +218,15 @@ private struct MobileDataSection: View {
         } footer: {
             Text("\(store.data.goals.count) goals and \(store.data.entries.count) entries, kept on this iPhone. Importing replaces everything, and saves the current data as a backup first.")
         }
-        .fileExporter(isPresented: $exportingJSON, document: ExportDocument(data: (try? FileStore.encode(store.data, pretty: true)) ?? Data(), type: .json),
+        .fileExporter(isPresented: $exportingJSON, document: ExportDocument(store.data, kind: .backup),
                       contentType: .json, defaultFilename: "Momentum Backup \(Date.now.formatted(.iso8601.year().month().day()))") { result in
             report(result, what: "Backup")
         }
-        .fileExporter(isPresented: $exportingCSV, document: ExportDocument(data: Data(CSVExporter.csv(for: store.data).utf8), type: .commaSeparatedText),
+        .fileExporter(isPresented: $exportingCSV, document: ExportDocument(store.data, kind: .entries),
                       contentType: .commaSeparatedText, defaultFilename: "Momentum Entries") { result in
             report(result, what: "CSV")
         }
+        .onAppear { backups = store.dailyBackups }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
             switch result {
             case .success(let url): load(url)
