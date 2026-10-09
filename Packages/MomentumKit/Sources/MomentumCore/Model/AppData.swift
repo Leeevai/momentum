@@ -18,8 +18,11 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
     public var note: String
     /// The book the pages were read in, for books goals.
     public var bookID: UUID?
+    /// How the session went, if it was rated.
+    public var quality: FocusQuality?
 
-    public init(id: UUID = UUID(), goalID: UUID, date: Date, amount: Double, source: Source = .manual, note: String = "", bookID: UUID? = nil) {
+    public init(id: UUID = UUID(), goalID: UUID, date: Date, amount: Double, source: Source = .manual, note: String = "", bookID: UUID? = nil,
+                quality: FocusQuality? = nil) {
         self.id = id
         self.goalID = goalID
         self.date = date
@@ -27,9 +30,10 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
         self.source = source
         self.note = note
         self.bookID = bookID
+        self.quality = quality
     }
 
-    private enum CodingKeys: String, CodingKey { case id, goalID, date, amount, source, note, bookID }
+    private enum CodingKeys: String, CodingKey { case id, goalID, date, amount, source, note, bookID, quality }
 
     /// Leaves out values that are the decoding default (a manual entry, no note, no book): most
     /// entries are just an amount at a time, and the file is rewritten on every change.
@@ -42,6 +46,7 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
         if source != .manual { try c.encode(source, forKey: .source) }
         if !note.isEmpty { try c.encode(note, forKey: .note) }
         try c.encodeIfPresent(bookID, forKey: .bookID)
+        try c.encodeIfPresent(quality, forKey: .quality)
     }
 
     public init(from decoder: Decoder) throws {
@@ -53,6 +58,8 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
         source = try c.decode(.source, default: .manual)
         note = try c.decode(.note, default: "")
         bookID = try c.decodeIfPresent(UUID.self, forKey: .bookID)
+        // A rating this version doesn't know is dropped, not the entry.
+        quality = (try? c.decodeIfPresent(FocusQuality.self, forKey: .quality)) ?? nil
     }
 }
 
@@ -244,11 +251,13 @@ public struct Preferences: Codable, Hashable, Sendable {
     public var pomodoro: PomodoroSettings
     /// A morning prompt to plan the day, and an evening one to reflect on it.
     public var journalPromptsEnabled: Bool
+    /// After a focus session, a one-tap question about how it went.
+    public var asksSessionQuality: Bool
 
     public init(defaultFocusMinutes: Int = 25, celebratesCompletion: Bool = true, playsSounds: Bool = true, remindersEnabled: Bool = true,
                 showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60,
                 weeklyRecapEnabled: Bool = true, focusSound: FocusSound = .off, focusSoundVolume: Double = 0.4,
-                pomodoro: PomodoroSettings = PomodoroSettings(), journalPromptsEnabled: Bool = true) {
+                pomodoro: PomodoroSettings = PomodoroSettings(), journalPromptsEnabled: Bool = true, asksSessionQuality: Bool = true) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
@@ -261,11 +270,12 @@ public struct Preferences: Codable, Hashable, Sendable {
         self.focusSoundVolume = focusSoundVolume
         self.pomodoro = pomodoro
         self.journalPromptsEnabled = journalPromptsEnabled
+        self.asksSessionQuality = asksSessionQuality
     }
 
     private enum CodingKeys: String, CodingKey {
         case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar, streakNudgesEnabled, streakNudgeMinute
-        case weeklyRecapEnabled, focusSound, focusSoundVolume, pomodoro, journalPromptsEnabled
+        case weeklyRecapEnabled, focusSound, focusSoundVolume, pomodoro, journalPromptsEnabled, asksSessionQuality
     }
 
     public init(from decoder: Decoder) throws {
@@ -283,6 +293,7 @@ public struct Preferences: Codable, Hashable, Sendable {
         focusSoundVolume = min(1, max(0, try c.decode(.focusSoundVolume, default: 0.4)))
         pomodoro = try c.decode(.pomodoro, default: PomodoroSettings())
         journalPromptsEnabled = try c.decode(.journalPromptsEnabled, default: true)
+        asksSessionQuality = try c.decode(.asksSessionQuality, default: true)
     }
 }
 
