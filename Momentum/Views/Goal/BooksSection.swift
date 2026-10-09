@@ -1,10 +1,12 @@
 import MomentumCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// A books goal's library: reading now, up next, finished, with quick status changes.
 struct BooksSection: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
+    @State private var importMessage: String?
 
     var body: some View {
         let reading = goal.books.filter { $0.status == .reading }
@@ -14,15 +16,27 @@ struct BooksSection: View {
 
         VStack(alignment: .leading, spacing: 16) {
             SectionTitle("Library", systemImage: "books.vertical", trailing: AnyView(
-                Button {
-                    store.sheet = .book(goalID: goal.id, book: nil)
-                } label: {
-                    Label("Add book", systemImage: "plus")
+                HStack(spacing: 8) {
+                    Button(action: importFromGoodreads) {
+                        Label("Import", systemImage: "square.and.arrow.down")
+                    }
+                    .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
+                    .help("Import a Goodreads library export (CSV)")
+                    Button {
+                        store.sheet = .book(goalID: goal.id, book: nil)
+                    } label: {
+                        Label("Add book", systemImage: "plus")
+                    }
+                    .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
                 }
-                .buttonStyle(PillButtonStyle(tint: goal.tint, prominent: false, compact: true))
             ))
+            if let importMessage {
+                Label(importMessage, systemImage: "info.circle")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
             if goal.books.isEmpty {
-                Text("Your reading list is empty. Add the books you're reading and the ones you want to read next.")
+                Text("Your reading list is empty. Add the books you're reading and the ones you want to read next, or import your Goodreads library.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -32,6 +46,32 @@ struct BooksSection: View {
             shelf("Set aside", books: abandoned)
         }
         .glassCard(tint: goal.tint)
+    }
+
+    /// Goodreads: My Books → Import and export → Export library, then pick the CSV here.
+    private func importFromGoodreads() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.prompt = "Import"
+        panel.message = "Choose the goodreads_library_export.csv file from Goodreads."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            let books = try GoodreadsImporter.books(fromCSV: text, existing: goal.books)
+            guard !books.isEmpty else {
+                importMessage = "Every book in that file is already in your library."
+                return
+            }
+            store.perform("Import Books") { data in
+                for book in books { data.upsertBook(book, in: goal.id) }
+            }
+            let finished = books.filter { $0.status == .finished }.count
+            importMessage = "Imported \(books.count) \(books.count == 1 ? "book" : "books") (\(finished) finished). Undo with ⌘Z."
+        } catch GoodreadsImporter.ImportError.notGoodreadsExport {
+            importMessage = "That file isn't a Goodreads library export."
+        } catch {
+            importMessage = "Couldn't read that file: \(error.localizedDescription)"
+        }
     }
 
     @ViewBuilder
