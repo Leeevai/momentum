@@ -131,6 +131,7 @@ final class GoalStore {
         self.persistence = persistence
         self.knownModification = snapshot.modification
         self.data = initial
+        ActivePalette.current = initial.preferences.palette
         self.engine = ProgressEngine(data: initial)
         self.effects = effects ?? SideEffects()
         self.focusFilter = persistence.watchedDirectory == nil ? nil : SharedStore.loadFocusFilter()
@@ -271,6 +272,7 @@ final class GoalStore {
         guard newData != data else { return }
         let previousData = data
         data = newData
+        ActivePalette.current = newData.preferences.palette
         engine = ProgressEngine(data: newData)
         tipsCache = nil
         effects.dataDidChange(from: previousData, to: newData, engine: engine, fromAnotherDevice: fromAnotherDevice)

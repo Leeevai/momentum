@@ -33,6 +33,7 @@ final class QuickPanelController {
             NotificationCenter.default.post(name: .reopenMainWindow, object: nil)
             NSApp.activate()
         })
+        .storePalette()
         .environment(store)
         .background(PanelBackground())
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -238,7 +239,7 @@ struct HotKeyRecorder: View {
                     .font(.system(.body, design: .rounded, weight: .semibold))
                     .frame(minWidth: 120)
             }
-            .secondaryActionStyle(isRecording ? .orange : .accentColor, compact: true)
+            .secondaryActionStyle(isRecording ? .orange : .accent, compact: true)
             if combo != nil && !isRecording {
                 Button {
                     combo = nil

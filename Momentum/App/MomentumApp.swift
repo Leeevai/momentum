@@ -10,6 +10,7 @@ struct MomentumApp: App {
     var body: some Scene {
         Window("Momentum", id: "main") {
             RootView()
+                .storePalette()
                 .environment(store)
                 .frame(minWidth: 880, minHeight: 600)
                 .onOpenURL { url in DeepLink(url: url).map(handle) }
@@ -20,11 +21,13 @@ struct MomentumApp: App {
 
         Settings {
             SettingsView()
+                .storePalette()
                 .environment(store)
         }
 
         MenuBarExtra {
             MenuBarPanel()
+                .storePalette()
                 .environment(store)
         } label: {
             MenuBarLabel()

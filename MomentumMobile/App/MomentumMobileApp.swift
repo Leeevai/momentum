@@ -10,6 +10,7 @@ struct MomentumMobileApp: App {
     var body: some Scene {
         WindowGroup {
             MobileRoot()
+                .storePalette()
                 .environment(store)
                 .onOpenURL { url in DeepLink(url: url).map(handle) }
                 .onAppear {

@@ -17,6 +17,10 @@ let demoNow = Date()
 @MainActor
 func makeStore() -> GoalStore {
     var data = AppData.demo(now: demoNow)
+    // MOMENTUM_PALETTE=ocean renders in another palette.
+    if let name = ProcessInfo.processInfo.environment["MOMENTUM_PALETTE"], let palette = ThemePalette(rawValue: name) {
+        data.preferences.palette = palette
+    }
     // A focus session in progress on Deep work, 32 minutes into 50.
     if let deepWork = data.goals.first(where: { $0.name == "Deep work" }) {
         data.session = FocusSession(goalID: deepWork.id, plannedDuration: 50 * 60, start: Date().addingTimeInterval(-32 * 60))
@@ -66,12 +70,14 @@ func snapshot<V: View>(_ view: V, size: CGSize, dark: Bool, name: String) {
 func screen(_ store: GoalStore, route: Route) -> some View {
     store.route = route
     return RootView()
+        .storePalette()
         .environment(store)
 }
 
 /// A screen of the app for a goal matching `pick`, or for a fixed route.
 @MainActor
 func render(_ name: String, height: CGFloat, dark: Bool, route: (GoalStore) -> Route?) {
+    guard isWanted(name) else { return }
     let store = makeStore()
     guard let destination = route(store) else { return }
     snapshot(screen(store, route: destination), size: CGSize(width: 1280, height: height), dark: dark, name: name)
@@ -87,7 +93,9 @@ MainActor.assumeIsolated {
         render("journal", height: 960, dark: dark) { _ in .journal }
         render("awards", height: 1300, dark: dark) { _ in .awards }
         let store = makeStore()
-        snapshot(MenuBarPanel().environment(store).background(Color(nsColor: .windowBackgroundColor)), size: CGSize(width: 340, height: 560), dark: dark, name: "menubar")
+        if isWanted("menubar") {
+            snapshot(MenuBarPanel().storePalette().environment(store).background(Color(nsColor: .windowBackgroundColor)), size: CGSize(width: 340, height: 560), dark: dark, name: "menubar")
+        }
     }
     // Sheets and Settings, for review rather than the README: written only when asked for.
     if CommandLine.arguments.count > 2 {
@@ -128,11 +136,18 @@ MainActor.assumeIsolated {
         for (name, view, size) in sheets {
             let original = output
             withExtrasOutput(extras) {
-                snapshot(view.environment(store).background(Color(nsColor: .windowBackgroundColor)), size: size, dark: false, name: name)
+                snapshot(view.storePalette().environment(store).background(Color(nsColor: .windowBackgroundColor)), size: size, dark: false, name: name)
             }
             _ = original
         }
     }
+}
+
+/// Whether `name` is among the screens asked for in MOMENTUM_SHOTS (a comma-separated list), or
+/// no list was given.
+func isWanted(_ name: String) -> Bool {
+    guard let list = ProcessInfo.processInfo.environment["MOMENTUM_SHOTS"], !list.isEmpty else { return true }
+    return list.split(separator: ",").contains { $0 == name }
 }
 
 /// Points `snapshot` at another folder for the duration of `body`.
