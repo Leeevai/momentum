@@ -114,6 +114,12 @@ MainActor.assumeIsolated {
                 print("wrote share-\(goal.kind.rawValue).png")
             }
         }
+        withExtrasOutput(extras) {
+            render("goal-challenge", height: 1300, dark: true) { store in store.data.goals.first { $0.challenge != nil }.map { .goal($0.id) } }
+            let rated = makeStore()
+            rated.sessionRating = SessionRating(goal: rated.data.goals[0], entryIDs: [], seconds: 50 * 60)
+            snapshot(screen(rated, route: .today), size: CGSize(width: 1280, height: 860), dark: false, name: "today-rating")
+        }
         for (name, view, size) in sheets {
             let original = output
             withExtrasOutput(extras) {

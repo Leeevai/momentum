@@ -31,7 +31,7 @@ watches your history and tells you what's worth doing next.
 <p align="center">
   <img src="docs/images/iphone-today.png" alt="Today on iPhone" width="170">
   <img src="docs/images/iphone-focus.png" alt="Focus mode on iPhone: a full-screen timer over a breathing glow" width="170">
-  <img src="docs/images/iphone-goal.png" alt="A goal's page on iPhone" width="170">
+  <img src="docs/images/iphone-goal.png" alt="A goal's page on iPhone, on day 19 of a 30-day challenge" width="170">
   <img src="docs/images/iphone-journal.png" alt="The journal calendar on iPhone" width="170">
   <img src="docs/images/iphone-awards.png" alt="Awards on iPhone" width="170">
 </p>
