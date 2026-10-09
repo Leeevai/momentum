@@ -123,3 +123,25 @@ struct MigrationSafetyTests {
         #expect(backups == ["data.v1-backup.json"])
     }
 }
+
+@Suite("Daily backups")
+struct DailyBackupTests {
+    @Test("One backup per day, newest kept, oldest pruned")
+    func rotation() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = FileStore(fileURL: folder.appendingPathComponent("data.json"))
+        #expect(store.backUpDaily(now: referenceNow, calendar: testCalendar) == nil)
+
+        store.update { $0.upsert(Goal(name: "Backed up", target: 1)) }
+        for offset in 0..<5 {
+            store.backUpDaily(keep: 3, now: dayOffset(offset), calendar: testCalendar)
+        }
+        #expect(store.backUpDaily(keep: 3, now: dayOffset(4), calendar: testCalendar) == nil)
+
+        let names = try store.dailyBackups().map(\.lastPathComponent)
+        #expect(names == ["data-2026-10-12.json", "data-2026-10-11.json", "data-2026-10-10.json"])
+        let restored = try FileStore.decode(Data(contentsOf: store.dailyBackups()[0]))
+        #expect(restored.goals.map(\.name) == ["Backed up"])
+    }
+}

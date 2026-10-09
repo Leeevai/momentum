@@ -39,6 +39,54 @@ public final class FileStore: Sendable {
         }
     }
 
+    // MARK: - Daily backups
+
+    /// Where daily backups live: a Backups folder beside the data file.
+    public var backupsDirectory: URL {
+        fileURL.deletingLastPathComponent().appendingPathComponent("Backups", isDirectory: true)
+    }
+
+    /// Copies today's data into `Backups/data-YYYY-MM-DD.json` if there is no copy for today yet,
+    /// then keeps only the newest `keep` copies. Returns the backup written, if any.
+    @discardableResult
+    public func backUpDaily(keep: Int = 14, now: Date = .now, calendar: Calendar = .current) -> URL? {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: fileURL.path) else { return nil }
+        let parts = calendar.dateComponents([.year, .month, .day], from: now)
+        let name = String(format: "data-%04d-%02d-%02d.json", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        let target = backupsDirectory.appendingPathComponent(name)
+        var written: URL?
+        do {
+            try manager.createDirectory(at: backupsDirectory, withIntermediateDirectories: true)
+            if !manager.fileExists(atPath: target.path) {
+                coordinate(writing: false) { url in
+                    do {
+                        try manager.copyItem(at: url, to: target)
+                        written = target
+                    } catch {
+                        self.logger.error("Daily backup failed: \(String(describing: error), privacy: .public)")
+                    }
+                }
+            }
+            let backups = try dailyBackups()
+            for old in backups.dropFirst(max(1, keep)) {
+                try manager.removeItem(at: old)
+            }
+        } catch {
+            logger.error("Could not manage daily backups: \(String(describing: error), privacy: .public)")
+        }
+        return written
+    }
+
+    /// Daily backups, newest first.
+    public func dailyBackups() throws -> [URL] {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: backupsDirectory.path) else { return [] }
+        return try manager.contentsOfDirectory(at: backupsDirectory, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix("data-") && $0.pathExtension == "json" }
+            .sorted { $0.lastPathComponent > $1.lastPathComponent }
+    }
+
     // MARK: - Encoding
 
     public static func encode(_ data: AppData) throws -> Data {
