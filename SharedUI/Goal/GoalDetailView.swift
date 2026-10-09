@@ -167,7 +167,7 @@ private struct HeroPanel: View {
         let running = engine.isRunning(goal)
         return LiveClock(isLive: running && store.data.session?.isRunning == true, fallback: store.now) { now in
             let amount = engine.currentAmount(for: goal, now: now)
-            ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: 14) {
+            ProgressRing(progress: engine.ringProgress(for: goal, now: now), color: goal.color, lineWidth: 14) {
                 VStack(spacing: 2) {
                     Text(goal.formatShort(amount))
                         .font(.system(size: 28, weight: .bold, design: .rounded))

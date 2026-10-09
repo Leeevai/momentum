@@ -133,7 +133,8 @@ struct GlassGroup<Content: View>: View {
 
 // MARK: - Rings
 
-/// Concentric rings, one per goal, like Activity rings: today's progress at a glance.
+/// Concentric rings, one per goal, like Activity rings: today's progress at a glance, lapping
+/// past 100%.
 struct RingStack: View {
     let rings: [(goal: Goal, progress: Double)]
     var lineWidth: CGFloat = 14
@@ -146,12 +147,8 @@ struct RingStack: View {
                 ZStack {
                     Circle()
                         .stroke(ring.goal.tint.opacity(0.16), lineWidth: lineWidth)
-                    Circle()
-                        .trim(from: 0, to: max(0.0001, min(ring.progress, 1)))
-                        .stroke(ring.goal.color.gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
+                    RingSweep(progress: ring.progress, color: ring.goal.color, lineWidth: lineWidth)
                         .shadow(color: ring.goal.tint.opacity(ring.progress >= 1 ? 0.5 : 0.25), radius: lineWidth * 0.35)
-                        .opacity(ring.progress > 0 ? 1 : 0)
                 }
                 .padding(inset + lineWidth / 2)
             }

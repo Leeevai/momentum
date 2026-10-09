@@ -174,7 +174,7 @@ private struct TodayRow: View {
 
     private func row(engine: ProgressEngine, streak: ProgressEngine.Streak) -> some View {
         HStack(spacing: 10) {
-            ProgressRing(progress: engine.progress(for: goal, now: entry.date), color: goal.color, lineWidth: 4) {
+            ProgressRing(progress: engine.ringProgress(for: goal, now: entry.date), color: goal.color, lineWidth: 4) {
                 GoalGlyph(goal: goal, size: 11)
             }
             .frame(width: 32, height: 32)
@@ -214,7 +214,7 @@ private struct TodayHero: View {
         HStack(spacing: 14) {
             ZStack {
                 ForEach(Array(goals.prefix(3).enumerated()), id: \.element.id) { index, goal in
-                    ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: 7)
+                    ProgressRing(progress: engine.ringProgress(for: goal, now: now), color: goal.color, lineWidth: 7)
                         .padding(CGFloat(index) * 9)
                 }
             }
@@ -275,7 +275,7 @@ private struct TodayTile: View {
         HStack(spacing: 12) {
             Link(destination: DeepLink.goal(goal.id).url) {
                 HStack(spacing: 12) {
-                    ProgressRing(progress: progress, color: goal.color, lineWidth: 5) {
+                    ProgressRing(progress: engine.ringProgress(for: goal, now: entry.date), color: goal.color, lineWidth: 5) {
                         GoalGlyph(goal: goal, size: 15)
                     }
                     .frame(width: 44, height: 44)

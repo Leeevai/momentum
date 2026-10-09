@@ -173,7 +173,7 @@ struct GoalRing: View {
         let engine = store.engine
         let live = engine.isRunning(goal) && store.data.session?.isRunning == true
         LiveClock(isLive: live, fallback: store.now) { now in
-            ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: lineWidth) {
+            ProgressRing(progress: engine.ringProgress(for: goal, now: now), color: goal.color, lineWidth: lineWidth) {
                 if showsIcon {
                     GoalGlyph(goal: goal, size: lineWidth * 2.6)
                 }

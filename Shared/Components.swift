@@ -2,7 +2,8 @@ import MomentumCore
 import SwiftUI
 import WidgetKit
 
-/// A gradient progress ring. Past 100% it stays closed and gains a soft glow.
+/// A gradient progress ring. Past 100% it laps: a second sweep over the first, as Activity rings
+/// and glasscn's rings do, with a soft glow once the goal is met.
 struct ProgressRing<Center: View>: View {
     let progress: Double
     let color: GoalColor
@@ -13,18 +14,61 @@ struct ProgressRing<Center: View>: View {
         ZStack {
             Circle()
                 .stroke(color.color.opacity(0.16), lineWidth: lineWidth)
-            Circle()
-                .trim(from: 0, to: max(0.0001, min(progress, 1)))
-                .stroke(color.gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+            RingSweep(progress: progress, color: color, lineWidth: lineWidth)
                 .shadow(color: color.color.opacity(progress >= 1 ? 0.45 : 0), radius: lineWidth * 0.6)
-                .opacity(progress > 0 ? 1 : 0)
             center
         }
         .padding(lineWidth / 2)
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progress)
         .accessibilityElement(children: .combine)
-        .accessibilityValue(Text(min(max(progress, 0), 1), format: .percent.precision(.fractionLength(0))))
+        .accessibilityValue(Text(max(progress, 0), format: .percent.precision(.fractionLength(0))))
+    }
+}
+
+/// A ring's colored sweep: a lap per 100%, up to two. The second lap is drawn over the first,
+/// with a shadow cast forward from its tip so the overlap reads.
+struct RingSweep: View {
+    let progress: Double
+    let color: GoalColor
+    let lineWidth: CGFloat
+
+    var body: some View {
+        let value = progress.isFinite ? min(max(progress, 0), 2) : 0
+        let lap = max(0, value - 1)
+        ZStack {
+            Circle()
+                .trim(from: 0, to: max(0.0001, min(value, 1)))
+                .stroke(color.gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .opacity(value > 0 ? 1 : 0)
+            if lap > 0 {
+                Circle()
+                    .trim(from: 0, to: lap)
+                    .stroke(color.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                LapTip(lap: lap, color: color.color, lineWidth: lineWidth)
+            }
+        }
+        .rotationEffect(.degrees(-90))
+    }
+}
+
+/// The leading end of a second lap: a cap of the ring's color whose shadow falls on the lap
+/// beneath, ahead of it.
+private struct LapTip: View {
+    let lap: Double
+    let color: Color
+    let lineWidth: CGFloat
+
+    var body: some View {
+        GeometryReader { proxy in
+            let radius = min(proxy.size.width, proxy.size.height) / 2
+            let angle = lap * 2 * .pi
+            let reach = lineWidth * 0.25
+            Circle()
+                .fill(color)
+                .frame(width: lineWidth, height: lineWidth)
+                .shadow(color: .black.opacity(0.45), radius: reach, x: -sin(angle) * reach, y: cos(angle) * reach)
+                .position(x: proxy.size.width / 2 + radius * cos(angle), y: proxy.size.height / 2 + radius * sin(angle))
+        }
     }
 }
 

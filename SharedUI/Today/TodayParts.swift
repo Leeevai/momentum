@@ -61,7 +61,7 @@ struct TodayHeader: View {
         let ringGoals = Array(goals.prefix(4))
         if !ringGoals.isEmpty {
             LiveClock(isLive: store.data.session?.isRunning == true, fallback: store.now) { moment in
-                RingStack(rings: ringGoals.map { ($0, engine.progress(for: $0, now: moment)) }, lineWidth: lineWidth, spacing: lineWidth * 0.23)
+                RingStack(rings: ringGoals.map { ($0, engine.ringProgress(for: $0, now: moment)) }, lineWidth: lineWidth, spacing: lineWidth * 0.23)
             }
             .frame(width: size, height: size)
             .help(ringGoals.map(\.name).joined(separator: ", "))

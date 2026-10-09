@@ -224,7 +224,7 @@ struct WidgetGoalRing: View {
     var lineWidth: CGFloat = 8
 
     var body: some View {
-        ProgressRing(progress: engine.progress(for: goal, now: now), color: goal.color, lineWidth: lineWidth) {
+        ProgressRing(progress: engine.ringProgress(for: goal, now: now), color: goal.color, lineWidth: lineWidth) {
             VStack(spacing: 0) {
                 GoalGlyph(goal: goal, size: lineWidth * 2.2)
                 Group {
