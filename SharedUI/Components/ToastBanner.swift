@@ -45,9 +45,15 @@ struct ToastBanner: View {
         }
         .task(id: toast.id) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.72)) { visible = true }
-            try? await Task.sleep(for: .milliseconds(450))
-            withAnimation(.easeInOut(duration: 1.2)) { shine = true }
-            try? await Task.sleep(for: .seconds(4))
+            // A banner replaced or taken away is cancelled here, and must not go on to dismiss
+            // whatever shows next.
+            do {
+                try await Task.sleep(for: .milliseconds(450))
+                withAnimation(.easeInOut(duration: 1.2)) { shine = true }
+                try await Task.sleep(for: .seconds(4))
+            } catch {
+                return
+            }
             hide()
         }
     }

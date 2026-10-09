@@ -19,5 +19,9 @@
 	<string>$(IOS_APP_GROUP_ID)</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 </dict>
 </plist>

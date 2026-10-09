@@ -27,7 +27,9 @@ final class FocusSoundPlayer {
         stopTask?.cancel()
         state.kind.store(Self.code(for: sound))
         state.targetGain.store(Float(volume) * 0.35)
-        guard !isPlaying else { return }
+        // The system can stop the engine under us (a call, Siri, another app's audio); then
+        // this starts it again rather than believing it still plays.
+        guard !isPlaying || !engine.isRunning else { return }
         do {
             try start()
             isPlaying = true

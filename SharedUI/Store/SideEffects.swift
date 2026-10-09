@@ -42,13 +42,18 @@ final class SideEffects {
         cacheCovers(data)
     }
 
-    func dataDidChange(from old: AppData, to new: AppData, engine: ProgressEngine) {
+    /// `fromAnotherDevice` is a sync merge: what it brings in happened elsewhere.
+    func dataDidChange(from old: AppData, to new: AppData, engine: ProgressEngine, fromAnotherDevice: Bool = false) {
         guard isEnabled else { return }
         if let session = new.session, session.startedAt != lastSessionStart {
             lastSessionStart = session.startedAt
             // On a Mac the goal's links open beside the timer; on iPhone that would leave the app.
+            // Only for a session started here (by the app, a widget or Siri), and only for the
+            // first block of a Pomodoro cycle: the links are already open for the rest.
             #if os(macOS)
-            if let goal = engine.goal(session.goalID) { LinkOpener.openFocusLinks(of: goal) }
+            if !fromAnotherDevice, session.block == 1, let goal = engine.goal(session.goalID) {
+                LinkOpener.openFocusLinks(of: goal)
+            }
             #endif
         } else if new.session == nil {
             lastSessionStart = nil
@@ -60,7 +65,7 @@ final class SideEffects {
         if old.session != new.session || old.preferences.pomodoro != new.preferences.pomodoro {
             notifications.syncSessionEnd(new.session, goal: new.session.flatMap { engine.goal($0.goalID) }, pomodoro: new.preferences.pomodoro)
         }
-        if old.rest != new.rest {
+        if old.rest != new.rest || old.preferences.pomodoro != new.preferences.pomodoro {
             notifications.syncRestEnd(new.rest, goal: new.rest.flatMap { engine.goal($0.goalID) })
         }
         if old.session != new.session || old.rest != new.rest || old.goals != new.goals {
@@ -109,6 +114,13 @@ final class SideEffects {
         #if os(iOS)
         Task { await FocusActivityController.sync(with: data) }
         #endif
+    }
+
+    /// Brings the focus sound back after the app returns to the foreground, in case the system
+    /// stopped it while the app was away.
+    func refreshFocusSound(_ data: AppData) {
+        guard isEnabled else { return }
+        syncFocusSound(data)
     }
 
     /// Plays the chosen sound while a session runs; fades it out on pause or stop.
@@ -277,10 +289,16 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
 
     static let restEndID = "rest.end"
 
-    /// "Break's over" when a Pomodoro break ends, unless the next block starts by itself.
+    /// "Break's over" when a Pomodoro break ends. On iPhone always: a suspended app can't start
+    /// the next block by itself. On a Mac only when it won't start by itself.
     func syncRestEnd(_ rest: RestPeriod?, goal: Goal?) {
         center.removePendingNotificationRequests(withIdentifiers: [Self.restEndID])
-        guard let rest, let goal, rest.end > .now, store?.data.preferences.pomodoro.autoStartsNextBlock != true else { return }
+        #if os(macOS)
+        let startsByItself = store?.data.preferences.pomodoro.autoStartsNextBlock == true
+        #else
+        let startsByItself = false
+        #endif
+        guard let rest, let goal, rest.end > .now, !startsByItself else { return }
         Task {
             guard authorization == .authorized || authorization == .provisional else { return }
             let content = UNMutableNotificationContent()
@@ -319,7 +337,12 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             switch action {
             case Action.start:
                 if let goalID, let goal = store.goal(goalID) {
-                    if goal.kind == .time { store.toggleFocus(goal) } else { store.select(goalID) }
+                    // Start, never stop: the timer may already be running for this goal.
+                    if goal.kind != .time {
+                        store.select(goalID)
+                    } else if !store.engine.isRunning(goal) {
+                        store.toggleFocus(goal)
+                    }
                     Self.activateApp()
                 }
             case Action.quickAdd:

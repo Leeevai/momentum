@@ -18,6 +18,7 @@ struct MomentumMobileApp: App {
             store.advancePomodoro()
             store.sync?.pull()
             store.effects.syncLiveActivity(store.data)
+            store.effects.refreshFocusSound(store.data)
         }
     }
 

@@ -106,6 +106,10 @@ final class GoalStore {
     @ObservationIgnored private var dayTimer: Timer?
     @ObservationIgnored private var pomodoroTimer: Timer?
     @ObservationIgnored private var toastQueue: [Toast] = []
+    @ObservationIgnored private var isHandingOffToast = false
+    /// The day the store last saw, to notice midnight. Kept apart from `now`, which every change
+    /// refreshes and so can't tell that the day turned.
+    @ObservationIgnored private var currentDay = Calendar.current.startOfDay(for: .now)
     @ObservationIgnored private var tipsCache: (key: String, tips: [CoachTip])?
     @ObservationIgnored private var achievementTask: Task<Void, Never>?
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
@@ -130,7 +134,12 @@ final class GoalStore {
         advancePomodoro()
         schedulePomodoro()
         recordAchievements()
-        if persistence.watchedDirectory != nil { sync = FolderSync(store: self) }
+        if persistence.watchedDirectory != nil {
+            sync = FolderSync(store: self)
+            #if os(iOS)
+            LiveActivitySync.catchUpHandler = { FolderSync.catchUpFromFolder() }
+            #endif
+        }
         persistence.backUpDaily()
         #if os(macOS)
         let becameActive = NSApplication.didBecomeActiveNotification
@@ -188,7 +197,7 @@ final class GoalStore {
             for remote in remotes { data = SyncMerge.merge(data, remote) }
         }
         knownModification = result.modification
-        apply(result.after, userInitiated: false)
+        apply(result.after, userInitiated: false, fromAnotherDevice: true)
     }
 
     /// Replaces all data, e.g. from an import. The previous file is kept as a backup.
@@ -221,14 +230,14 @@ final class GoalStore {
         }
     }
 
-    private func apply(_ newData: AppData, userInitiated: Bool) {
+    private func apply(_ newData: AppData, userInitiated: Bool, fromAnotherDevice: Bool = false) {
         now = .now
         guard newData != data else { return }
         let previousData = data
         data = newData
         engine = ProgressEngine(data: newData)
         tipsCache = nil
-        effects.dataDidChange(from: previousData, to: newData, engine: engine)
+        effects.dataDidChange(from: previousData, to: newData, engine: engine, fromAnotherDevice: fromAnotherDevice)
         if userInitiated { celebrateNewCompletions(from: previousData, to: newData) }
         if case .goal(let id) = route, newData.goal(id) == nil { route = .today }
         sync?.localDataDidChange()
@@ -305,7 +314,7 @@ final class GoalStore {
     // MARK: - Toasts
 
     func show(_ toast: Toast) {
-        if self.toast == nil {
+        if self.toast == nil && !isHandingOffToast {
             self.toast = toast
         } else {
             toastQueue.append(toast)
@@ -316,10 +325,12 @@ final class GoalStore {
     func dismissToast() {
         toast = nil
         guard !toastQueue.isEmpty else { return }
-        let next = toastQueue.removeFirst()
+        // Until the next banner is up, new ones wait in line rather than take its place.
+        isHandingOffToast = true
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
-            self.toast = next
+            self.isHandingOffToast = false
+            if !self.toastQueue.isEmpty { self.toast = self.toastQueue.removeFirst() }
         }
     }
 
@@ -453,7 +464,8 @@ final class GoalStore {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 let current = Date()
-                if !self.engine.calendar.isDate(current, inSameDayAs: self.now) {
+                if !self.engine.calendar.isDate(current, inSameDayAs: self.currentDay) {
+                    self.currentDay = self.engine.calendar.startOfDay(for: current)
                     self.now = current
                     self.dismissedTips = Self.loadDismissedTips(on: current)
                     self.tipsCache = nil
