@@ -4,6 +4,12 @@ All notable changes to Momentum are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Focus filters: in System Settings → Focus, choose which goal categories Momentum shows while a
+  Focus is on. Today, the menu bar and the widgets follow it, with a "Show all" way past it.
+
 ## [1.1.0] - 2026-10-08
 
 ### Added

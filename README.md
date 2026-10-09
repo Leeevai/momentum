@@ -89,6 +89,7 @@ right from the desktop** without opening the app.
 ### And the rest
 - **Shortcuts and Siri**: *Start focusing in Momentum*, *Log progress in Momentum*, *How am I doing in Momentum*.
 - **Control Center** (macOS 26): a focus toggle for Control Center and the menu bar.
+- **Focus filters**: pair a macOS Focus with goal categories, so a Work Focus shows only work goals.
 - **Editable history**: fix the time, amount or note of anything you logged.
 - **Share cards**: a polished image of any goal's ring, streak and history to save, copy or share.
 - **Templates** for common goals, **categories** for grouping, **archive**, **duplicate**, and full **undo**.
@@ -171,7 +172,7 @@ and [CONTRIBUTING.md](CONTRIBUTING.md) to get involved.
 - [x] Book search with covers and page counts, and Goodreads import
 - [ ] iCloud sync between Macs
 - [ ] An iPhone companion with Lock Screen widgets
-- [ ] Focus filters: show only the goals that fit the Focus you're in
+- [x] Focus filters: show only the goals that fit the Focus you're in
 - [ ] Translations
 - [ ] Notarized releases
 
