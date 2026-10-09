@@ -1,5 +1,7 @@
-// Draws the Momentum app icon and writes every size the macOS asset catalog needs.
-// Usage: swift scripts/make_icon.swift <AppIcon.appiconset folder> [preview.png]
+// Draws the Momentum app icon and writes every size the macOS and iOS asset catalogs need.
+// Usage: swift scripts/make_icon.swift [preview.png]
+// Writes Momentum/Assets.xcassets/AppIcon.appiconset (macOS) and
+// MomentumMobile/Assets.xcassets/AppIcon.appiconset (iOS, opaque as the App Store requires).
 //
 // The design: a deep indigo field, one bold ring swept from amber to violet with a glowing head
 // (momentum), around a frosted glass disc holding an upward arrow. Full-bleed, since macOS and
@@ -7,7 +9,9 @@
 import AppKit
 
 let arguments = CommandLine.arguments
-let outputDirectory = URL(fileURLWithPath: arguments.count > 1 ? arguments[1] : ".")
+let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+let outputDirectory = root.appendingPathComponent("Momentum/Assets.xcassets/AppIcon.appiconset")
+let mobileDirectory = root.appendingPathComponent("MomentumMobile/Assets.xcassets/AppIcon.appiconset")
 
 func color(_ hex: UInt32, _ alpha: CGFloat = 1) -> CGColor {
     CGColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
@@ -153,6 +157,18 @@ func png(_ rep: NSBitmapImageRep) -> Data {
     return data
 }
 
+/// The same image without an alpha channel: iOS app icons must be opaque.
+func opaquePNG(_ rep: NSBitmapImageRep) -> Data {
+    guard let image = rep.cgImage,
+          let context = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+    else { fatalError("opaque context") }
+    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    guard let flattened = context.makeImage(),
+          let data = NSBitmapImageRep(cgImage: flattened).representation(using: .png, properties: [:]) else { fatalError("opaque png") }
+    return data
+}
+
 var images: [[String: String]] = []
 for points in [16, 32, 128, 256, 512] {
     for scale in [1, 2] {
@@ -161,13 +177,21 @@ for points in [16, 32, 128, 256, 512] {
         images.append(["idiom": "mac", "size": "\(points)x\(points)", "scale": "\(scale)x", "filename": filename])
     }
 }
-// One 1024 image serves iOS (universal) too.
-try png(renderIcon(pixels: 1024)).write(to: outputDirectory.appendingPathComponent("icon_1024.png"))
-images.append(["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024.png"])
 let contents: [String: Any] = ["images": images, "info": ["author": "xcode", "version": 1]]
 try JSONSerialization.data(withJSONObject: contents, options: [.prettyPrinted, .sortedKeys])
     .write(to: outputDirectory.appendingPathComponent("Contents.json"))
-if arguments.count > 2 {
-    try png(renderIcon(pixels: 1024)).write(to: URL(fileURLWithPath: arguments[2]))
+
+// iOS: one opaque 1024 image, which Xcode scales for every device.
+let large = renderIcon(pixels: 1024)
+try FileManager.default.createDirectory(at: mobileDirectory, withIntermediateDirectories: true)
+try opaquePNG(large).write(to: mobileDirectory.appendingPathComponent("icon_1024.png"))
+let mobileContents: [String: Any] = [
+    "images": [["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024.png"]],
+    "info": ["author": "xcode", "version": 1],
+]
+try JSONSerialization.data(withJSONObject: mobileContents, options: [.prettyPrinted, .sortedKeys])
+    .write(to: mobileDirectory.appendingPathComponent("Contents.json"))
+if arguments.count > 1 {
+    try png(large).write(to: URL(fileURLWithPath: arguments[1]))
 }
-print("Wrote \(images.count) icon images to \(outputDirectory.path)")
+print("Wrote \(images.count) macOS icon images and the iOS icon")
