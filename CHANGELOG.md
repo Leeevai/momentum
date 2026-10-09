@@ -4,7 +4,7 @@ All notable changes to Momentum are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-10-08
 
 ### Added
 - Hover a day in a goal's activity heatmap to see its amount; click it to log progress for that day.
@@ -93,4 +93,5 @@ An unpublished prototype.
 - Today and Goal widgets with start/stop and check-in buttons.
 - Menu bar timer.
 
+[1.1.0]: https://github.com/Leeevai/momentum/releases/tag/v1.1.0
 [1.0.0]: https://github.com/Leeevai/momentum/releases/tag/v1.0.0
