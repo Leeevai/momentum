@@ -62,6 +62,10 @@ MainActor.assumeIsolated {
                 tile(MoodWidgetView(family: .systemSmall, entry: entry), small, tint: .teal)
                 tile(MoodWidgetView(family: .systemMedium, entry: entry), medium, tint: .teal)
             }
+            HStack(alignment: .top, spacing: 22) {
+                tile(WeekWidgetView(family: .systemSmall, entry: entry), small, tint: .indigo)
+                tile(WeekWidgetView(family: .systemMedium, entry: entry), medium, tint: .indigo)
+            }
         }
         .padding(34)
         .background(LinearGradient(colors: dark ? [Color(white: 0.10), Color(white: 0.18)] : [Color(red: 0.86, green: 0.90, blue: 0.98), Color(red: 0.96, green: 0.90, blue: 0.95)], startPoint: .topLeading, endPoint: .bottomTrailing))
