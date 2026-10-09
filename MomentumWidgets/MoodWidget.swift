@@ -32,7 +32,7 @@ struct MoodWidgetView: View {
             }
         }
         .buttonStyle(.plain)
-        .widgetBackground(today?.mood?.tint ?? .teal)
+        .widgetBackground(for: entry, accent: today?.mood?.tint)
     }
 
     /// The question on one line, and five mood buttons in two rows: short enough for the

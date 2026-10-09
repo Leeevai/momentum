@@ -7,7 +7,7 @@ struct WeekWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "Week", provider: TodayProvider()) { entry in
             WeekWidgetView(entry: entry)
-                .widgetBackground(.indigo)
+                .widgetBackground(for: entry)
                 .widgetURL(DeepLink.insights.url)
         }
         .configurationDisplayName("Week of Focus")

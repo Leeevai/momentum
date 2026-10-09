@@ -7,7 +7,7 @@ struct TodayWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "Today", provider: TodayProvider()) { entry in
             TodayWidgetView(entry: entry)
-                .widgetBackground(.blue)
+                .widgetBackground(for: entry)
                 .widgetURL(DeepLink.today.url)
         }
         .configurationDisplayName("Today")

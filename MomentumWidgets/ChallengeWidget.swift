@@ -47,10 +47,10 @@ struct ChallengeWidgetView: View {
             #endif
             case .systemSmall:
                 ChallengeSmall(goal: goal, status: status, entry: entry)
-                    .widgetBackground(goal.tint)
+                    .widgetBackground(for: entry, accent: goal.tint)
             default:
                 ChallengeMedium(goal: goal, status: status, entry: entry)
-                    .widgetBackground(goal.tint)
+                    .widgetBackground(for: entry, accent: goal.tint)
             }
         } else if family == .systemSmall || family == .systemMedium {
             VStack(spacing: 6) {
@@ -62,7 +62,7 @@ struct ChallengeWidgetView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
-            .widgetBackground(.orange)
+            .widgetBackground(for: entry)
         } else {
             // The Lock Screen has room for a symbol and a word.
             ViewThatFits {

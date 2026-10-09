@@ -33,6 +33,9 @@ struct MomentumEntry: TimelineEntry {
 
     var data: AppData { engine.data }
 
+    /// The palette chosen in the app.
+    var palette: ThemePalette { data.preferences.palette }
+
     /// `goals` narrowed by the Focus filter, keeping a running timer's goal.
     func filtered(_ goals: [Goal]) -> [Goal] {
         focusFilter?.apply(to: goals, session: data.session) ?? goals
@@ -47,8 +50,10 @@ struct MomentumEntry: TimelineEntry {
 enum WidgetTimeline {
     /// Sample data for the gallery, until the user has goals of their own.
     static func data(preview: Bool) -> AppData {
-        let data = SharedStore.load()
-        return preview && data.goals.isEmpty ? .demo() : data
+        let stored = SharedStore.load()
+        let data = preview && stored.goals.isEmpty ? .demo() : stored
+        ActivePalette.current = data.preferences.palette
+        return data
     }
 
     static func entry(preview: Bool, goalID: UUID? = nil) -> MomentumEntry {
@@ -58,6 +63,7 @@ enum WidgetTimeline {
     /// Entries at the moments rings need to move; see `WidgetSchedule`.
     static func timeline(goalID: UUID? = nil, now: Date = .now) -> Timeline<MomentumEntry> {
         let engine = ProgressEngine(data: SharedStore.load())
+        ActivePalette.current = engine.data.preferences.palette
         let entries = WidgetSchedule.entryDates(for: engine.data, now: now).map {
             MomentumEntry(date: $0, engine: engine, goalID: goalID)
         }
@@ -134,12 +140,11 @@ struct WidgetActionButton: View {
     }
 
     private func icon(_ name: String) -> some View {
-        Image(systemName: name)
-            .font(.system(size: size * 0.4, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: size, height: size)
-            .background(Circle().fill(goal.color.linear))
-            .widgetAccentable()
+        WidgetFilledLabel(fill: goal.color.linear, tint: goal.tint, shape: Circle()) {
+            Image(systemName: name)
+                .font(.system(size: size * 0.4, weight: .bold))
+                .frame(width: size, height: size)
+        }
     }
 }
 
@@ -178,14 +183,36 @@ struct WidgetWideButton: View {
     }
 
     private func label(_ title: String, _ systemImage: String) -> some View {
-        Label(title, systemImage: systemImage)
-            .font(.caption.weight(.semibold))
-            .lineLimit(1)
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(goal.color.linear))
-            .widgetAccentable()
+        WidgetFilledLabel(fill: goal.color.linear, tint: goal.tint, shape: Capsule()) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+        }
+    }
+}
+
+/// A label on a filled shape, glasscn's filled button: white on the fill in full color. When the
+/// system draws widgets in one tint (the faded desktop, tinted Home Screens), the fill becomes a
+/// translucent wash with the label over it, rather than one shape the label disappears into.
+struct WidgetFilledLabel<S: InsettableShape, Fill: ShapeStyle, Content: View>: View {
+    let fill: Fill
+    let tint: Color
+    let shape: S
+    @ViewBuilder var content: Content
+    @Environment(\.widgetRenderingMode) private var renderingMode
+
+    var body: some View {
+        if renderingMode == .fullColor {
+            content
+                .foregroundStyle(.white)
+                .background(shape.fill(fill).overlay(shape.strokeBorder(.white.opacity(0.3), lineWidth: 0.5)))
+        } else {
+            content
+                .foregroundStyle(.primary)
+                .background(shape.fill(tint.opacity(0.3)).widgetAccentable())
+        }
     }
 }
 
@@ -224,13 +251,25 @@ extension View {
         containerBackground(for: .widget) { Color.clear }
     }
 
-    /// Widget background: a soft gradient tinted by `tint`.
-    func widgetBackground(_ tint: Color) -> some View {
+    /// Widget background: the palette's aurora, standing still, with `accent` (a goal's color) in
+    /// it when the widget is about one thing. The view is drawn in the palette too.
+    func widgetBackground(for entry: MomentumEntry, accent: Color? = nil) -> some View {
         containerBackground(for: .widget) {
-            ZStack {
-                Color.windowBackground
-                LinearGradient(colors: [tint.opacity(0.16), tint.opacity(0.03)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
+            Aurora(accent: accent, animates: false, scale: 0.3)
+        }
+        .palette(entry.palette)
+    }
+}
+
+extension Image {
+    /// Keeps a photo (a book cover) a photo, desaturated, when the system draws widgets in one
+    /// tint, instead of filling it in as a single shape.
+    @ViewBuilder
+    func keepsPhoto() -> some View {
+        if #available(macOS 15.0, iOS 18.0, *) {
+            widgetAccentedRenderingMode(.desaturated)
+        } else {
+            self
         }
     }
 }

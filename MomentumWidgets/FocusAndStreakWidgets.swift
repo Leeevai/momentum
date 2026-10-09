@@ -7,7 +7,7 @@ struct FocusWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "Focus", provider: TodayProvider()) { entry in
             FocusWidgetView(entry: entry)
-                .widgetBackground(entry.data.session.flatMap { entry.engine.goal($0.goalID)?.tint } ?? .indigo)
+                .widgetBackground(for: entry, accent: entry.data.session.flatMap { entry.engine.goal($0.goalID)?.tint })
         }
         .configurationDisplayName("Focus")
         .description("A live focus timer you can pause and stop, or start in one click.")
@@ -57,11 +57,11 @@ struct FocusWidgetView: View {
                         .background(Capsule().fill(goal.tint.opacity(0.18)))
                 }
                 Button(intent: StopSessionIntent(goalID: goal.id)) {
-                    Label("Stop", systemImage: "stop.fill")
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(goal.color.linear))
+                    WidgetFilledLabel(fill: goal.color.linear, tint: goal.tint, shape: Capsule()) {
+                        Label("Stop", systemImage: "stop.fill")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                    }
                 }
             }
             .buttonStyle(.plain)
@@ -137,7 +137,7 @@ struct StreaksWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "Streaks", provider: TodayProvider()) { entry in
             StreaksWidgetView(entry: entry)
-                .widgetBackground(.orange)
+                .widgetBackground(for: entry)
                 .widgetURL(DeepLink.insights.url)
         }
         .configurationDisplayName("Streaks")

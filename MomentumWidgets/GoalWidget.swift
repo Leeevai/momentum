@@ -8,7 +8,7 @@ struct GoalWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "Goal", intent: SelectGoalIntent.self, provider: GoalProvider()) { entry in
             GoalWidgetView(entry: entry)
-                .widgetBackground(entry.goal?.tint ?? .blue)
+                .widgetBackground(for: entry, accent: entry.goal?.tint)
                 .widgetURL(entry.goal.map { DeepLink.goal($0.id).url } ?? DeepLink.today.url)
         }
         .configurationDisplayName("Goal")
@@ -171,7 +171,7 @@ private struct GoalLarge: View {
 }
 
 /// What a goal shows beyond its ring: the current book, upcoming milestones, or a heatmap.
-private struct GoalDetailPanel: View {
+struct GoalDetailPanel: View {
     let goal: Goal
     let entry: MomentumEntry
     let compact: Bool
@@ -184,6 +184,7 @@ private struct GoalDetailPanel: View {
                     if let cover = CoverCache.image(for: book) {
                         Image(platformImage: cover)
                             .resizable()
+                            .keepsPhoto()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: compact ? 30 : 40, height: compact ? 44 : 60)
                             .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))

@@ -1,5 +1,6 @@
 import MomentumCore
 import SwiftUI
+import WidgetKit
 
 /// A gradient progress ring. Past 100% it stays closed and gains a soft glow.
 struct ProgressRing<Center: View>: View {
@@ -57,9 +58,23 @@ struct StreakBadge: View {
 struct GoalIcon: View {
     let goal: Goal
     var size: CGFloat = 36
+    @Environment(\.widgetRenderingMode) private var renderingMode
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+        if renderingMode == .fullColor {
+            tile(shape)
+        } else {
+            // A widget drawn in one tint: a wash under the symbol, so the two don't merge.
+            Image(systemName: goal.symbol)
+                .font(.system(size: size * 0.46, weight: .semibold))
+                .frame(width: size, height: size)
+                .background(shape.fill(goal.tint.opacity(0.3)).widgetAccentable())
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func tile(_ shape: RoundedRectangle) -> some View {
         Image(systemName: goal.symbol)
             .font(.system(size: size * 0.46, weight: .semibold))
             .symbolRenderingMode(.hierarchical)
