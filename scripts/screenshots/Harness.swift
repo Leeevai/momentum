@@ -85,6 +85,7 @@ MainActor.assumeIsolated {
         let deepWork = store.data.goals[0]
         let books = store.data.goals.first { $0.kind == .books }!
         let sheets: [(String, AnyView, CGSize)] = [
+            ("sheet-quick-actions", AnyView(QuickActionsView()), CGSize(width: 580, height: 440)),
             ("sheet-new-goal", AnyView(NewGoalFlow()), CGSize(width: 640, height: 620)),
             ("sheet-editor", AnyView(GoalEditor(goal: deepWork, isNew: false)), CGSize(width: 580, height: 720)),
             ("sheet-log", AnyView(LogProgressSheet(goal: store.data.goals.first { $0.kind == .amount }!)), CGSize(width: 440, height: 400)),
