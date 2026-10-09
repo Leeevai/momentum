@@ -161,10 +161,13 @@ extension AppData {
 }
 
 /// A tiny deterministic generator (SplitMix64), so demo data is identical on every run.
-struct SeededRandom {
+/// SplitMix64: a small, fast, deterministic generator.
+struct SeededRandom: RandomNumberGenerator {
     private var state: UInt64
 
     init(seed: UInt64) { state = seed }
+
+    mutating func next() -> UInt64 { nextValue() }
 
     mutating func nextValue() -> UInt64 {
         state &+= 0x9E37_79B9_7F4A_7C15

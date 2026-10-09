@@ -283,9 +283,12 @@ public struct AppData: Codable, Equatable, Sendable {
     public var journal: [JournalEntry]
     /// Achievement id -> when it was earned.
     public var achievements: [String: Date]
+    /// Change stamps and deletions, for merging copies from other devices.
+    public var sync: SyncState
 
     public init(goals: [Goal] = [], entries: [LogEntry] = [], session: FocusSession? = nil, rest: RestPeriod? = nil,
-                preferences: Preferences = Preferences(), journal: [JournalEntry] = [], achievements: [String: Date] = [:]) {
+                preferences: Preferences = Preferences(), journal: [JournalEntry] = [], achievements: [String: Date] = [:],
+                sync: SyncState = SyncState()) {
         self.version = Self.currentVersion
         self.goals = goals
         self.entries = entries
@@ -294,9 +297,10 @@ public struct AppData: Codable, Equatable, Sendable {
         self.preferences = preferences
         self.journal = journal
         self.achievements = achievements
+        self.sync = sync
     }
 
-    private enum CodingKeys: String, CodingKey { case version, goals, entries, session, rest, preferences, journal, achievements }
+    private enum CodingKeys: String, CodingKey { case version, goals, entries, session, rest, preferences, journal, achievements, sync }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -308,5 +312,6 @@ public struct AppData: Codable, Equatable, Sendable {
         preferences = try c.decode(.preferences, default: Preferences())
         journal = try c.decodeLossy(.journal)
         achievements = try c.decode(.achievements, default: [:])
+        sync = (try? c.decode(.sync, default: SyncState())) ?? SyncState()
     }
 }

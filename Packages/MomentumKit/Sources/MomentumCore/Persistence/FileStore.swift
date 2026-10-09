@@ -58,14 +58,20 @@ public final class FileStore: Sendable {
 
     /// Like `update`, returning the data as it was on disk before the change too, so the change
     /// can be described exactly (for undo), and the file's modification date after it.
+    ///
+    /// Changed records are stamped for syncing, except when `stamping` is off: a merge from
+    /// another device already carries the stamps of when each change was really made.
     @discardableResult
-    public func transform(_ change: (inout AppData) -> Void) -> Transform {
+    public func transform(stamping: Bool = true, _ change: (inout AppData) -> Void) -> Transform {
         var result = Transform(before: AppData(), after: AppData(), modification: nil)
         coordinate(writing: true) { url in
             let before = self.read(url)
             var after = before
             change(&after)
-            if after != before { self.write(after, to: url) }
+            if after != before {
+                if stamping { SyncStamper.stamp(&after, from: before, at: .now) }
+                self.write(after, to: url)
+            }
             result = Transform(before: before, after: after, modification: self.modificationDate())
         }
         return result
@@ -77,8 +83,11 @@ public final class FileStore: Sendable {
         var snapshot = Snapshot(data: newData, modification: nil)
         coordinate(writing: true) { url in
             self.backUp(url, reason: "before-import")
-            self.write(newData, to: url)
-            snapshot.modification = self.modificationDate()
+            // Stamped against what it replaces, so other devices take the import over their copy.
+            var stamped = newData
+            SyncStamper.stamp(&stamped, from: self.read(url), at: .now)
+            self.write(stamped, to: url)
+            snapshot = Snapshot(data: stamped, modification: self.modificationDate())
         }
         return snapshot
     }
