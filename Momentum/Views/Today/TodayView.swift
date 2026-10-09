@@ -276,6 +276,7 @@ struct FocusBanner: View {
                         .frame(minWidth: 96)
                 }
                 .buttonStyle(PillButtonStyle(tint: goal.tint))
+                FocusSoundMenu()
                 Menu {
                     if session.plannedDuration != nil {
                         Button("Add 5 minutes") { store.extendFocus(by: 5) }
@@ -309,6 +310,36 @@ struct FocusBanner: View {
             guard !Task.isCancelled else { return }
             store.setSessionNote(value)
         }
+    }
+}
+
+/// Picks the background sound for focus sessions, right from the running session.
+struct FocusSoundMenu: View {
+    @Environment(GoalStore.self) private var store
+
+    var body: some View {
+        let preferences = store.data.preferences
+        Menu {
+            Picker("Sound", selection: Binding(get: { preferences.focusSound }, set: { value in store.updatePreferences { $0.focusSound = value } })) {
+                ForEach(FocusSound.allCases) { sound in
+                    Label(sound.title, systemImage: sound.symbolName).tag(sound)
+                }
+            }
+            .pickerStyle(.inline)
+            Divider()
+            Picker("Volume", selection: Binding(get: { (preferences.focusSoundVolume * 4).rounded() / 4 }, set: { value in store.updatePreferences { $0.focusSoundVolume = value } })) {
+                Text("Quiet").tag(0.25)
+                Text("Medium").tag(0.5)
+                Text("Loud").tag(0.75)
+                Text("Full").tag(1.0)
+            }
+        } label: {
+            Image(systemName: preferences.focusSound == .off ? "speaker.slash" : "speaker.wave.2.fill")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Focus sound: \(preferences.focusSound.title)")
     }
 }
 

@@ -51,6 +51,13 @@ private struct GeneralSettings: View {
                 Text("Used by Shortcuts and Siri when no length is given. Each goal can set its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Picker("Focus sound", selection: binding(\.focusSound, preferences)) {
+                    ForEach(FocusSound.allCases) { Label($0.title, systemImage: $0.symbolName).tag($0) }
+                }
+                Slider(value: binding(\.focusSoundVolume, preferences), in: 0.05...1) {
+                    Text("Volume")
+                }
+                .disabled(preferences.focusSound == .off)
             }
             Section("Feedback") {
                 Toggle("Celebrate finished goals with confetti", isOn: binding(\.celebratesCompletion, preferences))
@@ -58,7 +65,7 @@ private struct GeneralSettings: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 380)
+        .frame(height: 460)
     }
 
     private func binding<Value>(_ keyPath: WritableKeyPath<Preferences, Value>, _ preferences: Preferences) -> Binding<Value> {

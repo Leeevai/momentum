@@ -10,6 +10,7 @@ import UserNotifications
 @MainActor
 final class SideEffects {
     let notifications: NotificationScheduler
+    let focusSound = FocusSoundPlayer()
     private let isEnabled: Bool
     private var lastSessionStart: Date?
     private var replanTask: Task<Void, Never>?
@@ -30,6 +31,7 @@ final class SideEffects {
         notifications.activate()
         scheduleReplan(engine: engine)
         notifications.syncSessionEnd(data.session, goal: data.session.flatMap { engine.goal($0.goalID) })
+        syncFocusSound(data)
     }
 
     func dataDidChange(from old: AppData, to new: AppData, engine: ProgressEngine) {
@@ -47,7 +49,19 @@ final class SideEffects {
         if old.session != new.session {
             notifications.syncSessionEnd(new.session, goal: new.session.flatMap { engine.goal($0.goalID) })
         }
+        if old.session?.isRunning != new.session?.isRunning || old.preferences != new.preferences {
+            syncFocusSound(new)
+        }
         scheduleReplan(engine: engine)
+    }
+
+    /// Plays the chosen sound while a session runs; fades it out on pause or stop.
+    private func syncFocusSound(_ data: AppData) {
+        if data.session?.isRunning == true {
+            focusSound.play(data.preferences.focusSound, volume: data.preferences.focusSoundVolume)
+        } else {
+            focusSound.stop()
+        }
     }
 
     func dayDidChange(engine: ProgressEngine) {
