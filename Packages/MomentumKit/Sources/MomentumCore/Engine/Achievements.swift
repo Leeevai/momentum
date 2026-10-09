@@ -71,6 +71,8 @@ public struct Achievement: Identifiable, Hashable, Sendable {
         case journalPlans
         case activeGoals
         case habitStack
+        /// The longest challenge finished without a miss, in days.
+        case challengeWon
         /// Recorded by the action itself, not measured.
         case event
     }
@@ -120,6 +122,9 @@ extension Achievement {
         .init(id: "streak-365", title: "Year of Momentum", detail: "Keep a daily streak for a whole year.", symbol: "sun.max.fill", tier: .platinum, family: .streaks, metric: .dailyStreak, target: 365),
         .init(id: "weeks-4", title: "Steady Rhythm", detail: "Hit a weekly goal 4 weeks running.", symbol: "metronome.fill", tier: .silver, family: .streaks, metric: .weeklyStreak, target: 4),
         .init(id: "weeks-12", title: "Quarter Strong", detail: "Hit a weekly goal 12 weeks running.", symbol: "chart.line.uptrend.xyaxis", tier: .gold, family: .streaks, metric: .weeklyStreak, target: 12),
+        .init(id: "challenge-7", title: "Challenge Accepted", detail: "Finish a challenge of a week or more without a miss.", symbol: "flag.2.crossed.fill", tier: .bronze, family: .streaks, metric: .challengeWon, target: 7),
+        .init(id: "challenge-30", title: "Thirty Strong", detail: "Finish a 30-day challenge without a miss.", symbol: "medal.fill", tier: .gold, family: .streaks, metric: .challengeWon, target: 30),
+        .init(id: "challenge-100", title: "Hundred Days", detail: "Finish a 100-day challenge without a miss.", symbol: "rosette", tier: .platinum, family: .streaks, metric: .challengeWon, target: 100),
 
         // Focus
         .init(id: "focus-1", title: "First Hour", detail: "Focus for an hour in total.", symbol: "hourglass", tier: .bronze, family: .focus, metric: .focusHours, target: 1),
@@ -273,6 +278,10 @@ struct AchievementStats {
         case .habitStack:
             let ids = Set(data.goals.map(\.id))
             return data.goals.contains { $0.stackAfter.map(ids.contains) ?? false } ? 1 : 0
+        case .challengeWon:
+            return Double(data.goals.compactMap { goal in
+                engine.challengeStatus(for: goal, now: now).flatMap { $0.isWon ? $0.challenge.days : nil }
+            }.max() ?? 0)
         case .event:
             return 0
         }

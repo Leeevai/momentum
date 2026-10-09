@@ -273,6 +273,8 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
     public var stackAfter: UUID?
     /// Breaks protect the streak: days inside one are never required.
     public var breaks: [DateInterval]
+    /// A run of days to keep the goal going, if one was started.
+    public var challenge: Challenge?
     public var createdAt: Date
     public var archivedAt: Date?
 
@@ -299,6 +301,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         reminder: ReminderSchedule? = nil,
         stackAfter: UUID? = nil,
         breaks: [DateInterval] = [],
+        challenge: Challenge? = nil,
         createdAt: Date = .now,
         archivedAt: Date? = nil
     ) {
@@ -324,6 +327,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         self.reminder = reminder
         self.stackAfter = stackAfter
         self.breaks = breaks
+        self.challenge = challenge
         self.createdAt = createdAt
         self.archivedAt = archivedAt
     }
@@ -350,6 +354,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         focusMinutes = other.focusMinutes
         reminder = other.reminder
         stackAfter = other.stackAfter == id ? nil : other.stackAfter
+        challenge = other.challenge
     }
 
     /// The period progress is measured over; milestone goals are always overall.
@@ -371,7 +376,7 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, name, icon, symbol, color, category, details, kind, unit, period, target, streakMinimum, weekdays, deadline
-        case quickAddStep, focusMinutes, links, milestones, books, reminder, stackAfter, breaks, createdAt, archivedAt
+        case quickAddStep, focusMinutes, links, milestones, books, reminder, stackAfter, breaks, challenge, createdAt, archivedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -402,6 +407,8 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         reminder = try c.decodeIfPresent(ReminderSchedule.self, forKey: .reminder)
         stackAfter = try c.decodeIfPresent(UUID.self, forKey: .stackAfter)
         breaks = try c.decode(.breaks, default: [])
+        // A challenge from a newer version that this one can't read is dropped, not the goal.
+        challenge = (try? c.decodeIfPresent(Challenge.self, forKey: .challenge)) ?? nil
         createdAt = try c.decode(.createdAt, default: .now)
         archivedAt = try c.decodeIfPresent(Date.self, forKey: .archivedAt)
     }
