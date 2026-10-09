@@ -147,6 +147,9 @@ final class GoalStore {
             #if os(iOS)
             LiveActivitySync.catchUpHandler = { FolderSync.catchUpFromFolder() }
             #endif
+            // The widgets may still show a timeline from an earlier build, or placeholders after
+            // reloads the system gave up on; opening the app redraws them.
+            SharedStore.reloadWidgets()
         }
         persistence.backUpDaily()
         warnIfUnreadable()
