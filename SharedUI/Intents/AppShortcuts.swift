@@ -90,8 +90,77 @@ struct CheckProgressIntent: AppIntent {
         let summary = engine.todaySummary(now: .now)
         let streak = engine.longestCurrentStreak(now: .now)
         let remaining = engine.todayGoals(now: .now).filter { !engine.isComplete($0, now: .now) }.map(\.name)
-        let rest = remaining.isEmpty ? "Everything is done. 🎉" : "Still to do: \(remaining.formatted(.list(type: .and)))."
+        let rest = remaining.isEmpty ? "Everything is done. Nice work." : "Still to do: \(remaining.formatted(.list(type: .and)))."
         return .result(value: summary.done, dialog: "\(summary.done) of \(summary.total) goals done today, best streak \(streak). \(rest)")
+    }
+}
+
+/// How the day felt, for Siri and Shortcuts.
+enum MoodChoice: String, AppEnum {
+    case rough, low, okay, good, great
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Mood"
+    static let caseDisplayRepresentations: [MoodChoice: DisplayRepresentation] = [
+        .rough: DisplayRepresentation(title: "Rough", image: .init(systemName: "cloud.bolt.rain.fill")),
+        .low: DisplayRepresentation(title: "Low", image: .init(systemName: "cloud.drizzle.fill")),
+        .okay: DisplayRepresentation(title: "Okay", image: .init(systemName: "cloud.fill")),
+        .good: DisplayRepresentation(title: "Good", image: .init(systemName: "cloud.sun.fill")),
+        .great: DisplayRepresentation(title: "Great", image: .init(systemName: "sun.max.fill")),
+    ]
+
+    var mood: Mood {
+        switch self {
+        case .rough: .rough
+        case .low: .low
+        case .okay: .okay
+        case .good: .good
+        case .great: .great
+        }
+    }
+}
+
+/// "Log my mood in Momentum": rates today in the journal.
+struct LogMoodIntent: AppIntent {
+    static let title: LocalizedStringResource = "Log Mood"
+    static let description = IntentDescription("Rates how today feels in the Momentum journal.")
+
+    @Parameter(title: "Mood")
+    var mood: MoodChoice
+
+    @Parameter(title: "A win", description: "Something that went well today.")
+    var win: String?
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Today felt \(\.$mood)") { \.$win }
+    }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let chosen = mood.mood
+        let note = win?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        SharedStore.update { data in
+            data.updateJournal(for: DayID(.now)) { entry in
+                entry.mood = chosen
+                if !note.isEmpty { entry.win = note }
+            }
+        }
+        return .result(dialog: "Noted: a \(chosen.title.lowercased()) day.")
+    }
+}
+
+/// "How was my week in Momentum": the week in review, read aloud.
+struct WeekSummaryIntent: AppIntent {
+    static let title: LocalizedStringResource = "Week in Review"
+    static let description = IntentDescription("Sums up the last seven days: focus, perfect days and wins.")
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let review = ProgressEngine(data: SharedStore.load()).weekReview(endingAt: .now)
+        var parts = ["\(Formatting.duration(review.focusSeconds)) of focus"]
+        if let change = review.focusChange {
+            parts[0] += change >= 0 ? ", up \(Formatting.percent(change))" : ", down \(Formatting.percent(-change))"
+        }
+        parts.append("\(review.perfectDays) perfect \(review.perfectDays == 1 ? "day" : "days")")
+        if let win = review.wins.last { parts.append("and a win: \(win.text)") }
+        return .result(dialog: "This week: \(parts.joined(separator: ", ")).")
     }
 }
 
@@ -124,5 +193,13 @@ struct MomentumShortcuts: AppShortcutsProvider {
             "How am I doing in \(.applicationName)",
             "Check my progress in \(.applicationName)",
         ], shortTitle: "Today's Progress", systemImageName: "chart.pie")
+        AppShortcut(intent: LogMoodIntent(), phrases: [
+            "Log my mood in \(.applicationName)",
+            "Today felt \(\.$mood) in \(.applicationName)",
+        ], shortTitle: "Log Mood", systemImageName: "cloud.sun")
+        AppShortcut(intent: WeekSummaryIntent(), phrases: [
+            "How was my week in \(.applicationName)",
+            "Review my week in \(.applicationName)",
+        ], shortTitle: "Week in Review", systemImageName: "calendar.badge.checkmark")
     }
 }

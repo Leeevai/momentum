@@ -25,6 +25,7 @@ struct MobileRoot: View {
                 .badge(newAwards)
                 .tag(MobileTab.awards)
         }
+        .sidebarOnWideScreens()
         .sheet(item: $store.sheet) { route in
             MobileSheet(route: route)
         }
@@ -123,5 +124,17 @@ struct MobileSheet: View {
             }
         }
         .presentationDragIndicator(.visible)
+    }
+}
+
+extension View {
+    /// The tab bar becomes a sidebar on iPad (iOS 18 and later); a phone keeps the tab bar.
+    @ViewBuilder
+    func sidebarOnWideScreens() -> some View {
+        if #available(iOS 18.0, *) {
+            tabViewStyle(.sidebarAdaptable)
+        } else {
+            self
+        }
     }
 }
