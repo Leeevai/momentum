@@ -147,6 +147,60 @@ struct ReviewRoundTests {
         #expect(merged.entries.filter { $0.goalID == reading.id }.map(\.amount) == [1800])
     }
 
+    @Test("A session started after the one a merge brings back keeps running, and the older one ends")
+    func laterSessionWins() {
+        let reading = timeGoal(minutes: nil)
+        var writing = timeGoal(minutes: nil)
+        writing.name = "Writing"
+        var mac = AppData(goals: [reading, writing])
+        stamped(&mac, at: 0) { $0.startFocus(on: writing.id, at: time(0), calendar: testCalendar) }
+        var phone = mac
+        // The phone moves on to reading; the Mac, not having heard, pauses writing later.
+        stamped(&phone, at: 1000) { $0.startFocus(on: reading.id, at: time(1000), calendar: testCalendar) }
+        stamped(&mac, at: 1500) { $0.pauseFocus(at: time(1500)) }
+
+        var onPhone = SyncMerge.merge(phone, mac)
+        #expect(onPhone.session?.goalID == writing.id)
+        onPhone.settleAfterMerge(keeping: phone.session, at: time(1600), calendar: testCalendar)
+        #expect(onPhone.session?.goalID == reading.id)
+        // Writing was logged once, up to where reading began.
+        #expect(onPhone.entries.filter { $0.goalID == writing.id }.map(\.amount) == [1000])
+
+        // The Mac, merging the phone's settled copy, stops showing writing too.
+        var settled = onPhone
+        SyncStamper.stamp(&settled, from: SyncMerge.merge(phone, mac), at: time(1600))
+        var onMac = SyncMerge.merge(mac, settled)
+        onMac.settleAfterMerge(keeping: mac.session, at: time(1700), calendar: testCalendar)
+        #expect(onMac.session?.goalID == reading.id)
+    }
+
+    @Test("A session the merge replaced with an older one that a third device never ended stops it there")
+    func olderUnendedSessionStops() {
+        let reading = timeGoal(minutes: nil)
+        var writing = timeGoal(minutes: nil)
+        writing.name = "Writing"
+        let shared = AppData(goals: [reading, writing])
+        var mac = shared
+        var phone = shared
+        stamped(&mac, at: 0) { $0.startFocus(on: writing.id, at: time(0), calendar: testCalendar) }
+        // The phone never saw writing; it starts reading later, then the Mac edits writing's note.
+        stamped(&phone, at: 1000) { $0.startFocus(on: reading.id, at: time(1000), calendar: testCalendar) }
+        stamped(&mac, at: 1500) { $0.session?.note = "Chapter two" }
+
+        var merged = SyncMerge.merge(phone, mac)
+        merged.settleAfterMerge(keeping: phone.session, at: time(1600), calendar: testCalendar)
+        #expect(merged.session?.goalID == reading.id)
+        #expect(merged.entries.filter { $0.goalID == writing.id }.map(\.amount) == [1000])
+        #expect(merged.sync.endedSessions[SyncState.sessionKey(SyncMerge.merge(phone, mac).session!)] != nil)
+    }
+
+    @Test("A goal encodes its weekdays in the same order every time")
+    func weekdaysSorted() throws {
+        let goal = checkInGoal(weekdays: [7, 2, 5, 3])
+        let json = try #require(String(data: DateCoding.encoder().encode(goal), encoding: .utf8))
+        #expect(json.contains("\"weekdays\":[2,3,5,7]"))
+    }
+
     @Test("When a field is all that differs at the same moment, the copy that has it wins")
     func newerFieldWinsTie() throws {
         var goal = checkInGoal()

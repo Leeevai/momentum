@@ -379,6 +379,37 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         case quickAddStep, focusMinutes, links, milestones, books, reminder, stackAfter, breaks, challenge, createdAt, archivedAt
     }
 
+    /// Written out by hand only so the weekdays come out sorted: a set's order differs from one
+    /// run of the app to the next, and sync compares records by their encoding.
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(icon, forKey: .icon)
+        try c.encode(symbol, forKey: .symbol)
+        try c.encode(color, forKey: .color)
+        try c.encode(category, forKey: .category)
+        try c.encode(details, forKey: .details)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(unit, forKey: .unit)
+        try c.encode(period, forKey: .period)
+        try c.encode(target, forKey: .target)
+        try c.encodeIfPresent(streakMinimum, forKey: .streakMinimum)
+        try c.encode(weekdays.sorted(), forKey: .weekdays)
+        try c.encodeIfPresent(deadline, forKey: .deadline)
+        try c.encode(quickAddStep, forKey: .quickAddStep)
+        try c.encodeIfPresent(focusMinutes, forKey: .focusMinutes)
+        try c.encode(links, forKey: .links)
+        try c.encode(milestones, forKey: .milestones)
+        try c.encode(books, forKey: .books)
+        try c.encodeIfPresent(reminder, forKey: .reminder)
+        try c.encodeIfPresent(stackAfter, forKey: .stackAfter)
+        try c.encode(breaks, forKey: .breaks)
+        try c.encodeIfPresent(challenge, forKey: .challenge)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encodeIfPresent(archivedAt, forKey: .archivedAt)
+    }
+
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(.id, default: UUID())

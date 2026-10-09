@@ -18,6 +18,11 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         public var isComplete: Bool
         /// The one-tap action for goals without a timer: "+1", "+10 pages", "Done"; nil if none.
         public var actionTitle: String?
+        /// The target alone ("2h", "4 workouts"), to show a fresh day's progress before the iPhone
+        /// has sent one.
+        public var targetText: String
+        /// Whether progress starts over each day.
+        public var isDaily: Bool
         /// The day of a running challenge, and its length.
         public var challengeDay: Int?
         public var challengeLength: Int?
@@ -30,14 +35,37 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     public var done: Int
     public var total: Int
     public var generatedAt: Date
+    /// The day the snapshot describes.
+    public var day: DayID
 
-    public init(items: [Item] = [], session: FocusSession? = nil, rest: RestPeriod? = nil, done: Int = 0, total: Int = 0, generatedAt: Date = .distantPast) {
+    public init(items: [Item] = [], session: FocusSession? = nil, rest: RestPeriod? = nil, done: Int = 0, total: Int = 0,
+                generatedAt: Date = .distantPast, day: DayID = DayID(year: 2001, month: 1, day: 1)) {
         self.items = items
         self.session = session
         self.rest = rest
         self.done = done
         self.total = total
         self.generatedAt = generatedAt
+        self.day = day
+    }
+
+    /// The snapshot as it stands on `today`: if it describes an earlier day, daily goals start
+    /// over (nothing done yet), so the watch never shows yesterday's progress as today's. The
+    /// rest (streaks, weekly progress, the timer) carries over until the iPhone sends a new one.
+    public func current(on today: DayID) -> WatchSnapshot {
+        guard day < today else { return self }
+        var fresh = self
+        fresh.items = items.map { item in
+            guard item.isDaily else { return item }
+            var item = item
+            item.progress = 0
+            item.isComplete = false
+            item.progressText = item.kind == .time ? "0m / \(item.targetText)" : "0 / \(item.targetText)"
+            return item
+        }
+        fresh.done = fresh.items.count { $0.isComplete }
+        fresh.day = today
+        return fresh
     }
 
     /// The most goals sent: a watch screen's worth, and then some.
@@ -63,19 +91,36 @@ public enum WatchMessageKey {
     public static let refresh = "refresh"
 }
 
-/// Something done on the watch, carried out on the iPhone.
+/// Something done on the watch, carried out on the iPhone. Each says exactly what was tapped,
+/// against what the watch showed, so a late or repeated delivery can't undo it: a Stop for a
+/// session that already ended does nothing, where a toggle would start it again.
 public enum WatchAction: Codable, Equatable, Sendable {
-    case toggleFocus(goal: UUID)
-    case togglePause
-    case stopFocus
+    case start(goal: UUID)
+    /// Stops the session on `goal` that started at `sessionStart`, if it's still running.
+    case stop(goal: UUID, sessionStart: Date)
+    case setPaused(goal: UUID, sessionStart: Date, paused: Bool)
     case quickAdd(goal: UUID)
     case startNextBlock
     case endRest
+}
 
-    public func encoded() throws -> Data { try JSONEncoder().encode(self) }
+/// An action with when it was tapped, and an id so it's carried out once however often it
+/// arrives (a reply lost on the way back gets it sent again).
+public struct WatchCommand: Codable, Equatable, Identifiable, Sendable {
+    public var id: UUID
+    public var action: WatchAction
+    public var date: Date
+
+    public init(id: UUID = UUID(), action: WatchAction, date: Date = .now) {
+        self.id = id
+        self.action = action
+        self.date = date
+    }
+
+    public func encoded() throws -> Data { try DateCoding.encoder().encode(self) }
 
     public init(encoded: Data) throws {
-        self = try JSONDecoder().decode(Self.self, from: encoded)
+        self = try DateCoding.decoder().decode(Self.self, from: encoded)
     }
 }
 
@@ -88,7 +133,8 @@ extension ProgressEngine {
             items.insert(item(for: goal, now: now), at: 0)
         }
         let summary = todaySummary(now: now)
-        return WatchSnapshot(items: items, session: data.session, rest: data.rest, done: summary.done, total: summary.total, generatedAt: now)
+        return WatchSnapshot(items: items, session: data.session, rest: data.rest, done: summary.done, total: summary.total,
+                             generatedAt: now, day: DayID(now, calendar: calendar))
     }
 
     private func item(for goal: Goal, now: Date) -> WatchSnapshot.Item {
@@ -102,6 +148,8 @@ extension ProgressEngine {
                 : goal.progressText(currentAmount(for: goal, now: now), target: target(for: goal)),
             streak: streak.current, streakUnit: streak.unit, isComplete: isComplete(goal, now: now),
             actionTitle: actionTitle(for: goal),
+            targetText: goal.kind == .milestones ? "\(goal.milestones.count) milestones" : goal.format(target(for: goal)),
+            isDaily: goal.effectivePeriod == .daily,
             challengeDay: challenge?.dayNumber, challengeLength: challenge?.challenge.days)
     }
 
@@ -116,17 +164,31 @@ extension ProgressEngine {
 }
 
 extension AppData {
-    /// Carries out an action from the watch.
-    public mutating func apply(_ action: WatchAction, at now: Date = .now, calendar: Calendar = .current) {
-        switch action {
-        case .toggleFocus(let goal):
-            guard self.goal(goal)?.kind == .time else { return }
-            toggleFocus(on: goal, at: now, calendar: calendar)
-        case .togglePause: togglePauseFocus(at: now)
-        case .stopFocus: stopFocus(at: now, calendar: calendar)
-        case .quickAdd(let goal): quickAdd(to: goal, at: now)
-        case .startNextBlock: startNextBlock(at: now, calendar: calendar)
-        case .endRest: endRest()
+    /// Carries out a command from the watch, dated when it was tapped (never later than `now`),
+    /// so a Stop delivered hours late doesn't count the hours in between.
+    public mutating func apply(_ command: WatchCommand, now: Date = .now, calendar: Calendar = .current) {
+        let tapped = min(command.date, now)
+        func isShown(_ goal: UUID, _ start: Date) -> Bool {
+            guard let session, session.goalID == goal else { return false }
+            return abs(session.startedAt.timeIntervalSince(start)) < 0.001
+        }
+        switch command.action {
+        case .start(let goal):
+            guard let target = self.goal(goal), target.kind == .time, !target.isArchived, session?.goalID != goal else { return }
+            startFocus(on: goal, at: max(tapped, session?.startedAt ?? tapped), calendar: calendar)
+        case .stop(let goal, let start):
+            guard isShown(goal, start) else { return }
+            stopFocus(at: max(tapped, start), calendar: calendar)
+        case .setPaused(let goal, let start, let paused):
+            guard isShown(goal, start), session?.isRunning == paused else { return }
+            if paused { pauseFocus(at: max(tapped, session?.runningSince ?? tapped)) } else { resumeFocus(at: tapped) }
+        case .quickAdd(let goal):
+            quickAdd(to: goal, at: tapped)
+        case .startNextBlock:
+            guard rest != nil else { return }
+            startNextBlock(at: tapped, calendar: calendar)
+        case .endRest:
+            endRest()
         }
     }
 }

@@ -32,28 +32,40 @@ extension AppData {
     }
 
     /// After merging other devices' copies in: a session that was running here before the merge,
-    /// that no device has ended, and that the merge replaced (another device's older view of the
-    /// timer won on time) is kept. If another session started meanwhile, this one stops where that
-    /// one started, its time saved, as starting a session elsewhere would have done on one device.
-    /// Returns whether anything changed.
+    /// that no device has ended, and that the merge replaced (another device's change to the timer
+    /// won on time) is settled as one device would have settled it. Of the two sessions, the one
+    /// started later is the timer; the earlier one stops where the later one started, its time
+    /// saved, unless it already ended elsewhere. Returns whether anything changed.
     @discardableResult
-    public mutating func keepUnendedSession(_ local: FocusSession?, calendar: Calendar = .current) -> Bool {
+    public mutating func keepUnendedSession(_ local: FocusSession?, at now: Date = .now, calendar: Calendar = .current) -> Bool {
         guard let local, session.map({ !$0.isSameSession(as: local) }) ?? true,
               sync.endedSessions[SyncState.sessionKey(local)] == nil, goal(local.goalID) != nil else { return false }
-        if let other = session {
+        guard let other = session else {
             session = local
-            stopFocus(at: max(other.startedAt, local.startedAt), calendar: calendar)
-            session = other
+            return true
+        }
+        let otherEnded = sync.endedSessions[SyncState.sessionKey(other)] != nil
+        if otherEnded || other.startedAt <= local.startedAt {
+            // The merge brought back an older session: this one replaced it here.
+            if !otherEnded {
+                stopFocus(at: local.startedAt, calendar: calendar)
+                sync.endedSessions[SyncState.sessionKey(other)] = now
+            }
+            session = local
         } else {
+            // Another device started a session after this one: this one ends where that began.
             session = local
+            stopFocus(at: other.startedAt, calendar: calendar)
+            sync.endedSessions[SyncState.sessionKey(local)] = now
+            session = other
         }
         return true
     }
 
     /// Everything a device settles after merging others' copies in, as a change of its own.
     @discardableResult
-    public mutating func settleAfterMerge(keeping local: FocusSession?, calendar: Calendar = .current) -> Bool {
-        let kept = keepUnendedSession(local, calendar: calendar)
+    public mutating func settleAfterMerge(keeping local: FocusSession?, at now: Date = .now, calendar: Calendar = .current) -> Bool {
+        let kept = keepUnendedSession(local, at: now, calendar: calendar)
         let settled = settleTimer()
         return kept || settled
     }

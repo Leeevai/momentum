@@ -164,11 +164,13 @@ extension AppData {
         guard goal(finished.goalID)?.kind == .time else { return [] }
         var perDay: [Date: (start: Date, seconds: Double)] = [:]
         for segment in finished.allSegments(at: now) {
+            // A stop dated before a later pause (settling a merge) counts only up to the stop.
+            let segmentEnd = min(segment.end, max(now, segment.start))
             var cursor = segment.start
-            while cursor < segment.end {
+            while cursor < segmentEnd {
                 let dayStart = calendar.startOfDay(for: cursor)
-                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? segment.end
-                let end = min(dayEnd, segment.end)
+                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? segmentEnd
+                let end = min(dayEnd, segmentEnd)
                 let existing = perDay[dayStart]
                 perDay[dayStart] = (min(existing?.start ?? cursor, cursor), (existing?.seconds ?? 0) + end.timeIntervalSince(cursor))
                 cursor = end

@@ -20,24 +20,65 @@ struct WatchSnapshotTests {
         #expect(snapshot.total == 2)
     }
 
-    @Test("Actions from the watch change the data like the app would")
-    func actions() {
+    @Test("Commands from the watch change the data like the app would, dated when tapped")
+    func commands() throws {
         let gym = checkInGoal()
         let work = timeGoal()
         var data = AppData(goals: [work, gym])
-        data.apply(.toggleFocus(goal: work.id), at: referenceNow, calendar: testCalendar)
-        #expect(data.session?.goalID == work.id)
-        data.apply(.togglePause, at: referenceNow.addingTimeInterval(600))
+        data.apply(WatchCommand(action: .start(goal: work.id), date: referenceNow), now: referenceNow, calendar: testCalendar)
+        let session = try #require(data.session)
+        #expect(session.goalID == work.id)
+        let start = session.startedAt
+        data.apply(WatchCommand(action: .setPaused(goal: work.id, sessionStart: start, paused: true), date: time(600)), now: time(600))
         #expect(data.session?.isRunning == false)
-        data.apply(.stopFocus, at: referenceNow.addingTimeInterval(900), calendar: testCalendar)
+        // Tapped at 15 minutes, delivered hours later: only the time before the tap counts.
+        data.apply(WatchCommand(action: .stop(goal: work.id, sessionStart: start), date: time(900)), now: time(4 * 3600), calendar: testCalendar)
         #expect(data.session == nil)
         #expect(data.entries.map(\.amount) == [600])
         // Starting a timer on a goal that isn't timed does nothing.
-        data.apply(.toggleFocus(goal: gym.id), at: referenceNow)
+        data.apply(WatchCommand(action: .start(goal: gym.id), date: time(5000)), now: time(5000))
         #expect(data.session == nil)
-        data.apply(.quickAdd(goal: gym.id), at: referenceNow)
+        data.apply(WatchCommand(action: .quickAdd(goal: gym.id), date: time(5000)), now: time(5000))
         #expect(data.entries.count == 2)
     }
+
+    @Test("A late or repeated command can't undo what it was for")
+    func idempotent() throws {
+        let work = timeGoal()
+        var data = AppData(goals: [work])
+        let startCommand = WatchCommand(action: .start(goal: work.id), date: referenceNow)
+        data.apply(startCommand, now: referenceNow, calendar: testCalendar)
+        let start = try #require(data.session?.startedAt)
+        // The same Start again (its reply was lost) leaves the session running.
+        data.apply(startCommand, now: time(60), calendar: testCalendar)
+        #expect(data.session?.startedAt == start)
+        let stop = WatchCommand(action: .stop(goal: work.id, sessionStart: start), date: time(1200))
+        data.apply(stop, now: time(1200), calendar: testCalendar)
+        data.apply(stop, now: time(1300), calendar: testCalendar)
+        #expect(data.session == nil)
+        #expect(data.entries.count == 1)
+        // A Stop for a session that ended doesn't touch a newer one.
+        data.apply(WatchCommand(action: .start(goal: work.id), date: time(2000)), now: time(2000), calendar: testCalendar)
+        data.apply(stop, now: time(2100), calendar: testCalendar)
+        #expect(data.session != nil)
+    }
+
+    @Test("A snapshot from yesterday shows daily goals starting over")
+    func staleDay() throws {
+        let gym = checkInGoal()
+        var data = AppData(goals: [gym])
+        data.log(1, for: gym.id, at: referenceNow)
+        let snapshot = engine(data).watchSnapshot(now: referenceNow)
+        #expect(snapshot.done == 1)
+        let tomorrow = snapshot.current(on: DayID(dayOffset(1), calendar: testCalendar))
+        #expect(tomorrow.done == 0)
+        let item = try #require(tomorrow.item(gym.id))
+        #expect(!item.isComplete)
+        #expect(item.progress == 0)
+        #expect(snapshot.current(on: snapshot.day) == snapshot)
+    }
+
+    private func time(_ seconds: Double) -> Date { referenceNow.addingTimeInterval(seconds) }
 
     @Test("A snapshot of a full history stays small enough to send on every change")
     func size() throws {
@@ -49,12 +90,14 @@ struct WatchSnapshotTests {
         #expect(decoded == snapshot)
     }
 
-    @Test("Actions survive the trip as data")
-    func actionCoding() throws {
-        let actions: [WatchAction] = [.toggleFocus(goal: UUID()), .togglePause, .stopFocus, .quickAdd(goal: UUID()), .startNextBlock, .endRest]
+    @Test("Commands survive the trip as data, dates exact")
+    func commandCoding() throws {
+        let actions: [WatchAction] = [.start(goal: UUID()), .stop(goal: UUID(), sessionStart: referenceNow.addingTimeInterval(0.123)),
+                                      .setPaused(goal: UUID(), sessionStart: referenceNow, paused: true), .quickAdd(goal: UUID()),
+                                      .startNextBlock, .endRest]
         for action in actions {
-            let decoded = try JSONDecoder().decode(WatchAction.self, from: JSONEncoder().encode(action))
-            #expect(decoded == action)
+            let command = WatchCommand(action: action, date: referenceNow.addingTimeInterval(0.456))
+            #expect(try WatchCommand(encoded: command.encoded()) == command)
         }
     }
 }
