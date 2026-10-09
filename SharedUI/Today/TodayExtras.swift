@@ -301,7 +301,7 @@ struct RestBanner: View {
                             .font(.system(size: 34, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .contentTransition(.numericText(countsDown: true))
-                            .animation(.default, value: Int(now.timeIntervalSince1970))
+                            .clockTick(now)
                             .foregroundStyle(.mint)
                     }
                     BlockDots(done: rest.isLong ? settings.blocksPerCycle : rest.completedBlocks, total: settings.blocksPerCycle)

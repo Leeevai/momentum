@@ -156,6 +156,18 @@ struct LiveClock<Content: View>: View {
     }
 }
 
+extension View {
+    /// Rolls a clock's digits as they change each second. Screenshot runs set `MOMENTUM_SCREENSHOT`
+    /// to draw them still, so a capture never lands between two digits.
+    func clockTick(_ date: Date) -> some View {
+        animation(ClockTick.rolls ? .default : nil, value: Int(date.timeIntervalSince1970))
+    }
+}
+
+enum ClockTick {
+    static let rolls = ProcessInfo.processInfo.environment["MOMENTUM_SCREENSHOT"] == nil
+}
+
 /// A running session's elapsed time, or time left for a planned session.
 struct SessionClockText: View {
     let session: FocusSession
@@ -166,7 +178,7 @@ struct SessionClockText: View {
             Text(label(at: now))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: countsDown && session.plannedDuration != nil))
-                .animation(.default, value: Int(now.timeIntervalSince1970))
+                .clockTick(now)
         }
     }
 

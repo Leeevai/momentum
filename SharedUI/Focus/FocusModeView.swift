@@ -153,7 +153,7 @@ private struct RestFace: View {
                         .monospacedDigit()
                         .foregroundStyle(.white)
                         .contentTransition(.numericText(countsDown: true))
-                        .animation(.default, value: Int(context.date.timeIntervalSince1970))
+                        .clockTick(context.date)
                 }
                 Button {
                     store.startNextBlock()
