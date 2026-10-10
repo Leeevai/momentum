@@ -171,17 +171,24 @@ public struct Milestone: Codable, Identifiable, Hashable, Sendable {
     public var title: String
     public var dueDate: Date?
     public var completedAt: Date?
+    /// How long it takes, in seconds: a video's length, for a to-do made from a video.
+    public var duration: TimeInterval?
+    /// Where it came from, or what to open to do it: the video, for a to-do made from one.
+    public var link: URL?
 
-    public init(id: UUID = UUID(), title: String, dueDate: Date? = nil, completedAt: Date? = nil) {
+    public init(id: UUID = UUID(), title: String, dueDate: Date? = nil, completedAt: Date? = nil,
+                duration: TimeInterval? = nil, link: URL? = nil) {
         self.id = id
         self.title = title
         self.dueDate = dueDate
         self.completedAt = completedAt
+        self.duration = duration
+        self.link = link
     }
 
     public var isDone: Bool { completedAt != nil }
 
-    private enum CodingKeys: String, CodingKey { case id, title, dueDate, completedAt }
+    private enum CodingKeys: String, CodingKey { case id, title, dueDate, completedAt, duration, link }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -189,6 +196,9 @@ public struct Milestone: Codable, Identifiable, Hashable, Sendable {
         title = try c.decode(.title, default: "")
         dueDate = try c.decodeIfPresent(Date.self, forKey: .dueDate)
         completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
+        // A duration that isn't a positive number of seconds is dropped rather than failing the file.
+        duration = (try? c.decodeIfPresent(TimeInterval.self, forKey: .duration)).flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        link = try? c.decodeIfPresent(URL.self, forKey: .link)
     }
 }
 
