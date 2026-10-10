@@ -16,7 +16,6 @@ struct MomentumMobileApp: App {
                 .onAppear {
                     LinkRouter.handler = { link in handle(link) }
                     GoalSpotlight.update(from: store.data)
-                    store.onChange = { engine in WatchBridge.shared.send(engine.watchSnapshot(now: .now)) }
                 }
         }
         .commands { MobileCommands(store: store) }
@@ -29,7 +28,18 @@ struct MomentumMobileApp: App {
             store.sync?.pull()
             store.effects.syncLiveActivity(store.data)
             store.effects.refreshFocusSound(store.data)
+            // The watch hears of each change, but a new day changes what's due without one, and a
+            // suspended app sees no midnight: coming forward brings the watch up to date.
+            WatchBridge.shared.send(store.engine.watchSnapshot(now: .now))
         }
+    }
+
+    private static func makeStore() -> GoalStore {
+        let store = makeLaunchStore()
+        // Wired here, not when the window appears: woken in the background (by a widget or Lock
+        // Screen button, or Siri) the app has no window, and what it changes must reach the watch.
+        store.onChange = { engine in WatchBridge.shared.send(engine.watchSnapshot(now: .now)) }
+        return store
     }
 
     /// The real store; in debug builds, `MOMENTUM_DEMO=1` swaps in demo data held in memory (`empty`
@@ -37,7 +47,7 @@ struct MomentumMobileApp: App {
     /// and the widgets, which read that file), and
     /// `MOMENTUM_TAB` opens a tab and `MOMENTUM_SHEET` a sheet, for screenshots and simulator runs
     /// (`MOMENTUM_SHEET=import` takes the `MOMENTUM_IMPORT_*` settings in `ImportTodosSheet`).
-    private static func makeStore() -> GoalStore {
+    private static func makeLaunchStore() -> GoalStore {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
         if environment["MOMENTUM_DEMO"] == "empty" {

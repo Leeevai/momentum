@@ -262,8 +262,9 @@ Shipping to the App Store is described in [docs/APP_STORE.md](docs/APP_STORE.md)
 | `Config/` | Signing (`Shared.xcconfig`), entitlements and Info.plists. |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how data flows between the apps, the
-widgets and other devices. Every change goes through a pull request into `develop`;
-[CONTRIBUTING.md](.github/CONTRIBUTING.md) covers branches, the commit format and releases.
+widgets and other devices. Every change starts as an issue and reaches `develop` through a pull
+request that closes it; [CONTRIBUTING.md](.github/CONTRIBUTING.md) covers issues and labels,
+branches, the commit format, pull requests and releases.
 
 ## Roadmap
 

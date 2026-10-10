@@ -268,7 +268,7 @@ private struct TodayAccessoryView: View {
                 if let session = entry.data.session, let goal = engine.goal(session.goalID) {
                     HStack(spacing: 4) {
                         Text(goal.name).lineLimit(1)
-                        WidgetSessionClock(session: session)
+                        WidgetSessionClock(session: session, now: entry.date)
                             .monospacedDigit()
                     }
                     .font(.subheadline.weight(.semibold))

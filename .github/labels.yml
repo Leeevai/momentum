@@ -1,0 +1,157 @@
+# The labels on issues and pull requests, defined in one place.
+#
+# scripts/sync-labels.sh creates and updates them on GitHub, and the Labels workflow runs it when
+# this file changes on develop. A label on GitHub that isn't listed here is left alone, and the
+# sync names it.
+#
+# Every issue has one type label and at least one area label. The issue forms add the type and
+# status: needs triage, a workflow adds the areas picked in the form, and the Ticket check copies
+# the issue's type and area labels onto its pull request. .github/CONTRIBUTING.md explains them.
+#
+# The script reads this exact shape, so keep it: one "- name:" entry per label, then color (six
+# hex digits, no #) and description (at most 100 characters), each value in double quotes with no
+# double quotes inside. "renamed-from" renames an existing label instead of adding a duplicate,
+# which keeps it on the issues that have it.
+
+# Type: what kind of change. Release notes group pull requests by it (.github/release.yml).
+
+- name: "type: feature"
+  color: "1a7f37"
+  description: "Something new people can see or do"
+
+- name: "type: bug"
+  color: "d73a4a"
+  description: "Something doesn't work the way it should"
+  renamed-from: "bug"
+
+- name: "type: enhancement"
+  color: "0969da"
+  description: "An improvement to something Momentum already does"
+  renamed-from: "enhancement"
+
+- name: "type: docs"
+  color: "8250df"
+  description: "Documentation only: the README, guides and docs/"
+  renamed-from: "documentation"
+
+- name: "type: task"
+  color: "57606a"
+  description: "Chores, refactors, CI and tooling: nothing people see changes"
+
+- name: "type: release"
+  color: "bf8700"
+  description: "A version: the bump, changelog, release pull request, tag and notes"
+
+# Area: the part of the project. The name after "area: " is the [area] in a pull request title.
+
+- name: "area: ui"
+  color: "bfdbfe"
+  description: "SwiftUI screens and components in SharedUI, Momentum and MomentumMobile"
+
+- name: "area: core"
+  color: "c7d2fe"
+  description: "The backend: MomentumCore models, engine and persistence in Packages/MomentumKit"
+
+- name: "area: sync"
+  color: "a5f3fc"
+  description: "Sync between devices: the sync folder, merges and save stamps"
+
+- name: "area: watch"
+  color: "ddd6fe"
+  description: "The watch app and its complications: MomentumWatch, MomentumWatchWidgets"
+
+- name: "area: widgets"
+  color: "fbcfe8"
+  description: "Widgets, controls and the Live Activity in MomentumWidgets, with their intents"
+
+- name: "area: mac"
+  color: "e5e7eb"
+  description: "Mac only: the app in Momentum/, its windows, menus and menu bar"
+
+- name: "area: ios"
+  color: "bae6fd"
+  description: "iPhone and iPad only: the app in MomentumMobile/"
+
+- name: "area: import"
+  color: "fde68a"
+  description: "Importing and exporting: backups, books, goals and to-dos from videos"
+
+- name: "area: ci"
+  color: "bbf7d0"
+  description: "GitHub workflows and the checks they run, in .github"
+
+- name: "area: docs"
+  color: "e9d5ff"
+  description: "The README, CONTRIBUTING, docs/ and the changelog"
+
+- name: "area: tooling"
+  color: "fed7aa"
+  description: "Scripts, git hooks, project skills and other developer tools"
+
+- name: "area: release"
+  color: "fecaca"
+  description: "Versions, release pull requests, tags, notes and the App Store"
+
+# Priority: how soon. Leave it off when it doesn't matter yet.
+
+- name: "priority: high"
+  color: "b60205"
+  description: "Next up: it blocks people or the release"
+
+- name: "priority: medium"
+  color: "d93f0b"
+  description: "Soon: planned for the upcoming milestone"
+
+- name: "priority: low"
+  color: "fbca04"
+  description: "Some day: nice to have"
+
+# Status: where an issue stands, when its state and the board don't say it.
+
+- name: "status: needs triage"
+  color: "fef2c0"
+  description: "New: check its type, areas, milestone and acceptance criteria"
+
+- name: "status: blocked"
+  color: "1b1f24"
+  description: "Waiting on something else; the issue says what"
+
+# Dependabot adds these two to its pull requests.
+
+- name: "dependencies"
+  color: "0366d6"
+  description: "Pull requests that update a dependency file"
+
+- name: "github_actions"
+  color: "000000"
+  description: "Pull requests that update GitHub Actions code"
+
+# GitHub's defaults, kept.
+
+- name: "accessibility"
+  color: "f143ab"
+  description: "Barrier affecting people with disabilities"
+
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: "question"
+  color: "d876e3"
+  description: "Further information is requested"
+
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or pull request already exists"
+
+- name: "invalid"
+  color: "e4e669"
+  description: "This doesn't seem right"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
