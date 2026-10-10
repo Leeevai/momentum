@@ -14,11 +14,22 @@ All notable changes to Momentum are recorded here. The format follows
   From videos when making a new goal.
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
+- Palettes of your own: pick an accent, a background tint, how goal colors spread around a base
+  hue (spectrum, analogous, complementary, triadic or monochrome) and how light and crisp it
+  all is, with a live preview in light and dark. Make one from New in the palette settings, or
+  customize a built-in palette; yours sync with your other settings.
 
 ### Changed
 - Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
   Dusk and Rose. Ocean, Lagoon, Amber, Lavender, Mint, Cherry and Midnight are retired; if you
   used one, Momentum switches to the closest new palette.
+- Goal colors come from the palette: each goal keeps its color, drawn as the palette's own muted
+  version of it, and moods, energy, streak flames, awards, charts and the rest of the app's
+  accents follow the palette too. The goal editor shows the palette's colors.
+
+### Fixed
+- Labels on filled buttons could be hard to read in dark mode: they now switch to black wherever
+  white wouldn't stand out, and symbols on goal icons and medals stay white on a deeper shade.
 
 ## [2.2.0] - 2026-10-09
 
