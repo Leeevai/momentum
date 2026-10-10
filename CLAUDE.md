@@ -18,8 +18,11 @@ Read `docs/ARCHITECTURE.md` before changing how data flows between the app and t
   required **Ticket** check enforces both and copies the issue's labels onto the PR.
 - **Conventional Commits** for every commit (`commit` skill): small commits that each compile,
   staged by explicit path.
-- **Merge commits only.** Squash and rebase merging are off, so every commit keeps its author and
-  counts. The owner merges; don't merge PRs yourself.
+- **Whoever opens a PR into `develop` merges it**, once every required check is green and the
+  branch is up to date with `develop` (if `develop` moved: `git merge origin/develop`, push, and
+  wait for green again): `gh pr merge <n> --merge`. Merge commits only, never squash, rebase or
+  `--admin`, so every commit keeps its author and counts. Nobody pushes to `develop` or `main`
+  directly; `main` only changes through release PRs, which the main session merges.
 - Never credit an assistant: no co-author trailers or generated-with lines in commits, PRs or
   comments.
 
@@ -94,7 +97,7 @@ local build or install in the conversation, prefix that command with `MOMENTUM_A
 Project skills in `.claude/skills/`:
 
 - `ticket`: find or open the issue before any work, then name the branch and the PR from it.
-- `ship`: a change from its issue to a green pull request into `develop`.
+- `ship`: a change from its issue to a pull request merged into `develop`.
 - `commit`: the Conventional Commits format, and splitting work into commits that each compile.
 - `fix-ci`: read and fix a failing check without building locally.
 - `release`: the version bump, changelog, release PR to `main`, tag and GitHub release.
