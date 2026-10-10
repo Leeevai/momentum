@@ -15,6 +15,10 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- One entry dated more than eleven years back, such as a mistyped year, made a weekly streak read
+  0. Weekly, monthly and yearly streaks now count back from today.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
