@@ -1,0 +1,42 @@
+name: Ticket
+
+# Every pull request names the issue it closes: a title like
+# [0007]-[ui] show the next video beside the ring, and "Closes #7" on a line of the description.
+# Editing the title or the description runs the check again.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+concurrency:
+  group: ticket-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Reading the issue, and copying its type and area labels onto the pull request. Pull requests from
+# Dependabot and from forks get a read-only token: Dependabot's are exempt, and a fork's keeps its
+# labels as they are.
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+
+jobs:
+  ticket:
+    name: Ticket
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts
+      # The title and description come in through the environment, never into the script's text.
+      - name: Check the title and the Closes line
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          scripts/check-ticket.sh --number "$NUMBER" --title "$TITLE" --body "$BODY" \
+            --branch "$BRANCH" --author "$AUTHOR" --apply-labels
