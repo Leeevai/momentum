@@ -87,10 +87,13 @@ final class WatchStore: NSObject {
     }
 
     /// Keeps a background delivery running until what's pending has arrived: the system wakes
-    /// the app for a complication update and suspends it when this returns.
+    /// the app for a complication update and suspends it when this returns. A launch for one has
+    /// only just asked the session to activate, and until it has, `hasContentPending` can read
+    /// false with the update still to come.
     func finishPendingDeliveries() async {
         guard let session else { return }
-        for _ in 0..<40 where session.hasContentPending {
+        for _ in 0..<40 {
+            if session.activationState == .activated && !session.hasContentPending { break }
             try? await Task.sleep(for: .milliseconds(250))
         }
         // What arrived is handed to the main actor to save; let that happen before suspending.

@@ -24,8 +24,17 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
         var day: DayID
         var done: Int
         var total: Int
-        var session: String?
-        var isRunning: Bool
+        /// The timer as the face draws it: which session, whether it's paused, and where its clock
+        /// starts and ends, which adding time or a pause moves. Not its note, which isn't shown.
+        var session: FocusSession?
+
+        init(_ snapshot: WatchSnapshot) {
+            day = snapshot.day
+            done = snapshot.done
+            total = snapshot.total
+            session = snapshot.session
+            session?.note = ""
+        }
     }
 
     func activate() {
@@ -54,8 +63,7 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
         }
         // The application context reaches the watch app when it next runs; a complication on the
         // face needs a push of its own, which wakes it (a limited number of times a day).
-        let face = FaceState(day: snapshot.day, done: snapshot.done, total: snapshot.total,
-                             session: snapshot.session.map(SyncState.sessionKey), isRunning: snapshot.session?.isRunning ?? false)
+        let face = FaceState(snapshot)
         guard face != lastFace else { return }
         // The remaining count is zero when none of the app's complications is on the face. Not
         // `isComplicationEnabled`: that stays false for a WidgetKit complication that is there.

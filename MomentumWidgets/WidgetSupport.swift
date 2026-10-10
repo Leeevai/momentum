@@ -89,11 +89,13 @@ struct WidgetEmptyView: View {
 }
 
 /// A running session's clock: a live countdown for planned sessions, a stopwatch otherwise.
+/// Drawn as of `now`, the entry's date: WidgetKit draws entries before they're shown, so an entry
+/// after the planned end, drawn before it, would otherwise keep a countdown stuck at 0:00.
 struct WidgetSessionClock: View {
     let session: FocusSession
+    let now: Date
 
     var body: some View {
-        let now = Date.now
         if let reference = session.counterReferenceDate {
             if let end = session.plannedEnd, end > now {
                 Text(timerInterval: now...end, countsDown: true)
@@ -101,7 +103,7 @@ struct WidgetSessionClock: View {
                 Text(reference, style: .timer)
             }
         } else {
-            Text(Formatting.clock(session.remaining(at: .now).map { max(0, $0) } ?? session.elapsed(at: .now)))
+            Text(Formatting.clock(session.remaining(at: now).map { max(0, $0) } ?? session.elapsed(at: now)))
         }
     }
 }
@@ -110,6 +112,8 @@ struct WidgetSessionClock: View {
 struct WidgetActionButton: View {
     let goal: Goal
     let engine: ProgressEngine
+    /// The entry's date, for the checkmark: the midnight entry is drawn the day before.
+    let now: Date
     var size: CGFloat = 26
 
     var body: some View {
@@ -135,7 +139,7 @@ struct WidgetActionButton: View {
         switch goal.kind {
         case .milestones: "checkmark"
         case .books: "book.pages"
-        default: engine.isComplete(goal, now: .now) ? "checkmark" : "plus"
+        default: engine.isComplete(goal, now: now) ? "checkmark" : "plus"
         }
     }
 
@@ -229,7 +233,7 @@ struct WidgetGoalRing: View {
                 GoalGlyph(goal: goal, size: lineWidth * 2.2)
                 Group {
                     if let session = engine.data.session, session.goalID == goal.id {
-                        WidgetSessionClock(session: session)
+                        WidgetSessionClock(session: session, now: now)
                     } else {
                         Text(goal.formatShort(engine.currentAmount(for: goal, now: now)))
                     }
