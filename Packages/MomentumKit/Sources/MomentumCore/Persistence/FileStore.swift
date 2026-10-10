@@ -134,6 +134,12 @@ public final class FileStore: Sendable {
             try manager.createDirectory(at: backupsDirectory, withIntermediateDirectories: true)
             if !manager.fileExists(atPath: target.path) {
                 coordinate(writing: false) { url in
+                    // A file that can't be read isn't a day's copy: two weeks of them would push
+                    // out every good copy, the ones a restore needs. It's kept aside once anyway.
+                    guard self.read(url).isReadable else {
+                        self.logger.error("No daily backup: \(url.path, privacy: .public) can't be read")
+                        return
+                    }
                     do {
                         try manager.copyItem(at: url, to: target)
                         written = target
