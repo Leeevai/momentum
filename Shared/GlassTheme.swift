@@ -49,6 +49,7 @@ extension Color {
 enum ActivePalette {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var palette = Palette.standard
+    nonisolated(unsafe) private static var surface = TextSurface.glass
     nonisolated(unsafe) private static var paletteColors = PaletteColors(.standard)
 
     static var current: Palette {
@@ -57,7 +58,19 @@ enum ActivePalette {
             lock.withLock {
                 guard newValue != palette else { return }
                 palette = newValue
-                paletteColors = PaletteColors(newValue)
+                paletteColors = PaletteColors(newValue, text: surface)
+            }
+        }
+    }
+
+    /// What text sits on in this process: glass panes in the apps, the bare aurora in widgets.
+    static var textSurface: TextSurface {
+        get { lock.withLock { surface } }
+        set {
+            lock.withLock {
+                guard newValue != surface else { return }
+                surface = newValue
+                paletteColors = PaletteColors(palette, text: newValue)
             }
         }
     }
@@ -83,7 +96,7 @@ struct PaletteColors: Sendable {
     private let textShades: [GoalColor: Color]
     private let fillEnds: [GoalColor: Color]
 
-    init(_ palette: Palette) {
+    init(_ palette: Palette, text surface: TextSurface = .glass) {
         // The palette's content in every name, so an edited custom palette doesn't pass for the
         // one it was.
         let key = "momentum.\(palette.id).\(palette.hashValue)"
@@ -100,8 +113,8 @@ struct PaletteColors: Sendable {
         deepHighlights = colors("deep-highlight") { OKLCH($0.deepened.lightness + 0.04, $0.deepened.chroma, $0.hue).inSRGB }
         textShades = Dictionary(uniqueKeysWithValues: GoalColor.allCases.map { goalColor in
             (goalColor, Color.dynamic(named: "\(key).text.\(goalColor.rawValue)",
-                                      light: palette.light.swatch(goalColor).readable(onLuminance: GlassSurface.luminance(dark: false)),
-                                      dark: palette.dark.swatch(goalColor).readable(onLuminance: GlassSurface.luminance(dark: true))))
+                                      light: palette.light.swatch(goalColor).readable(onLuminance: surface.luminance(dark: false)),
+                                      dark: palette.dark.swatch(goalColor).readable(onLuminance: surface.luminance(dark: true))))
         })
         // A label's fill shades away from the label, so it keeps its contrast across the fill.
         fillEnds = colors("fill-end") { OKLCH($0.lightness + ($0.prefersDarkLabel ? 0.05 : -0.05), $0.chroma, $0.hue).inSRGB }

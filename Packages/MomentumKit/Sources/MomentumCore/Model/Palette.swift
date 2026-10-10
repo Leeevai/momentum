@@ -16,12 +16,21 @@ public struct PaletteTokens: Hashable, Sendable {
     }
 }
 
-/// What text in a palette's colors has to read against: the glass panes it sits on, over the
-/// aurora's strongest blob. In light mode a pane is white at 52% over a blob of lightness 0.84;
-/// in dark mode a dark tint at 45% over one of 0.44. Each is rounded toward the harder case.
-public enum GlassSurface {
-    /// WCAG luminance of the background in each appearance.
-    public static func luminance(dark: Bool) -> Double { dark ? 0.06 : 0.75 }
+/// What text in a palette's colors sits on, and has to read against. In the apps it's a glass
+/// pane over the aurora: in light mode white at 52% over a blob of lightness 0.84, in dark a dark
+/// tint at 45% over one of 0.44. Widgets have no panes, so their text sits on the aurora itself.
+/// Each is taken at the strongest blob, rounded toward the harder case.
+public enum TextSurface: Sendable {
+    case glass
+    case aurora
+
+    /// WCAG luminance of the surface in each appearance.
+    public func luminance(dark: Bool) -> Double {
+        switch self {
+        case .glass: dark ? 0.06 : 0.75
+        case .aurora: dark ? 0.09 : 0.59
+        }
+    }
 }
 
 /// A palette ready to draw: what it's called, and its colors in light and dark.
@@ -253,7 +262,7 @@ enum PaletteGenerator {
             level += (0.26 - level) * neutral
         }
         // The system draws the accent as text too (buttons, links), so it has to read on glass.
-        return OKLCH(level, chroma, recipe.accentHue).inSRGB.readable(onLuminance: GlassSurface.luminance(dark: dark)).legible()
+        return OKLCH(level, chroma, recipe.accentHue).inSRGB.readable(onLuminance: TextSurface.glass.luminance(dark: dark)).legible()
     }
 
     /// The aurora's base and its three blobs: the background hue, the accent's, and the

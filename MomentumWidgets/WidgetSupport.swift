@@ -52,6 +52,8 @@ enum WidgetTimeline {
     static func data(preview: Bool) -> AppData {
         let stored = SharedStore.load()
         let data = preview && stored.goals.isEmpty ? .demo() : stored
+        // Widget text sits on the aurora itself, without the apps' glass panes.
+        ActivePalette.textSurface = .aurora
         ActivePalette.current = data.preferences.activePalette
         return data
     }
@@ -63,6 +65,7 @@ enum WidgetTimeline {
     /// Entries at the moments rings need to move; see `WidgetSchedule`.
     static func timeline(goalID: UUID? = nil, now: Date = .now) -> Timeline<MomentumEntry> {
         let engine = ProgressEngine(data: SharedStore.load())
+        ActivePalette.textSurface = .aurora
         ActivePalette.current = engine.data.preferences.activePalette
         let entries = WidgetSchedule.entryDates(for: engine.data, now: now).map {
             MomentumEntry(date: $0, engine: engine, goalID: goalID)
