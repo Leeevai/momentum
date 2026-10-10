@@ -49,6 +49,27 @@ struct StreakTests {
         #expect(engine(data).streak(for: goal, now: referenceNow).current == 4)
     }
 
+    @Test("A break that starts midweek keeps that week from breaking a weekly streak")
+    func midweekBreakProtectsWeek() throws {
+        let goal = checkInGoal(createdDaysAgo: 40, period: .weekly, target: 2)
+        var data = AppData(goals: [goal])
+        // Twice in the weeks of 7, 14 and 28 September; once in the week of 21 September, which a
+        // break covered from its Wednesday on.
+        for monday in [-31, -24, -10] {
+            data.log(1, for: goal.id, at: dayOffset(monday))
+            data.log(1, for: goal.id, at: dayOffset(monday + 1))
+        }
+        data.log(1, for: goal.id, at: dayOffset(-17))
+        data.startBreak(for: goal.id, until: dayOffset(-11), at: dayOffset(-15), calendar: testCalendar)
+        let stored = try #require(data.goal(goal.id))
+        let progress = engine(data)
+        let streak = progress.streak(for: stored, now: referenceNow)
+        let rate = progress.completionRate(for: stored, now: referenceNow)
+        #expect(streak.current == 3)
+        // Five weeks due since the goal began, the one with the break left out; three met.
+        #expect(rate == 0.6)
+    }
+
     @Test("Weekly goals count consecutive weeks that hit the target")
     func weekly() {
         let goal = checkInGoal(createdDaysAgo: 60, period: .weekly, target: 2)
