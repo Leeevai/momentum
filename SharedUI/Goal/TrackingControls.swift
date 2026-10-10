@@ -171,6 +171,7 @@ private struct MilestoneControls: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
+                            .accessibilityLabel(next.duration.map { "Next up, \(Formatting.spokenDuration($0))" } ?? "Next up")
                         Text(next.title).font(.body.weight(.medium))
                     }
                 }
