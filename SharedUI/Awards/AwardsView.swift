@@ -169,10 +169,10 @@ private struct TierCount: View {
                     .fill(AngularGradient(colors: tier.ringColors + [tier.ringColors[0]], center: .center))
                     .frame(width: 44, height: 44)
                     .shadow(color: tier.ringColors[0].opacity(0.4), radius: 5, y: 2)
+                // Every metal is light: black reads on all of them, white on none.
                 Text("\(count)")
                     .font(.system(.headline, design: .rounded, weight: .bold))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
+                    .foregroundStyle(.black.opacity(0.82))
             }
             Text(tier.title)
                 .font(.caption2.weight(.semibold))
@@ -233,7 +233,7 @@ private struct AwardDetail: View {
                 Text(item.achievement.tier.title.uppercased())
                     .font(.caption.weight(.bold))
                     .tracking(2)
-                    .foregroundStyle(item.achievement.tier.ringColors[0])
+                    .foregroundStyle(item.achievement.tier.labelColor)
                 Text(item.achievement.title)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                 Text(item.achievement.detail)
@@ -332,13 +332,28 @@ struct MedalView: View {
 }
 
 extension Achievement.Tier {
+    /// The tier's metal, muted to sit with the calm palettes: copper, silver, soft gold and an
+    /// icy platinum, each still plain to tell from the others.
     var ringColors: [Color] {
-        switch self {
-        case .bronze: [Color(red: 0.80, green: 0.50, blue: 0.25), Color(red: 0.95, green: 0.72, blue: 0.48), Color(red: 0.62, green: 0.36, blue: 0.16)]
-        case .silver: [Color(red: 0.70, green: 0.73, blue: 0.78), Color(red: 0.96, green: 0.97, blue: 0.99), Color(red: 0.55, green: 0.58, blue: 0.64)]
-        case .gold: [Color(red: 0.98, green: 0.74, blue: 0.16), Color(red: 1.0, green: 0.92, blue: 0.55), Color(red: 0.85, green: 0.55, blue: 0.05)]
-        case .platinum: [Color(red: 0.55, green: 0.85, blue: 0.98), Color(red: 0.92, green: 0.80, blue: 1.0), Color(red: 0.98, green: 0.98, blue: 1.0), Color(red: 0.62, green: 0.70, blue: 0.98)]
+        let metal: [OKLCH] = switch self {
+        case .bronze: [OKLCH(0.66, 0.085, 55), OKLCH(0.8, 0.065, 65), OKLCH(0.52, 0.075, 50)]
+        case .silver: [OKLCH(0.78, 0.008, 250), OKLCH(0.95, 0.004, 250), OKLCH(0.62, 0.01, 250)]
+        case .gold: [OKLCH(0.8, 0.105, 85), OKLCH(0.92, 0.075, 95), OKLCH(0.66, 0.1, 75)]
+        case .platinum: [OKLCH(0.84, 0.03, 225), OKLCH(0.93, 0.015, 250), OKLCH(0.97, 0.006, 240), OKLCH(0.76, 0.03, 245)]
         }
+        return metal.map { Color($0) }
+    }
+
+    /// The tier's name as text: a deep shade of its metal in light mode and a light one in dark,
+    /// each 4.5:1 or better on glass, where the metal itself is too pale to read.
+    var labelColor: Color {
+        let (light, dark): (OKLCH, OKLCH) = switch self {
+        case .bronze: (OKLCH(0.48, 0.08, 50), OKLCH(0.8, 0.065, 60))
+        case .silver: (OKLCH(0.48, 0.01, 250), OKLCH(0.85, 0.006, 250))
+        case .gold: (OKLCH(0.47, 0.085, 80), OKLCH(0.85, 0.09, 90))
+        case .platinum: (OKLCH(0.48, 0.035, 240), OKLCH(0.88, 0.02, 235))
+        }
+        return .dynamic(named: "momentum.tier.\(self)", light: light.inSRGB, dark: dark.inSRGB)
     }
 }
 

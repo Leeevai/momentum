@@ -8,6 +8,7 @@ struct CelebrationOverlay: View {
     var onFinish: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.palette) private var palette
     @State private var start = Date()
     @State private var toastVisible = false
 
@@ -17,8 +18,9 @@ struct CelebrationOverlay: View {
                 TimelineView(.animation) { context in
                     Canvas { canvas, size in
                         let elapsed = context.date.timeIntervalSince(start)
+                        let colors = Self.confetti.map { palette.color($0) }
                         for particle in Self.particles {
-                            draw(particle, at: elapsed, in: &canvas, size: size)
+                            draw(particle, color: colors[particle.color], at: elapsed, in: &canvas, size: size)
                         }
                     }
                 }
@@ -75,17 +77,21 @@ struct CelebrationOverlay: View {
         var drift: Double
         var spin: Double
         var size: Double
-        var hue: Double
+        /// Which of `confetti` it's drawn in.
+        var color: Int
     }
+
+    /// The palette colors confetti comes in: its goal colors, so a calm palette celebrates calmly.
+    private static let confetti: [GoalColor] = [.orange, .pink, .blue, .green, .teal, .yellow, .purple]
 
     private static let particles: [Particle] = (0..<140).map { index in
         var generator = SystemRandomNumberGenerator()
         func random(_ range: ClosedRange<Double>) -> Double { Double.random(in: range, using: &generator) }
         return Particle(x: random(0...1), delay: random(0...0.5), speed: random(260...520), drift: random(-90...90),
-                        spin: random(-8...8), size: random(5...10), hue: Double(index % 7) / 7)
+                        spin: random(-8...8), size: random(5...10), color: index % Self.confetti.count)
     }
 
-    private func draw(_ particle: Particle, at elapsed: Double, in canvas: inout GraphicsContext, size: CGSize) {
+    private func draw(_ particle: Particle, color: Color, at elapsed: Double, in canvas: inout GraphicsContext, size: CGSize) {
         let t = elapsed - particle.delay
         guard t > 0 else { return }
         let y = -20 + particle.speed * t + 120 * t * t
@@ -97,6 +103,6 @@ struct CelebrationOverlay: View {
         context.translateBy(x: x, y: y)
         context.rotate(by: .radians(particle.spin * t))
         let rect = CGRect(x: -particle.size / 2, y: -particle.size / 4, width: particle.size, height: particle.size / 2)
-        context.fill(Path(roundedRect: rect, cornerRadius: 1.5), with: .color(Color(hue: particle.hue, saturation: 0.75, brightness: 0.98)))
+        context.fill(Path(roundedRect: rect, cornerRadius: 1.5), with: .color(color))
     }
 }
