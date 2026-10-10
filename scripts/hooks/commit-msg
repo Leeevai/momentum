@@ -1,0 +1,4 @@
+#!/bin/sh
+# Checks each commit message against the commit format in .github/CONTRIBUTING.md.
+# ./scripts/install-hooks.sh turns it on; git commit --no-verify skips it once.
+exec "$(dirname "$0")/../check-commits.sh" --message-file "$1"
