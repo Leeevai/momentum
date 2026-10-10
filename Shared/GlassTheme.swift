@@ -45,14 +45,30 @@ extension Color {
 
 /// The palette the app is drawn in, for colors resolved outside the view tree. Set by the store
 /// from preferences, and by the widgets when they read the data file; views read the `palette`
-/// environment value.
+/// environment value. Behind a lock: a widget extension loads several timelines at once.
 enum ActivePalette {
-    nonisolated(unsafe) static var current: Palette = .standard {
-        didSet { if current != oldValue { colors = PaletteColors(current) } }
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var palette = Palette.standard
+    nonisolated(unsafe) private static var paletteColors = PaletteColors(.standard)
+
+    static var current: Palette {
+        get { lock.withLock { palette } }
+        set {
+            lock.withLock {
+                guard newValue != palette else { return }
+                palette = newValue
+                paletteColors = PaletteColors(newValue)
+            }
+        }
     }
 
     /// `current` as SwiftUI colors, made once per palette rather than on every use.
-    nonisolated(unsafe) private(set) static var colors = PaletteColors(.standard)
+    static var colors: PaletteColors { lock.withLock { paletteColors } }
+
+    /// The active palette's colors, if `palette` is the active one.
+    static func colors(for palette: Palette) -> PaletteColors? {
+        lock.withLock { palette == self.palette ? paletteColors : nil }
+    }
 }
 
 /// A palette's colors as SwiftUI colors: the accent and, for every goal color, its swatch, a
@@ -95,8 +111,7 @@ extension Palette {
     /// The palette as SwiftUI colors: the active palette's are made once, and those of a few
     /// others (the picker's, a palette being edited) are kept while they're in use.
     var colors: PaletteColors {
-        if self == ActivePalette.current { return ActivePalette.colors }
-        return PaletteColorCache.colors(for: self)
+        ActivePalette.colors(for: self) ?? PaletteColorCache.colors(for: self)
     }
 }
 
