@@ -11,6 +11,7 @@ import UIKit
 struct LinkIcon: View {
     let link: GoalLink
     var size: CGFloat = 28
+    @Environment(\.self) private var environment
 
     var body: some View {
         #if os(macOS)
@@ -20,7 +21,7 @@ struct LinkIcon: View {
         #else
         Image(systemName: link.isFile ? "doc.fill" : "safari.fill")
             .font(.system(size: size * 0.6))
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.accent.foreground(in: environment))
             .frame(width: size, height: size)
             .background(RoundedRectangle(cornerRadius: size * 0.25, style: .continuous).fill(Color.accent.gradient))
         #endif

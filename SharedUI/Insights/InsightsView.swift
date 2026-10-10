@@ -25,23 +25,23 @@ struct InsightsView: View {
                 }
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 14)], spacing: 14) {
-                    StatTile(title: "Focused", value: Formatting.duration(report.totalFocusSeconds), systemImage: "timer", tint: .indigo,
+                    StatTile(title: "Focused", value: Formatting.duration(report.totalFocusSeconds), systemImage: "timer", tint: .focus,
                              caption: focusCaption(report))
-                    StatTile(title: "Active days", value: "\(report.activeDays) of \(days)", systemImage: "calendar.badge.checkmark", tint: .green,
+                    StatTile(title: "Active days", value: "\(report.activeDays) of \(days)", systemImage: "calendar.badge.checkmark", tint: .success,
                              caption: Formatting.percent(Double(report.activeDays) / Double(days)) + " of days")
                     let streaks = engine.activeGoals.map { ($0, engine.streak(for: $0, now: store.now)) }
                     let longest = streaks.max { $0.1.current < $1.1.current }
-                    StatTile(title: "Best streak now", value: "\(longest?.1.current ?? 0)", systemImage: "flame.fill", tint: .orange,
+                    StatTile(title: "Best streak now", value: "\(longest?.1.current ?? 0)", systemImage: "flame.fill", tint: .streak,
                              caption: longest.flatMap { $0.1.current > 0 ? $0.0.name : nil })
-                    StatTile(title: "Books finished", value: "\(report.booksFinished)", systemImage: "books.vertical.fill", tint: .brown,
+                    StatTile(title: "Books finished", value: "\(report.booksFinished)", systemImage: "books.vertical.fill", tint: .swatch(.brown),
                              caption: "\(Formatting.number(report.pagesRead)) pages read")
-                    StatTile(title: "Milestones", value: "\(report.milestonesCompleted)", systemImage: "flag.checkered", tint: .pink,
+                    StatTile(title: "Milestones", value: "\(report.milestonesCompleted)", systemImage: "flag.checkered", tint: .swatch(.pink),
                              caption: "\(report.loggedEntries) entries logged")
                     if let flow = quality.flowShare {
-                        StatTile(title: "In the flow", value: Formatting.percent(flow), systemImage: "water.waves", tint: .indigo,
+                        StatTile(title: "In the flow", value: Formatting.percent(flow), systemImage: "water.waves", tint: .focus,
                                  caption: "of rated focus")
                     } else {
-                        StatTile(title: "Daily focus", value: Formatting.duration(report.averageFocusPerDay), systemImage: "sun.max.fill", tint: .yellow,
+                        StatTile(title: "Daily focus", value: Formatting.duration(report.averageFocusPerDay), systemImage: "sun.max.fill", tint: .swatch(.yellow),
                                  caption: "on average")
                     }
                 }
@@ -139,7 +139,7 @@ private struct FocusChart: View {
             .chartLegend(position: .bottom, alignment: .leading)
             .frame(height: 230)
         }
-        .glassCard(tint: .indigo)
+        .glassCard(tint: .focus)
     }
 }
 
@@ -164,13 +164,13 @@ private struct WeekdayChart: View {
                     x: .value("Weekday", symbols[bucket.index - 1]),
                     y: .value("Hours", bucket.seconds / 3600)
                 )
-                .foregroundStyle(bucket.index == best?.index ? AnyShapeStyle(Color.indigo.gradient) : AnyShapeStyle(Color.indigo.opacity(0.35)))
+                .foregroundStyle(bucket.index == best?.index ? AnyShapeStyle(Color.focus.gradient) : AnyShapeStyle(Color.focus.opacity(0.35)))
                 .cornerRadius(5)
             }
             .chartYAxis(.hidden)
             .frame(height: 160)
         }
-        .glassCard(tint: .indigo)
+        .glassCard(tint: .focus)
     }
 }
 
@@ -193,13 +193,13 @@ private struct HourChart: View {
                     y: .value("Hours", bucket.seconds / 3600)
                 )
                 .interpolationMethod(.catmullRom)
-                .foregroundStyle(LinearGradient(colors: [.pink.opacity(0.55), .pink.opacity(0.05)], startPoint: .top, endPoint: .bottom))
+                .foregroundStyle(LinearGradient(colors: [Color.swatch(.pink).opacity(0.55), Color.swatch(.pink).opacity(0.05)], startPoint: .top, endPoint: .bottom))
                 LineMark(
                     x: .value("Hour", bucket.index),
                     y: .value("Hours", bucket.seconds / 3600)
                 )
                 .interpolationMethod(.catmullRom)
-                .foregroundStyle(.pink)
+                .foregroundStyle(Color.swatch(.pink))
             }
             .chartXAxis {
                 AxisMarks(values: [0, 6, 12, 18, 23]) { value in
@@ -211,7 +211,7 @@ private struct HourChart: View {
             .chartYAxis(.hidden)
             .frame(height: 160)
         }
-        .glassCard(tint: .pink)
+        .glassCard(tint: .swatch(.pink))
     }
 }
 
@@ -253,7 +253,7 @@ private struct FocusQualityCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(tint: .indigo)
+        .glassCard(tint: .focus)
     }
 
     private var summary: String {
@@ -276,7 +276,10 @@ private struct CategoryChart: View {
     let report: InsightsReport
     @State private var selectedAngle: Double?
 
-    private static let palette: [Color] = [.indigo, .orange, .teal, .pink, .green, .purple, .yellow, .blue, .red, .mint]
+    /// Categories in the palette's goal colors, in an order that keeps neighbors apart.
+    private static var palette: [Color] {
+        ([.indigo, .orange, .teal, .pink, .green, .purple, .yellow, .blue, .red, .mint] as [GoalColor]).map(\.color)
+    }
 
     var body: some View {
         let shares = report.focusByCategory
@@ -345,7 +348,7 @@ private struct CategoryChart: View {
                 legend
             }
         }
-        .glassCard(tint: .indigo)
+        .glassCard(tint: .focus)
     }
 }
 

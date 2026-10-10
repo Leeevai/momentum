@@ -244,7 +244,7 @@ private struct AwardDetail: View {
             if let date = item.earnedAt {
                 Label("Earned \(date.formatted(.dateTime.weekday(.wide).month(.wide).day().year()))", systemImage: "checkmark.seal.fill")
                     .font(.callout.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.success)
             } else {
                 VStack(spacing: 8) {
                     ProgressBar(progress: item.fraction, color: item.achievement.family.goalColor)
@@ -277,10 +277,12 @@ struct MedalView: View {
     var fraction: Double = 1
     var isEarned = true
     var size: CGFloat = 64
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let tier = achievement.tier
-        let tint = achievement.family.tint
+        // A deep shade of the family's color, so the white symbol reads on it in dark mode too.
+        let tint = palette.colors.deep(achievement.family.goalColor)
         let ring = size * 0.09
         ZStack {
             if isEarned {

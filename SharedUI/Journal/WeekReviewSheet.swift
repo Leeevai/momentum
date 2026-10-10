@@ -12,24 +12,24 @@ struct WeekReviewSheet: View {
         let review = store.engine.weekReview(endingAt: store.now)
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                SheetHeader(symbol: "calendar.badge.checkmark", tint: .teal, title: "Your week",
+                SheetHeader(symbol: "calendar.badge.checkmark", tint: .swatch(.teal), title: "Your week",
                             subtitle: review.range.start.formatted(.dateTime.month(.abbreviated).day()) + " to "
                                 + review.range.end.addingTimeInterval(-1).formatted(.dateTime.month(.abbreviated).day()))
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
-                    StatTile(title: "Focused", value: Formatting.duration(review.focusSeconds), systemImage: "timer", tint: .indigo,
+                    StatTile(title: "Focused", value: Formatting.duration(review.focusSeconds), systemImage: "timer", tint: .focus,
                              caption: review.focusChange.map { change in
                                  (change >= 0 ? "Up " : "Down ") + Formatting.percent(abs(change)) + " on last week"
                              } ?? "No focus the week before")
-                    StatTile(title: "Perfect days", value: "\(review.perfectDays) of 7", systemImage: "star.fill", tint: .green)
-                    StatTile(title: "Active days", value: "\(review.activeDays) of 7", systemImage: "flame.fill", tint: .orange)
+                    StatTile(title: "Perfect days", value: "\(review.perfectDays) of 7", systemImage: "star.fill", tint: .success)
+                    StatTile(title: "Active days", value: "\(review.activeDays) of 7", systemImage: "flame.fill", tint: .streak)
                     StatTile(title: "Mood", value: review.averageMood.flatMap { Mood(rawValue: Int($0.rounded())) }?.title ?? "Not rated",
                              systemImage: review.averageMood.flatMap { Mood(rawValue: Int($0.rounded())) }?.symbolName ?? "cloud.sun.fill",
-                             tint: .teal)
+                             tint: .swatch(.teal))
                 }
                 if let best = review.bestDay {
                     Label("Best day: \(best.formatted(.dateTime.weekday(.wide)))", systemImage: "sparkles")
                         .font(.headline)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.award)
                 }
                 if !review.goals.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
@@ -57,7 +57,7 @@ struct WeekReviewSheet: View {
                 }
                 if !review.wins.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Wins", systemImage: "trophy.fill").font(.headline).foregroundStyle(.orange)
+                        Label("Wins", systemImage: "trophy.fill").font(.headline).foregroundStyle(.award)
                         ForEach(review.wins) { win in
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text(win.day.date().formatted(.dateTime.weekday(.abbreviated)))
@@ -68,7 +68,7 @@ struct WeekReviewSheet: View {
                             }
                         }
                     }
-                    .glassCard(tint: .orange, cornerRadius: 20)
+                    .glassCard(tint: .award, cornerRadius: 20)
                 }
                 if !review.achievements.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
@@ -92,7 +92,7 @@ struct WeekReviewSheet: View {
                                   preview: SharePreview("My week", image: Image(platformImage: shareImage))) {
                             Label("Share", systemImage: "square.and.arrow.up")
                         }
-                        .secondaryActionStyle(.teal)
+                        .secondaryActionStyle(.swatch(.teal))
                     }
                     Spacer()
                     Button("Done") { dismiss() }
@@ -107,7 +107,7 @@ struct WeekReviewSheet: View {
                     } label: {
                         Label("Plan tomorrow", systemImage: "sun.horizon.fill")
                     }
-                    .primaryActionStyle(.teal)
+                    .primaryActionStyle(.swatch(.teal))
                 }
             }
             .padding(26)

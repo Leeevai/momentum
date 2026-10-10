@@ -33,8 +33,8 @@ struct MomentumEntry: TimelineEntry {
 
     var data: AppData { engine.data }
 
-    /// The palette chosen in the app.
-    var palette: ThemePalette { data.preferences.palette }
+    /// The palette chosen in the app, built-in or custom.
+    var palette: Palette { ActivePalette.current }
 
     /// `goals` narrowed by the Focus filter, keeping a running timer's goal.
     func filtered(_ goals: [Goal]) -> [Goal] {
@@ -52,7 +52,7 @@ enum WidgetTimeline {
     static func data(preview: Bool) -> AppData {
         let stored = SharedStore.load()
         let data = preview && stored.goals.isEmpty ? .demo() : stored
-        ActivePalette.current = data.preferences.palette
+        ActivePalette.current = data.preferences.activePalette
         return data
     }
 
@@ -63,7 +63,7 @@ enum WidgetTimeline {
     /// Entries at the moments rings need to move; see `WidgetSchedule`.
     static func timeline(goalID: UUID? = nil, now: Date = .now) -> Timeline<MomentumEntry> {
         let engine = ProgressEngine(data: SharedStore.load())
-        ActivePalette.current = engine.data.preferences.palette
+        ActivePalette.current = engine.data.preferences.activePalette
         let entries = WidgetSchedule.entryDates(for: engine.data, now: now).map {
             MomentumEntry(date: $0, engine: engine, goalID: goalID)
         }

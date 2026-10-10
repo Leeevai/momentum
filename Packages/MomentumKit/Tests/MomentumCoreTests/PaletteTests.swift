@@ -190,6 +190,21 @@ struct PaletteTests {
         }
     }
 
+    @Test("Colors are named as they look: a spectrum's swatches after their goal colors")
+    func colorNames() {
+        let tokens = ThemePalette.slate.tokens(dark: false)
+        for color in GoalColor.allCases where color != .brown && color != .gray {
+            let name = tokens.swatch(color).name
+            #expect(name == color.rawValue.capitalized, "\(color)")
+        }
+        let gray = tokens.swatch(.gray).name
+        let brown = tokens.swatch(.brown).name
+        #expect(gray == "Gray")
+        #expect(brown == "Deep brown")
+        #expect(OKLCH(0.7, 0.1, 140).name == "Light green")
+        #expect(OKLCH(0.55, 0.09, -110).name == "Blue")
+    }
+
     @Test("Mapping into sRGB keeps lightness and hue and lowers chroma")
     func gamutMapping() {
         let vivid = OKLCH(0.9, 0.3, 260)
