@@ -8,6 +8,7 @@ struct ChallengeBadge: View {
     let status: ChallengeStatus
     let color: GoalColor
     var size: CGFloat = 66
+    @Environment(\.palette) private var palette
 
     var body: some View {
         ProgressRing(progress: status.keptFraction,
@@ -15,7 +16,7 @@ struct ChallengeBadge: View {
             if status.isWon {
                 Image(systemName: "trophy.fill")
                     .font(.system(size: size * 0.34, weight: .semibold))
-                    .foregroundStyle(GoalColor.yellow.linear)
+                    .foregroundStyle(palette.linear(.yellow))
                     .symbolEffect(.bounce, value: status.isWon)
             } else {
                 VStack(spacing: -2) {
@@ -69,23 +70,25 @@ private struct ChallengeDot: View {
     let color: GoalColor
     let size: CGFloat
     let showsMarks: Bool
+    @Environment(\.palette) private var palette
 
     var body: some View {
+        let missed = palette.color(.red)
         ZStack {
             switch day {
             case .kept:
-                Circle().fill(color.linear)
+                Circle().fill(palette.tile(color))
                 if showsMarks {
                     Image(systemName: "checkmark")
                         .font(.system(size: size * 0.45, weight: .heavy))
                         .foregroundStyle(.white)
                 }
             case .missed:
-                Circle().strokeBorder(Color.red.opacity(0.75), lineWidth: 1.5)
+                Circle().strokeBorder(missed.opacity(0.75), lineWidth: 1.5)
                 if showsMarks {
                     Image(systemName: "xmark")
                         .font(.system(size: size * 0.4, weight: .bold))
-                        .foregroundStyle(.red.opacity(0.85))
+                        .foregroundStyle(missed.opacity(0.85))
                 }
             case .free:
                 Circle().strokeBorder(Color.secondary.opacity(0.45), style: StrokeStyle(lineWidth: 1.2, dash: [2, 2.5]))
@@ -104,11 +107,13 @@ private struct ChallengeDot: View {
 private struct TodayDot: View {
     let color: GoalColor
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.palette) private var palette
 
     var body: some View {
+        let tint = palette.color(color)
         Circle()
-            .strokeBorder(color.color, lineWidth: 2)
-            .background(Circle().fill(color.color.opacity(0.15)))
+            .strokeBorder(tint, lineWidth: 2)
+            .background(Circle().fill(tint.opacity(0.15)))
             .phaseAnimator(reduceMotion ? [1.0] : [1.0, 1.18]) { dot, scale in
                 dot.scaleEffect(scale)
             } animation: { _ in .easeInOut(duration: 1.1) }
@@ -125,10 +130,10 @@ struct ChallengeChip: View {
         Label(won ? "Won" : "Day \(status.dayNumber)/\(status.challenge.days)", systemImage: won ? "trophy.fill" : "flag.fill")
             .font(.caption2.weight(.semibold))
             .monospacedDigit()
-            .foregroundStyle(won ? .yellow : tint)
+            .foregroundStyle(won ? Color.award : tint)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(Capsule().fill((won ? Color.yellow : tint).opacity(0.14)))
+            .background(Capsule().fill((won ? Color.award : tint).opacity(0.14)))
             .contentTransition(.numericText(value: Double(status.dayNumber)))
             .help(won ? "\(status.challenge.title), complete" : "Day \(status.dayNumber) of a \(status.challenge.title)")
     }

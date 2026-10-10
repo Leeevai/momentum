@@ -12,6 +12,7 @@ struct GlassCard: ViewModifier {
     var padding: CGFloat = 18
     var isHighlighted = false
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.palette) private var palette
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -31,8 +32,11 @@ struct GlassCard: ViewModifier {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
 
+    /// What a highlighted pane is washed with: its tint, or the palette's accent.
+    private var wash: Color { tint ?? palette.colors.accent }
+
     private var highlightRim: some View {
-        shape.strokeBorder((tint ?? .accent).opacity(isHighlighted ? 0.7 : 0), lineWidth: 1.5)
+        shape.strokeBorder(wash.opacity(isHighlighted ? 0.7 : 0), lineWidth: 1.5)
     }
 
     #if compiler(>=6.2)
@@ -41,7 +45,7 @@ struct GlassCard: ViewModifier {
         let tokens = GlassTokens(colorScheme)
         return content
             .padding(padding)
-            .glassEffect(.regular.tint(isHighlighted ? (tint ?? .accent).opacity(0.22) : tokens.liquidTint), in: shape)
+            .glassEffect(.regular.tint(isHighlighted ? wash.opacity(0.22) : tokens.liquidTint), in: shape)
             .overlay(highlightRim)
     }
     #endif
@@ -53,7 +57,7 @@ struct GlassCard: ViewModifier {
             .background {
                 ZStack {
                     shape.fill(.ultraThinMaterial)
-                    shape.fill(isHighlighted ? (tint ?? .accent).opacity(0.16) : tokens.fill)
+                    shape.fill(isHighlighted ? wash.opacity(0.16) : tokens.fill)
                     // glasscn's sheen: a 160-degree wash of white, gone halfway down.
                     shape.fill(LinearGradient(stops: [.init(color: .white.opacity(tokens.sheen), location: 0),
                                                       .init(color: .white.opacity(0), location: 0.55)],
@@ -123,16 +127,6 @@ struct CircleButtonStyle: ButtonStyle {
                 .animation(GlassTokens.motion, value: configuration.isPressed)
                 .animation(.easeOut(duration: 0.15), value: isHovered)
         }
-    }
-}
-
-extension Color {
-    /// Text and icons on a fill of this color: white, or near-black on the lightest fills (the
-    /// Graphite accent in dark mode, yellows) where white would wash out.
-    func foreground(in environment: EnvironmentValues) -> Color {
-        let resolved = resolve(in: environment)
-        let luminance = 0.2126 * Double(resolved.linearRed) + 0.7152 * Double(resolved.linearGreen) + 0.0722 * Double(resolved.linearBlue)
-        return luminance > 0.45 ? Color(white: 0.08) : .white
     }
 }
 

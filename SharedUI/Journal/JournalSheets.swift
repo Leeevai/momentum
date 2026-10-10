@@ -18,7 +18,7 @@ struct PlanSheet: View {
         let today = engine.todayGoals(now: date)
         let others = engine.activeGoals.filter { goal in !today.contains { $0.id == goal.id } }
         VStack(alignment: .leading, spacing: 20) {
-            SheetHeader(symbol: "sun.horizon.fill", tint: .orange, title: "Plan your day",
+            SheetHeader(symbol: "sun.horizon.fill", tint: .swatch(.orange), title: "Plan your day",
                         subtitle: date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
             VStack(alignment: .leading, spacing: 8) {
                 Text("Intention")
@@ -56,7 +56,7 @@ struct PlanSheet: View {
                 Button("Cancel", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("Save Plan") { save() }
-                    .primaryActionStyle(.orange)
+                    .primaryActionStyle(.swatch(.orange))
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -115,7 +115,7 @@ private struct PriorityTile: View {
                         .font(.system(.callout, design: .rounded, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(width: 24, height: 24)
-                        .background(Circle().fill(goal.color.gradient))
+                        .background(Circle().fill(goal.color.tile))
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -150,16 +150,16 @@ struct ReflectSheet: View {
         let date = day.date()
         let summary = store.engine.daySummary(date, now: store.now)
         VStack(alignment: .leading, spacing: 20) {
-            SheetHeader(symbol: "moon.stars.fill", tint: .indigo, title: "How did it go?",
+            SheetHeader(symbol: "moon.stars.fill", tint: .swatch(.indigo), title: "How did it go?",
                         subtitle: date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
             HStack(spacing: 10) {
                 if !summary.due.isEmpty {
                     Label("\(summary.met.count) of \(summary.due.count) goals done", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.success)
                 }
                 if summary.focusSeconds > 0 {
                     Label("\(Formatting.duration(summary.focusSeconds)) focused", systemImage: "timer")
-                        .foregroundStyle(.indigo)
+                        .foregroundStyle(.focus)
                 }
             }
             .font(.callout.weight(.medium))
@@ -192,7 +192,7 @@ struct ReflectSheet: View {
                 Button("Cancel", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("Save") { save() }
-                    .primaryActionStyle(.indigo)
+                    .primaryActionStyle(.swatch(.indigo))
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -305,13 +305,14 @@ struct SheetHeader: View {
     let tint: Color
     let title: String
     let subtitle: String
+    @Environment(\.self) private var environment
 
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: symbol)
                 .font(.system(size: 22, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white)
+                .foregroundStyle(tint.foreground(in: environment))
                 .frame(width: 46, height: 46)
                 .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(tint.gradient))
                 .shadow(color: tint.opacity(0.35), radius: 6, y: 3)

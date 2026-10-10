@@ -138,7 +138,7 @@ struct TodayView: View {
         HStack(spacing: 14) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 34))
-                .foregroundStyle(.green.gradient)
+                .foregroundStyle(Color.success.gradient)
                 .symbolEffect(.bounce, value: store.engine.todaySummary(now: store.now).done)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Everything is done for today")
@@ -148,7 +148,7 @@ struct TodayView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(tint: .green, highlighted: false)
+        .glassCard(tint: .success, highlighted: false)
     }
 }
 
@@ -211,7 +211,7 @@ private struct WidgetTip: View {
         HStack(spacing: 16) {
             Image(systemName: "rectangle.3.group.fill")
                 .font(.system(size: 28))
-                .foregroundStyle(LinearGradient(colors: [.orange, .pink], startPoint: .top, endPoint: .bottom))
+                .foregroundStyle(LinearGradient(colors: [.swatch(.orange), .swatch(.pink)], startPoint: .top, endPoint: .bottom))
             VStack(alignment: .leading, spacing: 3) {
                 Text("Put Momentum on your desktop")
                     .font(.headline)
@@ -222,8 +222,8 @@ private struct WidgetTip: View {
             }
             Spacer(minLength: 8)
             Button("Got it", action: onDismiss)
-                .secondaryActionStyle(.orange, compact: true)
+                .secondaryActionStyle(.swatch(.orange), compact: true)
         }
-        .glassCard(tint: .orange)
+        .glassCard(tint: .swatch(.orange))
     }
 }

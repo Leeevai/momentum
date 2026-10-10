@@ -56,7 +56,7 @@ struct ChallengeWidgetView: View {
             VStack(spacing: 6) {
                 Image(systemName: "flag.2.crossed.fill")
                     .font(.title2)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.swatch(.orange))
                 Text("Start a challenge on a goal to follow it here")
                     .font(.caption)
                     .multilineTextAlignment(.center)
