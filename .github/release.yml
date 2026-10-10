@@ -1,0 +1,25 @@
+# Release notes that GitHub generates (gh release create --generate-notes, or "Generate release
+# notes" on GitHub) list each pull request under its type label, which the Ticket check copies onto
+# every pull request from its issue. The first category a pull request matches wins.
+changelog:
+  exclude:
+    labels:
+      - "type: release"
+      - duplicate
+      - invalid
+      - wontfix
+  categories:
+    - title: New features
+      labels: ["type: feature"]
+    - title: Enhancements
+      labels: ["type: enhancement"]
+    - title: Bug fixes
+      labels: ["type: bug"]
+    - title: Documentation
+      labels: ["type: docs"]
+    - title: Maintenance
+      labels: ["type: task"]
+    - title: Dependencies
+      labels: [dependencies]
+    - title: Other changes
+      labels: ["*"]
