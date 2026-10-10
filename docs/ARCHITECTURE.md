@@ -171,7 +171,9 @@ and no sync service has a conflict to resolve.
 The watch app (`MomentumWatch/`) holds no data of its own. The iPhone works out a
 `WatchSnapshot` on every change (today's goals with progress, streaks and one-tap actions, the
 timer and the break: a few kilobytes) and sends it as the WatchConnectivity application context.
-A tap on the watch is a `WatchCommand`: an explicit action (start a goal; stop or pause *the
+It sends one too when the app comes forward and when the day turns, which changes what's due
+without changing the data, and the store passes on changes it takes in while the app runs in the
+background with no window. A tap on the watch is a `WatchCommand`: an explicit action (start a goal; stop or pause *the
 session the watch showed*; log), the time it was tapped, and an id. The iPhone, woken in the
 background if needed, applies it to the shared data file as a widget would, once per id, dated
 when it was tapped, and replies with the new snapshot. So a reply lost on the way back can be
