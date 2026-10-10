@@ -305,8 +305,9 @@ enum PaletteGenerator {
         var places: [GoalColor: Place] = [:]
         switch recipe.harmony {
         case .spectrum:
+            // Each hue turns a little toward the base, never far enough to pass for its neighbor.
             for color in ranked {
-                places[color] = Place(hue: Hue.normalized(base + offset(color) * 0.88), lightnessStep: 0, chromaScale: 1)
+                places[color] = Place(hue: Hue.normalized(base + offset(color) * 0.94), lightnessStep: 0, chromaScale: 1)
             }
         case .analogous:
             for (rank, color) in ranked.enumerated() {

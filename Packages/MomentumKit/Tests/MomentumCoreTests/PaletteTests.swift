@@ -80,7 +80,7 @@ struct PaletteTests {
             #expect(chromaRange < 0.001)
             for color in colors {
                 let shift = abs(Hue.difference(tokens.swatch(color).hue, from: color.canonicalHue ?? 0))
-                #expect(shift < 22, "\(color)")
+                #expect(shift < 11, "\(color)")
             }
         }
     }
