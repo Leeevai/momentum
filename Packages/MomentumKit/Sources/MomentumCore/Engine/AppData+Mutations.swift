@@ -138,7 +138,7 @@ extension AppData {
         stopFocus(at: now, calendar: calendar)
         let block = rest.flatMap { $0.goalID == goalID ? $0.nextBlock : nil } ?? 1
         rest = nil
-        session = FocusSession(goalID: goalID, plannedDuration: planned, start: now, block: block)
+        session = FocusSession(goalID: goalID, plannedDuration: planned, start: now, block: block, timeZone: calendar.timeZone.identifier)
     }
 
     public mutating func pauseFocus(at now: Date = .now) {
@@ -167,14 +167,19 @@ extension AppData {
         // Seconds only mean something to a time goal; one changed to another kind mid-session
         // (or deleted) gets nothing rather than seconds read as its own unit.
         guard goal(finished.goalID)?.kind == .time else { return [] }
+        // The days of the time zone the session started in: every device that stops it (each
+        // finishing the same Pomodoro block, say) then logs the same pieces under the same ids,
+        // wherever the device is.
+        var days = calendar
+        if let zone = finished.timeZone.flatMap(TimeZone.init(identifier:)) { days.timeZone = zone }
         var perDay: [Date: (start: Date, seconds: Double)] = [:]
         for segment in finished.allSegments(at: now) {
             // A stop dated before a later pause (settling a merge) counts only up to the stop.
             let segmentEnd = min(segment.end, max(now, segment.start))
             var cursor = segment.start
             while cursor < segmentEnd {
-                let dayStart = calendar.startOfDay(for: cursor)
-                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? segmentEnd
+                let dayStart = days.startOfDay(for: cursor)
+                let dayEnd = days.date(byAdding: .day, value: 1, to: dayStart) ?? segmentEnd
                 let end = min(dayEnd, segmentEnd)
                 let existing = perDay[dayStart]
                 perDay[dayStart] = (min(existing?.start ?? cursor, cursor), (existing?.seconds ?? 0) + end.timeIntervalSince(cursor))
@@ -185,7 +190,7 @@ extension AppData {
             .filter { $0.seconds >= 1 }
             .sorted { $0.start < $1.start }
             .map { piece in
-                LogEntry(id: Self.timerEntryID(goal: finished.goalID, sessionStart: finished.startedAt, day: calendar.startOfDay(for: piece.start)),
+                LogEntry(id: Self.timerEntryID(goal: finished.goalID, sessionStart: finished.startedAt, day: days.startOfDay(for: piece.start)),
                          goalID: finished.goalID, date: piece.start, amount: piece.seconds.rounded(), source: .timer, note: finished.note)
             }
         entries.append(contentsOf: logged)

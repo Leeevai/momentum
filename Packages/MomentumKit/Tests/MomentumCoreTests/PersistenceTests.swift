@@ -66,6 +66,22 @@ struct PersistenceTests {
         #expect(preferences.focusSoundVolume == 1)
     }
 
+    @Test("A session keeps the time zone it started in; one saved without it, or with a bad one, still reads")
+    func sessionTimeZone() throws {
+        let goal = timeGoal()
+        var data = AppData(goals: [goal])
+        data.startFocus(on: goal.id, at: referenceNow, calendar: testCalendar)
+        let saved = try FileStore.decode(FileStore.encode(data)).session?.timeZone
+        #expect(saved == "America/Chicago")
+
+        let older = #"{"version": 2, "session": {"goalID": "\#(goal.id.uuidString)", "runningSince": 813254400}}"#
+        let bad = #"{"version": 2, "session": {"goalID": "\#(goal.id.uuidString)", "runningSince": 813254400, "timeZone": 5}}"#
+        let olderSession = try #require(FileStore.decode(Data(older.utf8)).session)
+        let badSession = try #require(FileStore.decode(Data(bad.utf8)).session)
+        #expect(olderSession.timeZone == nil)
+        #expect(badSession.timeZone == nil)
+    }
+
     @Test("The file store applies updates on top of what is on disk")
     func fileStoreUpdates() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
