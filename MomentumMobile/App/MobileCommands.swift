@@ -10,6 +10,8 @@ struct MobileCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Goal") { store.sheet = .newGoal }
                 .keyboardShortcut("n", modifiers: .command)
+            Button("To-dos from Videos") { store.sheet = .importTodos(link: nil) }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
         }
         CommandMenu("Go") {
             Button("Today") { store.route = .today }

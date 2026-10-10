@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -15,7 +13,11 @@
 			</array>
 		</dict>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>MomentumAppGroupID</key>
 	<string>$(APP_GROUP_ID)</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Momentum listens to the videos you add, on this device, to name the to-dos it finds in them.</string>
 </dict>
 </plist>

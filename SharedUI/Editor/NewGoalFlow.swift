@@ -3,6 +3,7 @@ import SwiftUI
 
 /// New goal: pick a template (or start blank), then fine-tune it in the editor.
 struct NewGoalFlow: View {
+    @Environment(GoalStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var draft: Goal?
 
@@ -13,6 +14,8 @@ struct NewGoalFlow: View {
         } else {
             TemplateGallery { goal in
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) { draft = goal }
+            } onImport: {
+                store.sheet = .importTodos(link: nil)
             } onCancel: {
                 dismiss()
             }
@@ -23,6 +26,7 @@ struct NewGoalFlow: View {
 
 private struct TemplateGallery: View {
     var onPick: (Goal) -> Void
+    var onImport: () -> Void
     var onCancel: () -> Void
 
     /// The kinds people reach for most come first.
@@ -59,6 +63,26 @@ private struct TemplateGallery: View {
                             Image(systemName: "chevron.right").foregroundStyle(.tertiary)
                         }
                         .glassCard(tint: .accent, padding: 14)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: onImport) {
+                        HStack(spacing: 14) {
+                            Image(systemName: "play.rectangle.on.rectangle")
+                                .font(.title2.weight(.semibold))
+                                .frame(width: 44, height: 44)
+                                .background(Circle().fill(Color.purple.opacity(0.15)))
+                                .foregroundStyle(.purple)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("From videos").font(.headline)
+                                Text("Saved reels, clips or screenshots become to-dos as long as each video.")
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+                        }
+                        .glassCard(tint: .purple, padding: 14)
                     }
                     .buttonStyle(.plain)
 
