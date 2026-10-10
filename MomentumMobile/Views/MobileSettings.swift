@@ -156,6 +156,7 @@ private struct MobileNotificationsSection: View {
                 DatePicker("Nudge at", selection: nudgeTime(preferences), displayedComponents: .hourAndMinute)
             }
             Toggle("Weekly recap", isOn: binding(\.weeklyRecapEnabled, preferences))
+            JournalReminderSettings()
             switch scheduler.authorization {
             case .notDetermined:
                 Button("Allow Notifications") { Task { await scheduler.requestAuthorization() } }
@@ -171,7 +172,7 @@ private struct MobileNotificationsSection: View {
         } footer: {
             Text(scheduler.authorization == .denied
                  ? "Notifications are off for Momentum, so reminders and nudges can't arrive."
-                 : "The evening nudge comes when a streak or a challenge day would end at midnight.")
+                 : "The evening nudge comes when a streak or a challenge day would end at midnight. Plan and reflect reminders skip days you've already written.")
         }
         .task { await scheduler.refreshAuthorization() }
     }
