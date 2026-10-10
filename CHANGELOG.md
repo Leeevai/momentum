@@ -30,6 +30,9 @@ All notable changes to Momentum are recorded here. The format follows
   included, so a goal has the same color everywhere.
 
 ### Fixed
+- Text in a goal's or the palette's colors could be hard to read in light mode, pale palettes
+  most of all. The accent and every color used for text now reach 4.5:1 on glass, in light
+  and dark, while rings, tiles and bars keep the palette's own colors.
 - Goals made from imported videos were always purple, and new blank goals always blue. A new goal
   now takes a color none of your other goals has, with purple and yellow last.
 - Labels on filled buttons could be hard to read in dark mode: they now switch to black wherever
