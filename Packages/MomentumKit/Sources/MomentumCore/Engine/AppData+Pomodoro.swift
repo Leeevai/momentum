@@ -126,6 +126,13 @@ extension AppData {
         startFocus(on: rest.goalID, planned: rest.blockDuration, at: now, calendar: calendar)
     }
 
+    /// Ends the break and starts the next block, if it's still the break that started at
+    /// `restStart`: one skipped since, or already followed by a block, is left as it is.
+    public mutating func startNextBlock(afterRestStartedAt restStart: Date, at now: Date = .now, calendar: Calendar = .current) {
+        guard let rest, abs(rest.start.timeIntervalSince(restStart)) < 0.001 else { return }
+        startNextBlock(at: now, calendar: calendar)
+    }
+
     /// Ends the break without starting anything.
     public mutating func endRest() {
         rest = nil

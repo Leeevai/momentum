@@ -379,6 +379,11 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         breaks.first { $0.start <= date && date < $0.end }
     }
 
+    /// Whether a break covers any part of `interval`.
+    public func hasBreak(during interval: DateInterval) -> Bool {
+        breaks.contains { $0.start < interval.end && interval.start < $0.end }
+    }
+
     /// The book currently being read: the one most recently started among those in progress.
     public var currentBook: Book? {
         books.filter { $0.status == .reading }.max { ($0.startedAt ?? $0.addedAt) < ($1.startedAt ?? $1.addedAt) }
