@@ -226,6 +226,28 @@ extension AppData {
         }
     }
 
+    /// Stops the session if it's still the one that started at `start` on `goalID`. For a stop from
+    /// something that showed one session, such as a notification: by the time it's tapped, that
+    /// session may have ended and another one begun.
+    @discardableResult
+    public mutating func stopFocus(startedAt start: Date, on goalID: UUID, at now: Date = .now, calendar: Calendar = .current) -> [LogEntry] {
+        guard hasSession(startedAt: start, on: goalID) else { return [] }
+        return stopFocus(at: now, calendar: calendar)
+    }
+
+    /// Adds `minutes` to the planned length of the session that started at `start` on `goalID`,
+    /// if it's still the one there.
+    public mutating func extendFocus(startedAt start: Date, on goalID: UUID, by minutes: Int) {
+        guard hasSession(startedAt: start, on: goalID), let planned = session?.plannedDuration else { return }
+        session?.plannedDuration = planned + Double(minutes) * 60
+    }
+
+    /// Whether the session, running or paused, is the one that started at `start` on `goalID`.
+    func hasSession(startedAt start: Date, on goalID: UUID) -> Bool {
+        guard let session, session.goalID == goalID else { return false }
+        return abs(session.startedAt.timeIntervalSince(start)) < 0.001
+    }
+
     public mutating func discardFocus() {
         session = nil
     }

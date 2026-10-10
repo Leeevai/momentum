@@ -123,6 +123,26 @@ struct PersistenceTests {
         #expect(FileStore(fileURL: file).load().goals.map(\.name) == ["Restored"])
     }
 
+    @Test("A file in a newer data format is refused, and nothing is saved over it")
+    func newerFormatIsKept() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let file = folder.appendingPathComponent("data.json")
+        // Readable as this version's data, but without what the newer version keeps elsewhere.
+        let newer = Data(#"{"version":3,"goals":[{"name":"Read","kind":"books","target":12}],"entries":[],"logs":[{"pages":40}]}"#.utf8)
+        try newer.write(to: file)
+
+        #expect(throws: FileStore.FormatError.newerVersion(3)) { try FileStore.decode(newer) }
+        let store = FileStore(fileURL: file)
+        let result = store.transform { $0.upsert(Goal(name: "New", target: 1)) }
+        let unreadable = store.isUnreadable
+        let saved = try Data(contentsOf: file)
+        #expect(result.after.goals.isEmpty)
+        #expect(unreadable)
+        #expect(saved == newer)
+    }
+
     @Test("CSV quotes fields that need it")
     func csvEscaping() {
         #expect(CSVExporter.escape("plain") == "plain")
@@ -186,6 +206,23 @@ struct DailyBackupTests {
         #expect(names == ["data-2026-10-12.json", "data-2026-10-11.json", "data-2026-10-10.json"])
         let restored = try FileStore.decode(Data(contentsOf: store.dailyBackups()[0]))
         #expect(restored.goals.map(\.name) == ["Backed up"])
+    }
+
+    @Test("A file that can't be read isn't kept as a day's copy, so the good copies stay")
+    func noDailyCopyOfUnreadableFile() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = FileStore(fileURL: folder.appendingPathComponent("data.json"))
+        store.update { $0.upsert(Goal(name: "Backed up", target: 1)) }
+        store.backUpDaily(keep: 1, now: dayOffset(0), calendar: testCalendar)
+        try Data("not json".utf8).write(to: store.fileURL)
+        // A date of its own, so the store can't take it for the version it wrote.
+        try FileManager.default.setAttributes([.modificationDate: Date.now.addingTimeInterval(60)], ofItemAtPath: store.fileURL.path)
+
+        let written = store.backUpDaily(keep: 1, now: dayOffset(1), calendar: testCalendar)
+        let names = try store.dailyBackups().map(\.lastPathComponent)
+        #expect(written == nil)
+        #expect(names == ["data-2026-10-08.json"])
     }
 }
 
