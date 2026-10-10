@@ -15,6 +15,10 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- Watch complications could miss an update from the iPhone when the Watch app wasn't open: the
+  watch could put the app back to sleep before the update had arrived.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
