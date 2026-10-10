@@ -233,7 +233,7 @@ private struct AwardDetail: View {
                 Text(item.achievement.tier.title.uppercased())
                     .font(.caption.weight(.bold))
                     .tracking(2)
-                    .foregroundStyle(item.achievement.tier.ringColors[0])
+                    .foregroundStyle(item.achievement.tier.labelColor)
                 Text(item.achievement.title)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                 Text(item.achievement.detail)
@@ -342,6 +342,18 @@ extension Achievement.Tier {
         case .platinum: [OKLCH(0.84, 0.03, 225), OKLCH(0.93, 0.015, 250), OKLCH(0.97, 0.006, 240), OKLCH(0.76, 0.03, 245)]
         }
         return metal.map { Color($0) }
+    }
+
+    /// The tier's name as text: a deep shade of its metal in light mode and a light one in dark,
+    /// each 4.5:1 or better on glass, where the metal itself is too pale to read.
+    var labelColor: Color {
+        let (light, dark): (OKLCH, OKLCH) = switch self {
+        case .bronze: (OKLCH(0.48, 0.08, 50), OKLCH(0.8, 0.065, 60))
+        case .silver: (OKLCH(0.48, 0.01, 250), OKLCH(0.85, 0.006, 250))
+        case .gold: (OKLCH(0.47, 0.085, 80), OKLCH(0.85, 0.09, 90))
+        case .platinum: (OKLCH(0.48, 0.035, 240), OKLCH(0.88, 0.02, 235))
+        }
+        return .dynamic(named: "momentum.tier.\(self)", light: light.inSRGB, dark: dark.inSRGB)
     }
 }
 
