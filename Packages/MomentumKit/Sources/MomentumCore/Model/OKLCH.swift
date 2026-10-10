@@ -138,6 +138,28 @@ public struct OKLCH: Hashable, Sendable {
     }
 }
 
+/// Written as `[lightness, chroma, hue]`. A color that isn't three finite numbers fails, so
+/// whatever holds it can fall back.
+extension OKLCH: Codable {
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        let lightness = try container.decode(Double.self)
+        let chroma = try container.decode(Double.self)
+        let hue = try container.decode(Double.self)
+        guard lightness.isFinite, chroma.isFinite, hue.isFinite else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Not a color"))
+        }
+        self.init(min(1, max(0, lightness)), max(0, chroma), Hue.normalized(hue))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(lightness)
+        try container.encode(chroma)
+        try container.encode(hue)
+    }
+}
+
 /// Angles on the color wheel, in degrees.
 enum Hue {
     /// `angle` in 0..<360.

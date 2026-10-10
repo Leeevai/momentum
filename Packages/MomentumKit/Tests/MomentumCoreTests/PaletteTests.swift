@@ -205,6 +205,17 @@ struct PaletteTests {
         #expect(OKLCH(0.55, 0.09, -110).name == "Blue")
     }
 
+    @Test("A color is written as three numbers and read back exactly; anything else fails")
+    func colorCoding() throws {
+        let colors = [OKLCH(0.735, 0.0825, 214.5), OKLCH(0, 0, 0), OKLCH(1, 0.37, 359.99)]
+        let decoded = try JSONDecoder().decode([OKLCH].self, from: JSONEncoder().encode(colors))
+        #expect(decoded == colors)
+        let text = String(decoding: try JSONEncoder().encode(OKLCH(0.5, 0.1, 30)), as: UTF8.self)
+        #expect(text == "[0.5,0.1,30]")
+        #expect(throws: DecodingError.self) { try JSONDecoder().decode(OKLCH.self, from: Data("[0.5, 0.1]".utf8)) }
+        #expect(throws: DecodingError.self) { try JSONDecoder().decode(OKLCH.self, from: Data(#"{"lightness": 0.5}"#.utf8)) }
+    }
+
     @Test("Mapping into sRGB keeps lightness and hue and lowers chroma")
     func gamutMapping() {
         let vivid = OKLCH(0.9, 0.3, 260)
