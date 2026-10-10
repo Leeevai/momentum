@@ -114,10 +114,20 @@ aurora, in one of its palettes.
   `Preferences.customPalettes`. `Preferences.activePalette` is the one in use. While a custom
   palette is in use, `Preferences.palette` holds the closest built-in one, which versions without
   custom palettes draw in. `Color(_: OKLCH)` in `Shared/GlassTheme.swift` converts the colors.
-- **Where the palette comes from.** Each window's root applies `.storePalette()`, which sets the
-  `palette` environment value and the tint. Colors that need a `Color` outside the view tree use
-  `Color.accent`, a dynamic color that reads `ActivePalette.current`; the store sets it on every
-  change, and the widget timeline sets it when it loads the file.
+- **Where the palette comes from.** The store works out the active palette (`GoalStore.palette`)
+  when the palette preferences change and sets `ActivePalette.current`; the widget timeline sets it
+  when it loads the file. Each window's root applies `.storePalette()`, which sets the `palette`
+  environment value and the tint. Components that draw goal colors (rings, bars, icons, glyphs,
+  challenge badges, highlighted glass) read the palette from the environment, so they redraw when
+  it changes and the palette editor's preview can draw another one. Elsewhere `goal.tint`,
+  `GoalColor.color`, `Color.accent` and the named roles (`.streak`, `.success`, `.attention`,
+  `.focus`, `.award`, `.rest`, `.swatch(_:)`) use the active palette's colors, made once per
+  palette (`PaletteColors`). Each is a dynamic color named after its palette, so a view redrawn in
+  a new palette gets a new color. Errors and warnings keep the system's red and orange.
+- **Labels on fills.** A prominent button's label is white or black, whichever contrasts more with
+  its fill (`Color.foreground(in:)`), so in dark mode, where swatches are light, labels are black.
+  Icon tiles, medals and kept days keep white symbols on a deep shade of their color
+  (`GoalColor.tile`), which holds white at 4.5:1.
 - **Glass.** `GlassTokens` holds glasscn's numbers (pane fills, rim, highlight, sheen, shadow,
   radii, press squash and easing) for light and dark. `GlassCard` uses Liquid Glass tinted with
   them on macOS 26 and iOS 26, and a frosted material with the fill, sheen, rim and shadow before.
