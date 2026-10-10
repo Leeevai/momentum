@@ -9,13 +9,15 @@ struct ProgressRing<Center: View>: View {
     let color: GoalColor
     var lineWidth: CGFloat = 8
     @ViewBuilder var center: Center
+    @Environment(\.palette) private var palette
 
     var body: some View {
+        let tint = palette.color(color)
         ZStack {
             Circle()
-                .stroke(color.color.opacity(0.16), lineWidth: lineWidth)
+                .stroke(tint.opacity(0.16), lineWidth: lineWidth)
             RingSweep(progress: progress, color: color, lineWidth: lineWidth)
-                .shadow(color: color.color.opacity(progress >= 1 ? 0.45 : 0), radius: lineWidth * 0.6)
+                .shadow(color: tint.opacity(progress >= 1 ? 0.45 : 0), radius: lineWidth * 0.6)
             center
         }
         .padding(lineWidth / 2)
@@ -31,20 +33,22 @@ struct RingSweep: View {
     let progress: Double
     let color: GoalColor
     let lineWidth: CGFloat
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let value = progress.isFinite ? min(max(progress, 0), 2) : 0
         let lap = max(0, value - 1)
+        let tint = palette.color(color)
         ZStack {
             Circle()
                 .trim(from: 0, to: max(0.0001, min(value, 1)))
-                .stroke(color.gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(palette.ringGradient(color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .opacity(value > 0 ? 1 : 0)
             if lap > 0 {
                 Circle()
                     .trim(from: 0, to: lap)
-                    .stroke(color.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                LapTip(lap: lap, color: color.color, lineWidth: lineWidth)
+                    .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                LapTip(lap: lap, color: tint, lineWidth: lineWidth)
             }
         }
         .rotationEffect(.degrees(-90))
@@ -81,11 +85,12 @@ extension ProgressRing where Center == EmptyView {
 struct StreakBadge: View {
     let count: Int
     var unit: String = "day"
+    @Environment(\.palette) private var palette
 
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(count > 0 ? AnyShapeStyle(LinearGradient(colors: [.yellow, .orange, .red], startPoint: .top, endPoint: .bottom)) : AnyShapeStyle(.tertiary))
+                .foregroundStyle(count > 0 ? AnyShapeStyle(flame) : AnyShapeStyle(.tertiary))
             Text("\(count)")
                 .monospacedDigit()
                 .contentTransition(.numericText(value: Double(count)))
@@ -95,14 +100,20 @@ struct StreakBadge: View {
         .accessibilityLabel(Goal.streakText(count, unit: unit))
         .help(Goal.streakText(count, unit: unit))
     }
+
+    /// A flame in the palette's warm colors, from its yellow at the tip to its red.
+    private var flame: LinearGradient {
+        LinearGradient(colors: [palette.color(.yellow), palette.color(.orange), palette.color(.red)], startPoint: .top, endPoint: .bottom)
+    }
 }
 
-/// The goal's symbol on an iOS-style tile: the goal's gradient, a glassy top light, a fine edge
-/// and a soft colored shadow.
+/// The goal's symbol on an iOS-style tile: a deep shade of the goal's color that the white
+/// symbol reads on in light and dark, a glassy top light, a fine edge and a soft colored shadow.
 struct GoalIcon: View {
     let goal: Goal
     var size: CGFloat = 36
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
@@ -113,7 +124,7 @@ struct GoalIcon: View {
             Image(systemName: goal.symbol)
                 .font(.system(size: size * 0.46, weight: .semibold))
                 .frame(width: size, height: size)
-                .background(shape.fill(goal.tint.opacity(0.3)).widgetAccentable())
+                .background(shape.fill(palette.color(goal.color).opacity(0.3)).widgetAccentable())
                 .accessibilityHidden(true)
         }
     }
@@ -124,14 +135,14 @@ struct GoalIcon: View {
             .symbolRenderingMode(.hierarchical)
             .foregroundStyle(.white)
             .frame(width: size, height: size)
-            .background(shape.fill(goal.color.linear))
+            .background(shape.fill(palette.tile(goal.color)))
             .overlay(
                 shape.fill(LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0)], startPoint: .top, endPoint: .center))
                     .blendMode(.plusLighter)
                     .allowsHitTesting(false)
             )
             .overlay(shape.strokeBorder(.white.opacity(0.22), lineWidth: max(0.5, size * 0.02)))
-            .shadow(color: goal.tint.opacity(0.32), radius: size * 0.14, y: size * 0.07)
+            .shadow(color: palette.color(goal.color).opacity(0.32), radius: size * 0.14, y: size * 0.07)
             .accessibilityHidden(true)
     }
 }
@@ -140,12 +151,13 @@ struct GoalIcon: View {
 struct GoalGlyph: View {
     let goal: Goal
     var size: CGFloat = 20
+    @Environment(\.palette) private var palette
 
     var body: some View {
         Image(systemName: goal.symbol)
             .font(.system(size: size, weight: .semibold))
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(goal.color.linear)
+            .foregroundStyle(palette.linear(goal.color))
             .accessibilityHidden(true)
     }
 }
@@ -160,6 +172,7 @@ struct Heatmap: View {
     var maxCell: CGFloat = 14
     /// Makes days clickable (to log for that day) and adds a tooltip with the day's amount.
     var onSelect: ((Date) -> Void)?
+    @Environment(\.palette) private var palette
 
     var body: some View {
         GeometryReader { geometry in
@@ -213,7 +226,7 @@ struct Heatmap: View {
         guard let day else { return .clear }
         if day < engine.firstDay(of: goal) { return Color.primary.opacity(0.025) }
         let intensity = engine.intensity(for: goal, on: day, now: now)
-        if intensity > 0 { return goal.tint.opacity(0.25 + 0.75 * intensity) }
+        if intensity > 0 { return palette.color(goal.color).opacity(0.25 + 0.75 * intensity) }
         return Color.primary.opacity(engine.isRequired(goal, on: day) ? 0.09 : 0.035)
     }
 
@@ -237,13 +250,14 @@ struct ProgressBar: View {
     let progress: Double
     let color: GoalColor
     var height: CGFloat = 6
+    @Environment(\.palette) private var palette
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(color.color.opacity(0.16))
+                Capsule().fill(palette.color(color).opacity(0.16))
                 Capsule()
-                    .fill(color.linear)
+                    .fill(palette.linear(color))
                     .frame(width: max(height, geometry.size.width * min(max(progress, 0), 1)))
                     .opacity(progress > 0 ? 1 : 0)
             }

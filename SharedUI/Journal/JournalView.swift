@@ -167,11 +167,11 @@ private struct DayCell: View {
                     .stroke(.primary.opacity(isFuture ? 0.04 : 0.08), lineWidth: 3)
                 Circle()
                     .trim(from: 0, to: completion)
-                    .stroke(summary.isPerfect ? AnyShapeStyle(Color.green.gradient) : AnyShapeStyle(Color.accent.gradient),
+                    .stroke(summary.isPerfect ? AnyShapeStyle(Color.success.gradient) : AnyShapeStyle(Color.accent.gradient),
                             style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 if summary.isPerfect {
-                    Circle().fill(.green.opacity(0.18))
+                    Circle().fill(Color.success.opacity(0.18))
                 }
                 Text(summary.day, format: .dateTime.day())
                     .font(.system(.callout, design: .rounded, weight: isToday ? .bold : .medium))
@@ -235,12 +235,12 @@ private struct MonthStats: View {
         let mood = engine.moodReport(in: interval, now: store.now)
         let focus = summaries.reduce(0) { $0 + $1.focusSeconds }
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            StatTile(title: "Perfect days", value: "\(summaries.filter(\.isPerfect).count)", systemImage: "star.fill", tint: .green)
-            StatTile(title: "Journaled", value: "\(summaries.filter { $0.journal?.isEmpty == false }.count) days", systemImage: "book.closed.fill", tint: .orange)
+            StatTile(title: "Perfect days", value: "\(summaries.filter(\.isPerfect).count)", systemImage: "star.fill", tint: .success)
+            StatTile(title: "Journaled", value: "\(summaries.filter { $0.journal?.isEmpty == false }.count) days", systemImage: "book.closed.fill", tint: .swatch(.orange))
             StatTile(title: "Average mood", value: mood.averageMood.map { Mood(rawValue: Int($0.rounded()))?.title ?? "–" } ?? "–",
-                     systemImage: mood.averageMood.flatMap { Mood(rawValue: Int($0.rounded())) }?.symbolName ?? "cloud.sun.fill", tint: .teal,
+                     systemImage: mood.averageMood.flatMap { Mood(rawValue: Int($0.rounded())) }?.symbolName ?? "cloud.sun.fill", tint: .swatch(.teal),
                      caption: mood.days > 0 ? "\(mood.days) days rated" : "Rate days to see it")
-            StatTile(title: "Focused", value: Formatting.duration(focus), systemImage: "timer", tint: .indigo)
+            StatTile(title: "Focused", value: Formatting.duration(focus), systemImage: "timer", tint: .focus)
         }
     }
 }
@@ -268,7 +268,7 @@ private struct DayDetail: View {
                     .font(.system(size: 30, weight: .bold, design: .rounded))
             }
 
-            journalCard(title: "Plan", symbol: "sun.horizon.fill", tint: .orange, isEmpty: entry?.hasPlan != true,
+            journalCard(title: "Plan", symbol: "sun.horizon.fill", tint: .swatch(.orange), isEmpty: entry?.hasPlan != true,
                         empty: isFuture ? "Plan ahead: set an intention and pick priorities." : "No plan written.",
                         action: entry?.hasPlan == true ? "Edit" : "Plan", route: .plan(id)) {
                 if let entry {
@@ -293,7 +293,7 @@ private struct DayDetail: View {
             }
 
             if !isFuture {
-                journalCard(title: "Reflection", symbol: "moon.stars.fill", tint: .indigo, isEmpty: entry?.hasReflection != true,
+                journalCard(title: "Reflection", symbol: "moon.stars.fill", tint: .swatch(.indigo), isEmpty: entry?.hasReflection != true,
                             empty: "How did the day go? Rate it and note a win.",
                             action: entry?.hasReflection == true ? "Edit" : "Reflect", route: .reflect(id)) {
                     if let entry {
@@ -369,7 +369,7 @@ private struct OnThisDayCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("On this day", systemImage: "clock.arrow.circlepath")
                 .font(.headline)
-                .foregroundStyle(.purple)
+                .foregroundStyle(.swatch(.purple))
             ForEach(memories) { memory in
                 Button {
                     onSelect(memory.entry.day.date())
@@ -384,7 +384,7 @@ private struct OnThisDayCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(tint: .purple, cornerRadius: 22)
+        .glassCard(tint: .swatch(.purple), cornerRadius: 22)
     }
 
     private func row(_ memory: JournalMemory) -> some View {
@@ -392,7 +392,7 @@ private struct OnThisDayCard: View {
         return HStack(alignment: .top, spacing: 12) {
             Image(systemName: entry.mood?.symbolName ?? "book.closed.fill")
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(entry.mood?.tint ?? .purple)
+                .foregroundStyle(entry.mood?.tint ?? .swatch(.purple))
                 .font(.title3)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 3) {

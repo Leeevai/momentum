@@ -13,41 +13,145 @@ extension Color {
 
     /// The palette's accent, resolved for light or dark each time it's drawn. In place of
     /// `accentColor` wherever a `Color` is needed rather than the `.tint` style.
-    static var accent: Color {
-        dynamic { ActivePalette.current.tokens(dark: $0).accent }
-    }
+    static var accent: Color { ActivePalette.colors.accent }
 
-    /// A color that follows the appearance it's drawn in.
-    static func dynamic(_ resolve: @escaping @Sendable (_ dark: Bool) -> OKLCH) -> Color {
+    /// A color that is `light` in light mode and `dark` in dark mode. The name tells colors of
+    /// different palettes apart wherever SwiftUI compares them, so a view redraws in a new one.
+    static func dynamic(named name: String, light: OKLCH, dark: OKLCH) -> Color {
+        let lightRGB = light.sRGB
+        let darkRGB = dark.sRGB
         #if canImport(AppKit)
-        Color(nsColor: NSColor(name: nil) { appearance in
-            let rgb = resolve(appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua).sRGB
+        return Color(nsColor: NSColor(name: name) { appearance in
+            let rgb = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? darkRGB : lightRGB
             return NSColor(srgbRed: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1)
         })
         #else
-        Color(uiColor: UIColor { traits in
-            let rgb = resolve(traits.userInterfaceStyle == .dark).sRGB
+        return Color(uiColor: UIColor { traits in
+            let rgb = traits.userInterfaceStyle == .dark ? darkRGB : lightRGB
             return UIColor(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1)
         })
         #endif
     }
+
+    /// Text and symbols on a fill of this color: white, or black where black reads better. Of
+    /// the two, one always reaches WCAG's 4.5:1.
+    func foreground(in environment: EnvironmentValues) -> Color {
+        let resolved = resolve(in: environment)
+        let luminance = 0.2126 * Double(resolved.linearRed) + 0.7152 * Double(resolved.linearGreen) + 0.0722 * Double(resolved.linearBlue)
+        // Where white and black contrast equally: (L + 0.05)² = 1.05 × 0.05.
+        return luminance > 0.179 ? .black : .white
+    }
 }
 
 /// The palette the app is drawn in, for colors resolved outside the view tree. Set by the store
-/// from preferences; views read the `palette` environment value.
+/// from preferences, and by the widgets when they read the data file; views read the `palette`
+/// environment value. Behind a lock: a widget extension loads several timelines at once.
 enum ActivePalette {
-    nonisolated(unsafe) static var current: ThemePalette = .dusk
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var palette = Palette.standard
+    nonisolated(unsafe) private static var paletteColors = PaletteColors(.standard)
+
+    static var current: Palette {
+        get { lock.withLock { palette } }
+        set {
+            lock.withLock {
+                guard newValue != palette else { return }
+                palette = newValue
+                paletteColors = PaletteColors(newValue)
+            }
+        }
+    }
+
+    /// `current` as SwiftUI colors, made once per palette rather than on every use.
+    static var colors: PaletteColors { lock.withLock { paletteColors } }
+
+    /// The active palette's colors, if `palette` is the active one.
+    static func colors(for palette: Palette) -> PaletteColors? {
+        lock.withLock { palette == self.palette ? paletteColors : nil }
+    }
+}
+
+/// A palette's colors as SwiftUI colors: the accent and, for every goal color, its swatch, a
+/// lighter highlight and a deep shade that white symbols read on.
+struct PaletteColors: Sendable {
+    let accent: Color
+    private let swatches: [GoalColor: Color]
+    private let highlights: [GoalColor: Color]
+    private let deepShades: [GoalColor: Color]
+    private let deepHighlights: [GoalColor: Color]
+    private let fillEnds: [GoalColor: Color]
+
+    init(_ palette: Palette) {
+        // The palette's content in every name, so an edited custom palette doesn't pass for the
+        // one it was.
+        let key = "momentum.\(palette.id).\(palette.hashValue)"
+        func colors(_ kind: String, _ shade: (OKLCH) -> OKLCH) -> [GoalColor: Color] {
+            Dictionary(uniqueKeysWithValues: GoalColor.allCases.map { goalColor in
+                (goalColor, Color.dynamic(named: "\(key).\(kind).\(goalColor.rawValue)",
+                                          light: shade(palette.light.swatch(goalColor)), dark: shade(palette.dark.swatch(goalColor))))
+            })
+        }
+        accent = .dynamic(named: "\(key).accent", light: palette.light.accent, dark: palette.dark.accent)
+        swatches = colors("swatch") { $0 }
+        highlights = colors("highlight") { $0.highlight }
+        deepShades = colors("deep") { $0.deepened }
+        deepHighlights = colors("deep-highlight") { OKLCH($0.deepened.lightness + 0.04, $0.deepened.chroma, $0.hue).inSRGB }
+        // A label's fill shades away from the label, so it keeps its contrast across the fill.
+        fillEnds = colors("fill-end") { OKLCH($0.lightness + ($0.prefersDarkLabel ? 0.05 : -0.05), $0.chroma, $0.hue).inSRGB }
+    }
+
+    func swatch(_ color: GoalColor) -> Color { swatches[color] ?? .gray }
+    func highlight(_ color: GoalColor) -> Color { highlights[color] ?? .gray }
+    func deep(_ color: GoalColor) -> Color { deepShades[color] ?? .gray }
+    func deepHighlight(_ color: GoalColor) -> Color { deepHighlights[color] ?? .gray }
+    func fillEnd(_ color: GoalColor) -> Color { fillEnds[color] ?? .gray }
+}
+
+extension Palette {
+    /// The palette as SwiftUI colors: the active palette's are made once, and those of a few
+    /// others (the picker's, a palette being edited) are kept while they're in use.
+    var colors: PaletteColors {
+        ActivePalette.colors(for: self) ?? PaletteColorCache.colors(for: self)
+    }
+}
+
+/// Colors of the palettes drawn besides the active one, so a picker or a live preview doesn't
+/// make them again on every redraw.
+private enum PaletteColorCache {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var cache: [Palette: PaletteColors] = [:]
+
+    static func colors(for palette: Palette) -> PaletteColors {
+        lock.lock()
+        defer { lock.unlock() }
+        if let colors = cache[palette] { return colors }
+        // A palette being edited changes on every drag of a slider: start over now and then.
+        if cache.count >= 24 { cache.removeAll() }
+        let colors = PaletteColors(palette)
+        cache[palette] = colors
+        return colors
+    }
+}
+
+private struct PaletteKey: EnvironmentKey {
+    /// Outside a `palette(_:)` modifier, the active palette.
+    static var defaultValue: Palette { ActivePalette.current }
 }
 
 extension EnvironmentValues {
-    @Entry var palette: ThemePalette = .dusk
+    /// The palette views below are drawn in.
+    var palette: Palette {
+        get { self[PaletteKey.self] }
+        set { self[PaletteKey.self] = newValue }
+    }
 }
 
 extension View {
-    /// Draws this tree in `palette`: its accent as the tint, its aurora behind screens.
-    func palette(_ palette: ThemePalette) -> some View {
+    /// Draws this tree in `palette`: its accent as the tint, its aurora behind screens, its
+    /// swatches for goal colors.
+    func palette(_ palette: Palette) -> some View {
         environment(\.palette, palette)
-            .tint(Color.dynamic { palette.tokens(dark: $0).accent })
+            .tint(palette.colors.accent)
     }
 }
 

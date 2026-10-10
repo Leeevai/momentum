@@ -17,6 +17,23 @@ public struct SyncEnvelope: Codable, Sendable {
         self.savedAt = savedAt
         self.data = data
     }
+
+    private enum CodingKeys: String, CodingKey { case deviceID, deviceName, platform, savedAt, data }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        deviceID = try c.decode(String.self, forKey: .deviceID)
+        deviceName = try c.decode(String.self, forKey: .deviceName)
+        platform = try c.decode(String.self, forKey: .platform)
+        savedAt = try c.decode(Date.self, forKey: .savedAt)
+        // A newer data format is told apart before it's read: as this version's data it would
+        // lose what this version doesn't know, and the merge would pass that loss on to every
+        // device.
+        if let version = try c.decode(FileStore.VersionProbe.self, forKey: .data).version, version > AppData.currentVersion {
+            throw SyncFolder.NewerFormat(deviceName: deviceName)
+        }
+        data = try c.decode(AppData.self, forKey: .data)
+    }
 }
 
 /// Syncs through any folder every device can reach: iCloud Drive, Dropbox, a network share.
@@ -86,21 +103,33 @@ public struct SyncFolder: Sendable {
         /// Not saved for `SyncState.peerLifetime`: left out, so a long-gone device can't bring
         /// back what was deleted since (see `SyncState.peerLifetime` for when it's still used).
         case stale(SyncEnvelope)
+        /// Saved by a device on a newer version of Momentum, in a data format this one doesn't
+        /// know: left out until this device is updated too.
+        case newer(deviceName: String)
         /// Not readable now (still downloading, half written); worth trying again later.
         case unreadable
+    }
+
+    /// Thrown when decoding a file saved in a newer data format.
+    struct NewerFormat: Error {
+        var deviceName: String
     }
 
     /// Reads one device's file.
     public func read(_ file: URL, now: Date = .now) -> PeerRead {
         var envelope: SyncEnvelope?
+        var newer: String?
         var coordinationError: NSError?
         NSFileCoordinator().coordinate(readingItemAt: file, options: [], error: &coordinationError) { source in
             do {
                 envelope = try Self.decode(Data(contentsOf: source))
+            } catch let error as NewerFormat {
+                newer = error.deviceName
             } catch {
                 Self.logger.error("Skipping \(file.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
         }
+        if let newer { return .newer(deviceName: newer) }
         guard let envelope else { return .unreadable }
         return now.timeIntervalSince(envelope.savedAt) < SyncState.peerLifetime ? .read(envelope) : .stale(envelope)
     }
@@ -115,7 +144,7 @@ public struct SyncFolder: Sendable {
             switch read(file.url, now: now) {
             case .read(let envelope): fresh.append(envelope)
             case .stale(let envelope): stale.append(envelope)
-            case .unreadable: break
+            case .newer, .unreadable: break
             }
         }
         return startingFresh && fresh.isEmpty ? stale : fresh

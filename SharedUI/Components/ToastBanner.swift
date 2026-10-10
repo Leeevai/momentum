@@ -5,6 +5,7 @@ import SwiftUI
 /// Dismisses itself; a click on an achievement opens Awards.
 struct ToastBanner: View {
     @Environment(GoalStore.self) private var store
+    @Environment(\.self) private var environment
     let toast: Toast
     @State private var visible = false
     @State private var shine = false
@@ -69,12 +70,12 @@ struct ToastBanner: View {
                 .font(.system(size: 24))
                 .foregroundStyle(.white)
                 .frame(width: 52, height: 52)
-                .background(Circle().fill(LinearGradient(colors: [.yellow, .orange], startPoint: .top, endPoint: .bottom)))
+                .background(Circle().fill(GoalColor.yellow.tile))
                 .symbolEffect(.bounce, value: shine)
         case .message(_, _, let symbol):
             Image(systemName: symbol)
                 .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.accent.foreground(in: environment))
                 .frame(width: 48, height: 48)
                 .background(Circle().fill(Color.accent.gradient))
         }
@@ -107,7 +108,7 @@ struct ToastBanner: View {
     private var tint: Color {
         switch toast.kind {
         case .achievement(let achievement): achievement.family.tint
-        case .achievements: .yellow
+        case .achievements: .award
         case .message: .accent
         }
     }

@@ -82,7 +82,7 @@ struct WeekShareCard: View {
         .padding(32)
         .frame(width: 560)
         .background(
-            LinearGradient(colors: [Color(red: 0.13, green: 0.55, blue: 0.62), Color(red: 0.24, green: 0.2, blue: 0.55)],
+            LinearGradient(colors: [GoalColor.teal.deep, GoalColor.indigo.deep.blended(with: .black, by: 0.2)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
         )
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))

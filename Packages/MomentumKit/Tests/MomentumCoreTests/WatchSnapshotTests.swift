@@ -111,6 +111,39 @@ struct WatchSnapshotTests {
         #expect(decoded == snapshot)
     }
 
+    @Test("The snapshot carries the iPhone's palette, custom ones too, as it looks in dark mode")
+    func palette() throws {
+        var data = AppData(goals: [timeGoal()])
+        let custom = CustomPalette(name: "Tide", recipe: ThemePalette.fjord.recipe)
+        data.preferences.choose(custom)
+        let snapshot = engine(data).watchSnapshot(now: referenceNow)
+        let palette = try #require(snapshot.palette)
+        let expected = Palette(custom).dark.swatch(.green)
+        let sent = palette.swatch(.green)
+        #expect(abs(sent.lightness - expected.lightness) < 0.0001)
+        #expect(abs(sent.chroma - expected.chroma) < 0.0001)
+        #expect(abs(sent.hue - expected.hue) < 0.01)
+        let decoded = try WatchSnapshot(encoded: snapshot.encoded())
+        #expect(decoded == snapshot)
+    }
+
+    @Test("A snapshot without a palette decodes, and a damaged palette falls back without losing the snapshot")
+    func paletteFallback() throws {
+        var snapshot = engine(AppData(goals: [timeGoal()])).watchSnapshot(now: referenceNow)
+        snapshot.palette = nil
+        let older = try WatchSnapshot(encoded: snapshot.encoded())
+        #expect(older.palette == nil)
+        var object = try #require(try JSONSerialization.jsonObject(with: snapshot.encoded()) as? [String: Any])
+        let swatches: [Any] = [[0.5, 0.1, 200.0], "x"]
+        let damagedPalette: [String: Any] = ["accent": "plaid", "swatches": swatches]
+        object["palette"] = damagedPalette
+        let damaged = try WatchSnapshot(encoded: JSONSerialization.data(withJSONObject: object))
+        let palette = try #require(damaged.palette)
+        let ids = damaged.items.map(\.id)
+        #expect(ids == snapshot.items.map(\.id))
+        #expect(palette == WatchPalette.standard)
+    }
+
     @Test("Commands survive the trip as data, dates exact")
     func commandCoding() throws {
         let actions: [WatchAction] = [.start(goal: UUID()), .stop(goal: UUID(), sessionStart: referenceNow.addingTimeInterval(0.123)),
