@@ -13,8 +13,15 @@ All notable changes to Momentum are recorded here. The format follows
   on the device; nothing is uploaded. Find it in File on the Mac, the + menu on iPhone, or as
   From videos when making a new goal. Stop it at any point; closing the sheet stops it too.
   Paste the post's link on its own or with the message a share sheet copies around it.
+  A long video is named from its first five minutes of speech, and photos are read upright.
+  A bar shows how far it has got, and the review says what it couldn't read, and why.
+  Without Apple Intelligence, names skip greetings and the phone's own text, and lists numbered
+  with emoji, steps or bullets are read. A new goal is named after the post's title in its caption.
+  It works with VoiceOver, which reads lengths as words, and fits an iPhone at large text sizes.
+  A video added twice is read once, and adding to a goal leaves out the to-dos it already has.
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
-  be watched straight from its page.
+  be watched straight from its page. Add from Videos on a milestones goal's page imports more
+  into it.
 - Palettes of your own: pick an accent, a background tint, how goal colors spread around a base
   hue (spectrum, analogous, complementary, triadic or monochrome) and how light and crisp it
   all is, with a live preview in light and dark. Make one from New in the palette settings, or

@@ -35,6 +35,7 @@ struct MilestonesSection: View {
                         Label("\(Formatting.duration(remaining)) left", systemImage: "clock")
                             .font(.callout)
                             .foregroundStyle(.secondary)
+                            .accessibilityLabel("\(Formatting.spokenDuration(remaining)) left")
                     }
                     Text("\(done)/\(goal.milestones.count)")
                         .font(.callout.weight(.semibold))
@@ -59,6 +60,17 @@ struct MilestonesSection: View {
                     .onSubmit(add)
             }
             .padding(.vertical, 6)
+            // More from a course or a coach goes straight into this goal.
+            if goal.kind == .milestones, !goal.isArchived {
+                Button {
+                    store.sheet = .importTodos(link: nil, goalID: goal.id)
+                } label: {
+                    Label("Add from Videos…", systemImage: "play.rectangle.on.rectangle")
+                }
+                .buttonStyle(.borderless)
+                .font(.callout)
+                .foregroundStyle(goal.tint)
+            }
         }
         .glassCard(tint: goal.tint)
     }
@@ -113,6 +125,7 @@ private struct MilestoneRow: View {
                 Text(Formatting.clock(duration))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel(Formatting.spokenDuration(duration))
             }
             if let link = milestone.link {
                 Button { openURL(link) } label: {
