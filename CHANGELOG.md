@@ -48,6 +48,8 @@ All notable changes to Momentum are recorded here. The format follows
   some weekdays could be missing or extra) until something was logged on the iPhone, even once the
   iPhone app was opened. The iPhone now updates the watch when it comes forward and when the day
   turns, and passes on changes it makes while woken in the background.
+- With more than 12 goals due, a Pomodoro break on one of the later goals didn't show on the
+  watch, so the next block couldn't be started from there. The break's goal now always goes along.
 - A widget's timer stopped at 0:00 when a planned session reached its end, and stayed there for up
   to an hour; it now counts on. After midnight, the Today widget no longer keeps a checkmark on a
   goal that was done the day before.

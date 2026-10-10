@@ -176,8 +176,9 @@ extension ProgressEngine {
     public func watchSnapshot(now: Date) -> WatchSnapshot {
         let today = stackOrdered(todayGoals(now: now))
         var items = today.prefix(WatchSnapshot.itemLimit).map { item(for: $0, now: now) }
-        // A running timer's goal always makes the list, even when Today wouldn't show it.
-        if let session = data.session, !items.contains(where: { $0.id == session.goalID }), let goal = goal(session.goalID) {
+        // A running timer's goal always makes the list, even when Today wouldn't show it, and so
+        // does a break's: the watch draws the break with its goal.
+        if let timed = data.session?.goalID ?? data.rest?.goalID, !items.contains(where: { $0.id == timed }), let goal = goal(timed) {
             items.insert(item(for: goal, now: now), at: 0)
         }
         let summary = todaySummary(now: now)
