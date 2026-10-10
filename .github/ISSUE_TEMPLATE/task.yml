@@ -1,0 +1,53 @@
+name: Task
+description: Upkeep that changes nothing people see, such as a refactor, CI, tooling or a chore.
+labels: ["type: task", "status: needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Give the issue a plain title that says what to do, such as "Run the core tests in
+        parallel". Documentation-only work becomes type: docs at triage.
+  - type: textarea
+    id: what
+    attributes:
+      label: What needs doing?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: >-
+        The parts of Momentum it touches. Work across several areas becomes one sub-issue per area
+        at triage.
+      multiple: true
+      options:
+        - "ui: screens and components on Mac and iPhone"
+        - "core: the engine and saved data in MomentumCore"
+        - "sync: sync between devices"
+        - "watch: the watch app and complications"
+        - "widgets: widgets and the Live Activity"
+        - "mac: the Mac app only"
+        - "ios: the iPhone and iPad app only"
+        - "import: importing and exporting"
+        - "ci: GitHub workflows and checks"
+        - "docs: documentation"
+        - "tooling: scripts and developer tools"
+        - "release: versions and releases"
+        - "not sure: leave it for triage"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What has to be true for this to be done, one checkbox each.
+      placeholder: |
+        - [ ] The core tests run in parallel in CI
+        - [ ] The run takes less time than before
+    validations:
+      required: true

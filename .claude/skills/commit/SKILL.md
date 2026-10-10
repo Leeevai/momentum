@@ -9,6 +9,10 @@ description: Write Momentum commits in the Conventional Commits format and split
 PR, and the local commit-msg hook once `./scripts/install-hooks.sh` has installed it, refuse headers
 that don't match. `./scripts/check-commits.sh --range origin/develop..HEAD` checks a branch.
 
+The work has its issue before the first commit (`ticket` skill), and the branch carries its
+number. Commits keep this format; the pull request's title carries the ticket instead, as
+`[NNNN]-[area] description`.
+
 ## The header
 
 ```
