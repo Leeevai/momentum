@@ -2,8 +2,21 @@ import Foundation
 
 /// A notification Momentum should have scheduled.
 public struct PlannedReminder: Hashable, Sendable {
+    /// What a notification is for, so the app can give it the right buttons and open the right
+    /// place when it's tapped.
+    public enum Kind: Hashable, Sendable {
+        /// A goal's own reminder.
+        case goal
+        /// Tonight's "your streak ends at midnight", or a challenge day still to do.
+        case streakNudge
+        /// The summary on the week's last evening.
+        case weeklyRecap
+    }
+
     public var identifier: String
-    public var goalID: UUID
+    public var kind: Kind
+    /// The goal it's about; nil for the weekly recap.
+    public var goalID: UUID?
     public var fireDate: Date
     public var title: String
     public var subtitle: String = ""
@@ -40,6 +53,7 @@ public enum ReminderPlanner {
                     if doneThisPeriod && fire >= current.start && fire < current.end { continue }
                     planned.append(PlannedReminder(
                         identifier: "\(identifierPrefix)\(goal.id.uuidString).\(engine.dayKey(day)).\(minute)",
+                        kind: .goal,
                         goalID: goal.id,
                         fireDate: fire,
                         title: goal.name,
@@ -79,6 +93,7 @@ public enum ReminderPlanner {
             let left = goal.format(max(0, engine.streakThreshold(for: goal) - done))
             return PlannedReminder(
                 identifier: "\(identifierPrefix)nudge.\(goal.id.uuidString).\(engine.dayKey(today))",
+                kind: .streakNudge,
                 goalID: goal.id,
                 fireDate: fire,
                 title: "Your \(Goal.streakText(streak.current, unit: streak.unit)) ends at midnight",
@@ -99,6 +114,7 @@ public enum ReminderPlanner {
         }
         return PlannedReminder(
             identifier: "\(identifierPrefix)nudge.\(goal.id.uuidString).\(engine.dayKey(today))",
+            kind: .streakNudge,
             goalID: goal.id,
             fireDate: fire,
             title: "Day \(challenge.dayNumber) of your \(challenge.challenge.title)",
@@ -110,7 +126,7 @@ public enum ReminderPlanner {
     /// A summary on the last evening of the week, an hour after the streak-nudge time.
     static func weeklyRecap(_ engine: ProgressEngine, now: Date) -> PlannedReminder? {
         let preferences = engine.data.preferences
-        guard preferences.weeklyRecapEnabled, let anyGoal = engine.activeGoals.first else { return nil }
+        guard preferences.weeklyRecapEnabled, !engine.activeGoals.isEmpty else { return nil }
         let week = engine.interval(of: .weekly, containing: now)
         let lastDay = engine.day(-1, from: week.end)
         let minute = min(23 * 60, preferences.streakNudgeMinute + 60)
@@ -130,7 +146,7 @@ public enum ReminderPlanner {
         let summary = parts.joined(separator: " · ")
         return PlannedReminder(
             identifier: "\(identifierPrefix)recap.\(engine.dayKey(lastDay))",
-            goalID: anyGoal.id,
+            kind: .weeklyRecap,
             fireDate: fire,
             title: "Your week in Momentum",
             body: summary.prefix(1).uppercased() + summary.dropFirst() + "."

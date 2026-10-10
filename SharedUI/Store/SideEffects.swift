@@ -248,8 +248,10 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             content.body = reminder.body
             content.sound = .default
             content.categoryIdentifier = Category.reminder
-            content.userInfo = ["goal": reminder.goalID.uuidString]
-            content.threadIdentifier = reminder.goalID.uuidString
+            if let goalID = reminder.goalID {
+                content.userInfo = ["goal": goalID.uuidString]
+                content.threadIdentifier = goalID.uuidString
+            }
             let parts = engine.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: reminder.fireDate)
             let request = UNNotificationRequest(identifier: reminder.identifier, content: content, trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false))
             do {
