@@ -131,7 +131,7 @@ private struct MilestoneRow: View {
             } else if let due = milestone.dueDate {
                 Label(due.formatted(.dateTime.month(.abbreviated).day()), systemImage: "calendar")
                     .font(.caption)
-                    .foregroundStyle(due < .now ? .orange : .secondary)
+                    .foregroundStyle(due < .now ? Color.attention : Color.secondary)
             }
         }
         .padding(.vertical, 6)

@@ -37,7 +37,7 @@ struct WeekWidgetView: View {
                     Spacer(minLength: 0)
                     Label("\(report.activeDays) of 7 days active", systemImage: "flame.fill")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.streak)
                 }
                 .frame(width: 118, alignment: .leading)
                 WeekBars(days: days, showsLabels: true)
@@ -58,7 +58,7 @@ struct WeekWidgetView: View {
                 Label((change >= 0 ? "Up " : "Down ") + Formatting.percent(abs(change)),
                       systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(change >= 0 ? .green : .orange)
+                    .foregroundStyle(change >= 0 ? Color.success : Color.attention)
             }
         }
     }
@@ -70,7 +70,7 @@ struct WeekWidgetView: View {
             let day = engine.day(offset - 6, from: now)
             let parts = (byDay[engine.dayKey(day)] ?? [])
                 .sorted { $0.seconds > $1.seconds }
-                .map { WeekBars.Part(color: engine.goal($0.goalID)?.tint ?? .gray, seconds: $0.seconds) }
+                .map { WeekBars.Part(color: engine.goal($0.goalID)?.tint ?? .swatch(.gray), seconds: $0.seconds) }
             return WeekBars.Day(date: day, parts: parts, isToday: offset == 6)
         }
     }

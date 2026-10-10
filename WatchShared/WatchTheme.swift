@@ -1,32 +1,42 @@
 import MomentumCore
 import SwiftUI
 
-extension GoalColor {
-    var color: Color {
-        switch self {
-        case .blue: .blue
-        case .indigo: .indigo
-        case .purple: .purple
-        case .pink: .pink
-        case .red: .red
-        case .orange: .orange
-        case .yellow: .yellow
-        case .green: .green
-        case .mint: .mint
-        case .teal: .teal
-        case .cyan: .cyan
-        case .brown: .brown
-        case .gray: .gray
-        }
+extension Color {
+    /// A palette color, defined in OKLCH.
+    init(_ oklch: OKLCH) {
+        let rgb = oklch.sRGB
+        self.init(.sRGB, red: rgb.red, green: rgb.green, blue: rgb.blue)
+    }
+}
+
+extension EnvironmentValues {
+    /// The palette the iPhone sent, or the default one until it has.
+    @Entry var watchPalette: WatchPalette = .standard
+}
+
+extension WatchPalette {
+    /// A goal color's swatch.
+    func color(_ goalColor: GoalColor) -> Color { Color(swatch(goalColor)) }
+
+    /// The palette's accent.
+    var accentColor: Color { Color(accent) }
+
+    /// Streaks and their flames.
+    var streak: Color { color(.orange) }
+    /// Done.
+    var success: Color { color(.green) }
+    /// Breaks between focus blocks.
+    var rest: Color { color(.mint) }
+
+    func linear(_ goalColor: GoalColor) -> LinearGradient {
+        let tint = color(goalColor)
+        return LinearGradient(colors: [tint.opacity(0.75), tint], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
-    var linear: LinearGradient {
-        LinearGradient(colors: [color.opacity(0.75), color], startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
-    /// The page background: the goal's color fading into black, as watchOS apps do.
-    var backdrop: LinearGradient {
-        LinearGradient(colors: [color.opacity(0.45), color.opacity(0.08)], startPoint: .top, endPoint: .bottom)
+    /// A page's background: the goal's color fading into black, as watchOS apps do.
+    func backdrop(_ goalColor: GoalColor) -> LinearGradient {
+        let tint = color(goalColor)
+        return LinearGradient(colors: [tint.opacity(0.45), tint.opacity(0.08)], startPoint: .top, endPoint: .bottom)
     }
 }
 
@@ -36,19 +46,21 @@ struct WatchRing: View {
     let color: GoalColor
     var symbol: String?
     var lineWidth: CGFloat = 5
+    @Environment(\.watchPalette) private var palette
 
     var body: some View {
+        let tint = palette.color(color)
         ZStack {
             Circle()
-                .stroke(color.color.opacity(0.22), lineWidth: lineWidth)
+                .stroke(tint.opacity(0.22), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: max(0.001, min(progress, 1)))
-                .stroke(color.linear, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(palette.linear(color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             if let symbol {
                 Image(systemName: symbol)
                     .font(.system(size: lineWidth * 2.2, weight: .semibold))
-                    .foregroundStyle(color.color)
+                    .foregroundStyle(tint)
             }
         }
         .padding(lineWidth / 2)

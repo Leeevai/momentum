@@ -95,7 +95,7 @@ private struct GoalHeader: View {
                 if goal.isOnBreak(at: store.now) {
                     Label(breakText, systemImage: "pause.circle.fill")
                         .font(.callout.weight(.medium))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.rest)
                 }
                 if !goal.details.isEmpty {
                     Text(goal.details)
@@ -216,8 +216,8 @@ private struct PaceCard: View {
 
     private var tint: Color {
         switch pace.status {
-        case .onTrack, .done: .green
-        case .behind: .orange
+        case .onTrack, .done: .success
+        case .behind: .attention
         case .noDeadline: goal.tint
         }
     }
@@ -270,14 +270,14 @@ private struct StatsRow: View {
         let streak = engine.streak(for: goal, now: now)
         let unit = streak.unit
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 14)], spacing: 14) {
-            StatTile(title: "Current streak", value: "\(streak.current) \(Formatting.unit("\(unit)s", for: Double(streak.current)))", systemImage: "flame.fill", tint: .orange,
+            StatTile(title: "Current streak", value: "\(streak.current) \(Formatting.unit("\(unit)s", for: Double(streak.current)))", systemImage: "flame.fill", tint: .streak,
                      caption: goal.kind == .books || goal.kind == .milestones ? "Days with progress" : streakCaption(streak))
-            StatTile(title: "Best streak", value: "\(streak.best) \(Formatting.unit("\(unit)s", for: Double(streak.best)))", systemImage: "trophy.fill", tint: .yellow,
+            StatTile(title: "Best streak", value: "\(streak.best) \(Formatting.unit("\(unit)s", for: Double(streak.best)))", systemImage: "trophy.fill", tint: .award,
                      caption: streak.best > 0 && streak.current >= streak.best ? "Happening now" : nil)
             if goal.kind == .books {
                 let year = engine.interval(of: .yearly, containing: now)
                 StatTile(title: "Books this year", value: "\(engine.booksFinished(for: goal, in: year))", systemImage: "books.vertical.fill", tint: goal.tint)
-                StatTile(title: "Pages read", value: Formatting.number(engine.lifetimeAmount(for: goal, now: now)), systemImage: "book.pages.fill", tint: .brown,
+                StatTile(title: "Pages read", value: Formatting.number(engine.lifetimeAmount(for: goal, now: now)), systemImage: "book.pages.fill", tint: .swatch(.brown),
                          caption: "\(Formatting.number(engine.amount(for: goal, in: engine.interval(of: .monthly, containing: now), now: now))) this month")
             } else if goal.kind == .milestones {
                 let done = goal.milestones.filter(\.isDone).count

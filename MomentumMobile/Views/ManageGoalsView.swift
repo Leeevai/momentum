@@ -15,7 +15,7 @@ struct ManageGoalsView: View {
                     row(goal)
                         .swipeActions {
                             Button("Archive", systemImage: "archivebox") { store.archive(goal) }
-                                .tint(.orange)
+                                .tint(.attention)
                         }
                 }
                 .onMove { source, destination in

@@ -22,6 +22,10 @@ struct FocusActivityAttributes: ActivityAttributes {
         var remaining: TimeInterval?
         /// The Pomodoro block number, when cycles are on.
         var block: Int?
+        /// The goal's color in the app's palette, as it looks on a dark background: the Lock
+        /// Screen's tint and the Dynamic Island. In the state rather than the attributes, so a new
+        /// palette reaches a running activity.
+        var tint: OKLCH?
     }
 
     var goalID: String
@@ -73,15 +77,21 @@ enum FocusActivityController {
                 end: session.plannedEnd,
                 elapsed: elapsed,
                 remaining: session.remaining(at: now).map { max(0, $0) },
-                block: pomodoro ? session.block : nil)
+                block: pomodoro ? session.block : nil,
+                tint: tint(of: goal, in: data))
             return (attributes(for: goal), state)
         }
         if let rest = data.rest, !rest.isOver(at: now), let goal = data.goal(rest.goalID) {
             let state = FocusActivityAttributes.ContentState(phase: .resting, counterStart: rest.start, end: rest.end, elapsed: 0,
-                                                             remaining: nil, block: rest.nextBlock)
+                                                             remaining: nil, block: rest.nextBlock, tint: tint(of: goal, in: data))
             return (attributes(for: goal), state)
         }
         return nil
+    }
+
+    /// The goal's color in the active palette's dark appearance, which the activity is drawn on.
+    private static func tint(of goal: Goal, in data: AppData) -> OKLCH {
+        data.preferences.activePalette.dark.swatch(goal.color)
     }
 
     private static func attributes(for goal: Goal) -> FocusActivityAttributes {

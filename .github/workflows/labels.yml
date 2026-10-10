@@ -1,0 +1,62 @@
+name: Labels
+
+# .github/labels.yml defines the labels, and scripts/sync-labels.sh makes GitHub match it: on each
+# push to develop that changes either, or from the Actions tab. A pull request that changes them
+# shows what the sync would do once it's merged.
+on:
+  push:
+    branches: [develop]
+    paths:
+      - .github/labels.yml
+      - scripts/sync-labels.sh
+  pull_request:
+    paths:
+      - .github/labels.yml
+      - scripts/sync-labels.sh
+  workflow_dispatch:
+
+concurrency:
+  group: labels-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    name: Preview labels
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github
+            scripts
+      - name: Show what the sync would change
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/sync-labels.sh --dry-run
+
+  sync:
+    name: Sync labels
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github
+            scripts
+      - name: Create, rename and update the labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/sync-labels.sh

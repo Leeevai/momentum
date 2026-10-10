@@ -84,11 +84,11 @@ private struct AppearanceSettings: View {
             } header: {
                 Text("Palette")
             } footer: {
-                Text("The accent color, the aurora behind every screen and the widgets follow the palette, on every device you sync. The palettes are glasscn's.")
+                Text("The accent, the aurora behind every screen, every goal's color and the widgets follow the palette, on every device you sync. Click New to make your own, or right-click a palette to customize it.")
             }
         }
         .formStyle(.grouped)
-        .frame(height: 400)
+        .frame(height: 560)
     }
 }
 
@@ -382,6 +382,8 @@ private struct DataSettings: View {
                 defer { if accessing { url.stopAccessingSecurityScopedResource() } }
                 do {
                     pendingImport = try FileStore.decode(Data(contentsOf: url))
+                } catch let error as FileStore.FormatError {
+                    message = error.localizedDescription
                 } catch {
                     message = "That file isn't a Momentum backup: \(error.localizedDescription)"
                 }
@@ -409,6 +411,8 @@ private struct DataSettings: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             pendingImport = try FileStore.decode(Data(contentsOf: url))
+        } catch let error as FileStore.FormatError {
+            message = error.localizedDescription
         } catch {
             message = "That copy can't be read: \(error.localizedDescription)"
         }
