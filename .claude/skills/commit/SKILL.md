@@ -5,8 +5,9 @@ description: Write Momentum commits in the Conventional Commits format and split
 
 # Commit
 
-`CONTRIBUTING.md` holds the full convention. The **Conventional commits** check on every PR, and
-the local commit-msg hook once installed (see `CONTRIBUTING.md`), refuse headers that don't match.
+`.github/CONTRIBUTING.md` holds the full convention. The **Conventional commits** check on every
+PR, and the local commit-msg hook once `./scripts/install-hooks.sh` has installed it, refuse headers
+that don't match. `./scripts/check-commits.sh --range origin/develop..HEAD` checks a branch.
 
 ## The header
 
