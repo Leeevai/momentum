@@ -199,13 +199,13 @@ swift test --package-path Packages/MomentumKit
    version's notes from the changelog as its description, and merge it once CI is green.
 3. Tag the merge commit on `main` and push the tag:
    ```bash
-   git switch main && git pull
-   git tag -a v2.3.0 -m "Momentum 2.3.0"
+   git fetch origin
+   git tag -a v2.3.0 origin/main -m "Momentum 2.3.0"
    git push origin v2.3.0
    ```
-4. Publish the release with its notes; GitHub attaches the source code:
+4. Publish the release with the version's notes; GitHub attaches the source code:
    ```bash
-   gh release create v2.3.0 --title "Momentum 2.3.0" --notes-file notes.md
+   gh release create v2.3.0 --verify-tag --title "Momentum 2.3.0" --notes-file notes.md
    ```
 
 ## Hotfixes
@@ -218,9 +218,10 @@ A fix that can't wait for the next release goes to `main` directly:
 3. Open a pull request into `main` titled in the commit format, such as
    `fix(sync): keep journal entries when merging`, and merge it once CI is green.
 4. Tag and publish `v2.3.1` from `main`, as for a release.
-5. Bring the fix to `develop`: branch from `main` (`git switch -c chore/merge-v2.3.1 origin/main`),
-   merge `origin/develop` into that branch if the two conflict and resolve the conflicts there,
-   then open a pull request into `develop` titled `chore(release): merge v2.3.1 into develop`.
+5. Bring the fix back with a pull request from `main` into `develop` titled
+   `chore(release): bring v2.3.1 back to develop`. If the two conflict, open it from a branch of
+   `main` instead (`git switch -c chore/back-merge-v2.3.1 origin/main`), and merge `origin/develop`
+   into that branch to resolve the conflicts there.
 
 ## Reporting bugs
 
