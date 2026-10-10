@@ -190,7 +190,9 @@ On iPhone a running session or Pomodoro break shows on the Lock Screen and in th
 `FocusActivityController.sync(with:)` (in `Shared/`) derives the activity from the data, so the
 app calls it after every change and when it becomes active (only a foreground app may start one).
 Its buttons are App Intents that conform to `LiveActivityIntent`, so they run in the app's
-process, change the data and update the activity in one go.
+process, change the data and update the activity in one go. So are the widgets' timer buttons,
+the Control Center focus toggle and Siri's start and stop: an app in the background may start a
+Live Activity only while it performs one, and a widget extension can't start or end the app's.
 
 ## Performance
 
