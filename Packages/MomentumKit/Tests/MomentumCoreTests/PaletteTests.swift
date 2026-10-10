@@ -216,6 +216,39 @@ struct PaletteTests {
         #expect(throws: DecodingError.self) { try JSONDecoder().decode(OKLCH.self, from: Data(#"{"lightness": 0.5}"#.utf8)) }
     }
 
+    @Test("The accent reads as text on glass, 4.5:1 or better, in light and dark")
+    func accentIsReadable() {
+        var faint: [String] = []
+        for (name, tokens) in Self.everyToken() {
+            let dark = name.hasSuffix("dark")
+            let contrast = OKLCH.contrast(tokens.accent.luminance, GlassSurface.luminance(dark: dark))
+            if contrast < 4.5 { faint.append("\(name): \(contrast)") }
+        }
+        #expect(faint.isEmpty, "\(faint)")
+    }
+
+    @Test("A readable shade reaches 4.5:1, deeper on light glass and lighter on dark, and leaves a color that already does alone")
+    func readableShades() {
+        let light = GlassSurface.luminance(dark: false)
+        let dark = GlassSurface.luminance(dark: true)
+        for (name, tokens) in Self.everyToken() {
+            let surface = name.hasSuffix("dark") ? dark : light
+            for swatch in tokens.swatches {
+                let text = swatch.readable(onLuminance: surface)
+                let contrast = OKLCH.contrast(text.luminance, surface)
+                #expect(contrast >= 4.5, "\(name)")
+                #expect(text.hue == swatch.hue)
+            }
+        }
+        let pale = OKLCH(0.75, 0.08, 140)
+        let deepened = pale.readable(onLuminance: light)
+        let lightened = OKLCH(0.45, 0.08, 140).readable(onLuminance: dark)
+        let ink = OKLCH(0.3, 0.05, 250)
+        #expect(deepened.lightness < pale.lightness)
+        #expect(lightened.lightness > 0.45)
+        #expect(ink.readable(onLuminance: light) == ink)
+    }
+
     @Test("Mapping into sRGB keeps lightness and hue and lowers chroma")
     func gamutMapping() {
         let vivid = OKLCH(0.9, 0.3, 260)
