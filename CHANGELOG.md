@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- A break on a weekly, monthly or yearly goal protects every week, month or year it covers part
+  of. One that started partway through a week left that week unprotected, so the streak could
+  end while the goal said it was safe.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
