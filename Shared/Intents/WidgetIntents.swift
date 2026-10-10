@@ -20,7 +20,12 @@ struct ToggleFocusIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         if let id = UUID(uuidString: goalID) {
             LiveActivitySync.catchUp()
-            let data = SharedStore.update { $0.toggleFocus(on: id) }
+            let data = SharedStore.update { data in
+                // A stop always goes ahead, a start only on a goal that's still active: it may
+                // have been archived since the widget was drawn.
+                guard data.session?.goalID == id || data.goal(id)?.isArchived == false else { return }
+                data.toggleFocus(on: id)
+            }
             await LiveActivitySync.after(data)
         }
         return .result()
@@ -59,7 +64,8 @@ struct StartSessionIntent: AppIntent {
         guard let id = UUID(uuidString: goalID) else { return .result() }
         LiveActivitySync.catchUp()
         let data = SharedStore.update { data in
-            guard data.session?.goalID != id else { return }
+            // Not on a goal archived since the widget was drawn, either: archived goals aren't timed.
+            guard data.session?.goalID != id, data.goal(id)?.isArchived == false else { return }
             data.startFocus(on: id, planned: data.defaultFocusLength(for: id))
         }
         await LiveActivitySync.after(data)
@@ -233,7 +239,11 @@ struct QuickAddIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         if let id = UUID(uuidString: goalID) {
-            SharedStore.update { $0.quickAdd(to: id) }
+            SharedStore.update { data in
+                // Not on a goal archived since the widget was drawn.
+                guard data.goal(id)?.isArchived == false else { return }
+                data.quickAdd(to: id)
+            }
         }
         return .result()
     }
