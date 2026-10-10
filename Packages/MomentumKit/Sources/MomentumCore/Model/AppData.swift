@@ -260,7 +260,7 @@ public struct Preferences: Codable, Hashable, Sendable {
                 showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60,
                 weeklyRecapEnabled: Bool = true, focusSound: FocusSound = .off, focusSoundVolume: Double = 0.4,
                 pomodoro: PomodoroSettings = PomodoroSettings(), journalPromptsEnabled: Bool = true, asksSessionQuality: Bool = true,
-                palette: ThemePalette = .dusk) {
+                palette: ThemePalette = .standard) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
@@ -298,8 +298,9 @@ public struct Preferences: Codable, Hashable, Sendable {
         pomodoro = try c.decode(.pomodoro, default: PomodoroSettings())
         journalPromptsEnabled = try c.decode(.journalPromptsEnabled, default: true)
         asksSessionQuality = try c.decode(.asksSessionQuality, default: true)
-        // A palette from a newer version draws in the default rather than failing the file.
-        palette = (try? c.decode(.palette, default: .dusk)) ?? .dusk
+        // A palette an earlier version had opens in the closest one there is now; one from a
+        // newer version draws in the default rather than failing the file.
+        palette = (try? c.decode(.palette, default: .standard)) ?? .standard
     }
 }
 
