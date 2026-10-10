@@ -26,10 +26,13 @@ All notable changes to Momentum are recorded here. The format follows
 - Goal colors come from the palette: each goal keeps its color, drawn as the palette's own muted
   version of it, and moods, energy, streak flames, awards, charts and the rest of the app's
   accents follow the palette too. The goal editor shows the palette's colors.
+- Widgets, the Live Activity and the Apple Watch app draw in your palette too, custom ones
+  included, so a goal has the same color everywhere.
 
 ### Fixed
 - Labels on filled buttons could be hard to read in dark mode: they now switch to black wherever
   white wouldn't stand out, and symbols on goal icons and medals stay white on a deeper shade.
+  Widget and Live Activity buttons do the same.
 - A Pomodoro block finished on two devices in different time zones, such as an iPhone on a trip
   and the Mac at home, was logged twice. A session is now split into the days of the time zone it
   started in, so every device logs it the same way.

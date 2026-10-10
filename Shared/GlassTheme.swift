@@ -79,6 +79,7 @@ struct PaletteColors: Sendable {
     private let highlights: [GoalColor: Color]
     private let deepShades: [GoalColor: Color]
     private let deepHighlights: [GoalColor: Color]
+    private let fillEnds: [GoalColor: Color]
 
     init(_ palette: Palette) {
         // The palette's content in every name, so an edited custom palette doesn't pass for the
@@ -95,12 +96,15 @@ struct PaletteColors: Sendable {
         highlights = colors("highlight") { $0.highlight }
         deepShades = colors("deep") { $0.deepened }
         deepHighlights = colors("deep-highlight") { OKLCH($0.deepened.lightness + 0.04, $0.deepened.chroma, $0.hue).inSRGB }
+        // A label's fill shades away from the label, so it keeps its contrast across the fill.
+        fillEnds = colors("fill-end") { OKLCH($0.lightness + ($0.prefersDarkLabel ? 0.05 : -0.05), $0.chroma, $0.hue).inSRGB }
     }
 
     func swatch(_ color: GoalColor) -> Color { swatches[color] ?? .gray }
     func highlight(_ color: GoalColor) -> Color { highlights[color] ?? .gray }
     func deep(_ color: GoalColor) -> Color { deepShades[color] ?? .gray }
     func deepHighlight(_ color: GoalColor) -> Color { deepHighlights[color] ?? .gray }
+    func fillEnd(_ color: GoalColor) -> Color { fillEnds[color] ?? .gray }
 }
 
 extension Palette {

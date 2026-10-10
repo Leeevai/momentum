@@ -19,6 +19,10 @@ extension GoalColor {
 
     /// The deep shade on its own, flat.
     var deep: Color { ActivePalette.colors.deep(self) }
+
+    /// A fill for a label: from the swatch away from the label's color, so text in white or black
+    /// (`Color.foreground(in:)` of the swatch) holds 4.5:1 across it.
+    var fill: LinearGradient { ActivePalette.current.fill(self) }
 }
 
 extension Palette {
@@ -39,6 +43,13 @@ extension Palette {
     func linear(_ goalColor: GoalColor) -> LinearGradient {
         let shades = colors
         return LinearGradient(colors: [shades.highlight(goalColor), shades.swatch(goalColor)],
+                              startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    /// A goal color as a label's fill: from the swatch away from its label's color.
+    func fill(_ goalColor: GoalColor) -> LinearGradient {
+        let shades = colors
+        return LinearGradient(colors: [shades.swatch(goalColor), shades.fillEnd(goalColor)],
                               startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
