@@ -16,6 +16,9 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- A Goodreads import on a device set to the Buddhist or Japanese calendar dated books centuries
+  away, so none counted toward this year's reading. Goodreads dates are now read as the Gregorian
+  dates they are.
 - The buttons on "Time's up" and "Break's over" notifications act only on the session or break
   they were about, after catching up with other devices. Tapped late, "Stop and save" could stop
   a session started since, or count the time after it was stopped on another device.
