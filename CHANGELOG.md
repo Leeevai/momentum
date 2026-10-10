@@ -16,6 +16,10 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- After midnight the watch and its complications kept the day before's goals (a goal due only on
+  some weekdays could be missing or extra) until something was logged on the iPhone, even once the
+  iPhone app was opened. The iPhone now updates the watch when it comes forward and when the day
+  turns, and passes on changes it makes while woken in the background.
 - A widget's timer stopped at 0:00 when a planned session reached its end, and stayed there for up
   to an hour; it now counts on. After midnight, the Today widget no longer keeps a checkmark on a
   goal that was done the day before.
