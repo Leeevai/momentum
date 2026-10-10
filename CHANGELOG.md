@@ -32,6 +32,8 @@ All notable changes to Momentum are recorded here. The format follows
   included, so a goal has the same color everywhere.
 
 ### Fixed
+- Goals made from imported videos were always purple, and new blank goals always blue. A new goal
+  now takes a color none of your other goals has, with purple and yellow last.
 - Labels on filled buttons could be hard to read in dark mode: they now switch to black wherever
   white wouldn't stand out, and symbols on goal icons and medals stay white on a deeper shade.
   Widget and Live Activity buttons do the same.

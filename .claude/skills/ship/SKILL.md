@@ -1,14 +1,14 @@
 ---
 name: ship
-description: Take a Momentum change from its issue to a green pull request into develop - the ticket, branch naming, Conventional Commits, push, the PR title and template, CI. Use for every code, docs or config change once it is ready to commit, or when asked to open or update a PR.
+description: Take a Momentum change from its issue to a pull request merged into develop - the ticket, branch naming, Conventional Commits, push, the PR title and template, CI, and the merge. Use for every code, docs or config change once it is ready to commit, or when asked to open, update or merge a PR.
 ---
 
 # Ship a change
 
 Every change starts as an issue (`ticket` skill) and reaches `develop` through a pull request that
-closes it; `main` only changes through the release PR (`release` skill). Both branches are
-protected: GitHub refuses direct pushes to them. `.github/CONTRIBUTING.md` has the full
-conventions.
+closes it, which whoever opened it merges once it's green; `main` only changes through the release
+PR (`release` skill). Both branches are protected: GitHub refuses direct pushes to them.
+`.github/CONTRIBUTING.md` has the full conventions.
 
 ## Never
 
@@ -16,8 +16,9 @@ conventions.
   or the scripts that build (`install.sh`, `archive.sh`, `app-store-screenshots.sh`,
   `screenshots/render.sh`): they pin the CPU at 100%. CI builds and tests the PR. Build locally
   only when the owner asks for it in the conversation.
-- **Merge, squash or rebase a PR.** The owner merges, with a merge commit, so every commit keeps
-  its author and counts on their contribution graph.
+- **Squash, rebase or `--admin`-merge a PR, or merge one into `main`.** A merge commit keeps every
+  commit's author, so each counts on the owner's contribution graph. PRs into `main` are the main
+  session's to merge.
 - **Rewrite a pushed branch** (amend, rebase, force-push) without the owner's go-ahead. Fix forward
   with a new commit; bring in a moved `develop` with a merge.
 - **Credit an assistant** anywhere: no co-author trailers, no generated-with lines, no mentions in
@@ -80,8 +81,20 @@ conventions.
    A failure → `fix-ci` skill, then push the fix and watch again. For a big change, run the
    `review` skill over the diff while CI runs.
 
-8. **When everything is green**, `gh pr ready <number>` and give the owner the PR URL. If `develop`
-   moved and the PR conflicts or lacks a required check, `git merge origin/develop` into the branch
-   and push.
+8. **Merge it once every required check is green and the branch is up to date with `develop`.**
+   If `develop` moved, merge it in, push, and wait for the checks again. Then merge with a merge
+   commit, never `--squash`, `--rebase` or `--admin`:
 
-9. **Clean up** any worktree you created: `git worktree remove <path>` once its status is clean.
+   ```bash
+   gh pr ready <number>
+   git fetch origin
+   git merge-base --is-ancestor origin/develop HEAD || echo 'behind: git merge origin/develop, push, watch again'
+   gh pr merge <number> --merge
+   ```
+
+   `Closes #N` only closes the issue when `develop` is the default branch. If the issue is still
+   open after the merge, close it (`gh issue close <issue> --comment "Done in #<number>."`), and
+   move it to Done on the board if it didn't move by itself. Give the owner the PR URL.
+
+9. **Clean up** once it's merged: `git worktree remove <path>` for any worktree you created (its
+   status must be clean), then `git branch -d <branch>`.
