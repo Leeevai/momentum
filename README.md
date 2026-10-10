@@ -140,6 +140,14 @@ and Control Center gets a focus toggle on iOS 18 and macOS 26.
   <img src="docs/images/widgets-light.png" alt="The Today, Goal, Focus and Streaks widgets in small, medium and large sizes" width="760">
 </picture>
 
+### To-dos from videos
+Saved a reel full of things to try? Add the video, a few screenshots of a carousel, or just the
+caption, and Momentum turns them into to-dos: **each video becomes one, as long as the video**,
+with the post's link on it to watch again. Durations written on a slide ("14:32", "20 min") are
+read too. It all happens **on your device**: speech and text recognition, and Apple's on-device
+model (macOS 26 and iOS 26 with Apple Intelligence) to name each to-do. No account, no cost,
+nothing uploaded.
+
 ### Twelve palettes
 Pick a palette in Settings (Dusk, Ocean, Rose, Sage, Amber, Graphite, Lavender, Mint, Cherry,
 Lagoon, Sand or Midnight) and it sets the accent, the **aurora drifting behind every screen**
