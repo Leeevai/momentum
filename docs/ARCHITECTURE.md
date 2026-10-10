@@ -44,7 +44,11 @@ app group container, `~/Library/Group Containers/<team>.<prefix>.momentum/Moment
   inside an `NSFileCoordinator` write, applies the change, and writes atomically. A widget button
   and the app can never overwrite each other's change.
 - **Decoding is tolerant.** Every field decodes with a default when missing, so adding a field
-  never makes an existing file unreadable, and a file from a newer version still opens.
+  never makes an existing file unreadable, and a file a newer version saved in the same format
+  still opens.
+- **Newer formats are refused.** A file whose `version` is above `AppData.currentVersion` would
+  read without what's new and lose it at the next save, so it's treated as unreadable instead,
+  and a sync file in a newer format isn't merged. Settings asks for an update.
 - **Old formats migrate.** A file without a `version` is the 0.1 format; it converts on read, and
   the first read keeps an untouched copy as `data.v1-backup.json`.
 - **Nothing is ever silently lost.** An unreadable file is copied aside before Momentum starts
