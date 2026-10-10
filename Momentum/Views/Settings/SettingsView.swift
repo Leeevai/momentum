@@ -84,11 +84,11 @@ private struct AppearanceSettings: View {
             } header: {
                 Text("Palette")
             } footer: {
-                Text("The accent color, the aurora behind every screen and the widgets follow the palette, on every device you sync. The palettes are glasscn's.")
+                Text("The accent, the aurora behind every screen, every goal's color and the widgets follow the palette, on every device you sync. Click New to make your own, or right-click a palette to customize it.")
             }
         }
         .formStyle(.grouped)
-        .frame(height: 400)
+        .frame(height: 560)
     }
 }
 
