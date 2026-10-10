@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- On iPhone, a session started from the Control Center focus toggle, Siri or Shortcuts got no
+  Lock Screen timer until the app was opened, and one stopped from Control Center could leave the
+  timer counting there; the Live Activity now starts and ends with them.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
