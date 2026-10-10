@@ -325,6 +325,11 @@ final class GoalStore {
 
     func startNextBlock() { perform("Start Next Block") { $0.startNextBlock() } }
 
+    /// Starts the next block from the break a notification offered it for, if that break is still on.
+    func startNextBlock(afterRestStartedAt start: Date) {
+        perform("Start Next Block") { $0.startNextBlock(afterRestStartedAt: start) }
+    }
+
     func endRest() { perform("Skip Break") { $0.endRest() } }
 
     // MARK: - Achievements
@@ -555,6 +560,11 @@ extension GoalStore {
 
     func stopFocus() { perform("Stop Focus") { $0.stopFocus() } }
 
+    /// Stops the session a notification was about, if it's still the one there.
+    func stopFocus(startedAt start: Date, on goalID: UUID) {
+        perform("Stop Focus") { $0.stopFocus(startedAt: start, on: goalID) }
+    }
+
     func rate(_ rating: SessionRating, as quality: FocusQuality) {
         perform("Rate Session") { $0.rateSession(rating.entryIDs, quality: quality) }
     }
@@ -609,6 +619,11 @@ extension GoalStore {
             guard let planned = data.session?.plannedDuration else { return }
             data.session?.plannedDuration = planned + Double(minutes * 60)
         }
+    }
+
+    /// Adds five minutes to the session a notification was about, if it's still the one there.
+    func extendFocus(startedAt start: Date, on goalID: UUID, by minutes: Int = 5) {
+        perform { $0.extendFocus(startedAt: start, on: goalID, by: minutes) }
     }
 
     func setSessionNote(_ note: String) { perform { $0.setSessionNote(note) } }
