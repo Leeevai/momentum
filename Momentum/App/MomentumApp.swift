@@ -94,6 +94,11 @@ struct MomentumCommands: Commands {
                 store.sheet = .newGoal
             }
             .keyboardShortcut("n", modifiers: .command)
+            Button("To-dos from Videos…") {
+                openWindow(id: "main")
+                store.sheet = .importTodos(link: nil)
+            }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
         }
         CommandMenu("Go") {
             Button("Quick Actions…") {
