@@ -254,6 +254,8 @@ extension AppData {
                 resumeFocus(at: min(max(tapped, current.segments.last?.end ?? tapped), now))
             }
         case .quickAdd(let goal):
+            // Not on a goal archived since the watch last heard: it's put away, as for a Start.
+            guard self.goal(goal)?.isArchived == false else { return }
             quickAdd(to: goal, at: tapped)
         case .startNextBlock(let restStart):
             guard isShownRest(restStart) else { return }
