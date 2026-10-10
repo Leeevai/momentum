@@ -247,9 +247,14 @@ To fix a subject, amend the last commit (`git commit --amend`) or reword older o
   its own. Merging into `develop` then closes the issue.
 - Close one issue. Work across areas is one sub-issue, and one pull request, per area.
 - If people will notice the change, add a line to `CHANGELOG.md` under *Unreleased*.
-- CI must be green before it's merged.
-- Merge it with **Create a merge commit**. Squash and rebase merging are turned off, so every
-  commit keeps its author; tidy the commits before merging, and squash any `fixup!` commits.
+- Whoever opens the pull request merges it, once every required check is green and the branch is
+  up to date with `develop`. If `develop` moved, merge it into the branch
+  (`git merge origin/develop`), push, and wait for the checks again. Then merge with
+  `gh pr merge <number> --merge`, or **Create a merge commit** on GitHub.
+- Merge commits only, and never `--admin` past a check. Squash and rebase merging are turned off,
+  so every commit keeps its author; tidy the commits before merging, and squash any `fixup!`
+  commits.
+- Pull requests into `main`, for releases and hotfixes, are merged by the maintainer.
 - The branch is deleted once it's merged.
 
 ### The title
@@ -357,7 +362,7 @@ same way.
    sub-issue, such as `[0020]-[release] prepare 2.3.0`.
 2. Open a pull request from `develop` into `main` titled with the release issue's ticket, such as
    `[0019]-[release] release 2.3.0`, with `Closes #19` and the version's notes from the changelog
-   as its description, and merge it once CI is green.
+   as its description. The maintainer merges it once CI is green.
 3. Tag the merge commit on `main` and push the tag:
    ```bash
    git fetch origin
@@ -387,8 +392,8 @@ for the patch version, such as `2.3.1`.
 2. Make the fix, with a test. Bump the patch version as a release does (`2.3.0` to `2.3.1`) and
    give it a section of its own in `CHANGELOG.md`.
 3. Open a pull request into `main` with the issue's ticket, such as
-   `[0031]-[sync] keep journal entries when merging` and `Closes #31`, and merge it once CI is
-   green. The issue stays open for now, since `main` isn't the default branch.
+   `[0031]-[sync] keep journal entries when merging` and `Closes #31`. The maintainer merges it
+   once CI is green. The issue stays open for now, since `main` isn't the default branch.
 4. Tag and publish `v2.3.1` from `main`, as for a release, and close the `2.3.1` milestone.
 5. Bring the fix back with a pull request from `main` into `develop` with the same ticket, such as
    `[0031]-[sync] bring the 2.3.1 fix back to develop` and `Closes #31`. Merging it closes the

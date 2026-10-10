@@ -25,6 +25,7 @@ struct NewGoalFlow: View {
 }
 
 private struct TemplateGallery: View {
+    @Environment(GoalStore.self) private var store
     var onPick: (Goal) -> Void
     var onImport: () -> Void
     var onCancel: () -> Void
@@ -45,7 +46,7 @@ private struct TemplateGallery: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Button {
-                        onPick(Goal(name: "", symbol: "target", color: .blue, kind: .time, period: .daily, target: 30 * 60))
+                        onPick(Goal(name: "", symbol: "target", color: .suggested(besides: store.data.goals), kind: .time, period: .daily, target: 30 * 60))
                     } label: {
                         HStack(spacing: 14) {
                             Image(systemName: "plus")

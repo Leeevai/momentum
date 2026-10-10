@@ -117,6 +117,21 @@ public enum GoalColor: String, Codable, CaseIterable, Identifiable, Sendable {
     case blue, indigo, purple, pink, red, orange, yellow, green, mint, teal, cyan, brown, gray
 
     public var id: String { rawValue }
+
+    /// The order new goals take colors in: the calmest and most distinct first, purple and
+    /// yellow, the loudest, last.
+    public static let suggestionOrder: [GoalColor] = [.blue, .teal, .green, .orange, .indigo, .pink, .mint, .red, .cyan, .brown,
+                                                      .purple, .yellow, .gray]
+
+    /// A color for a new goal: the first in `suggestionOrder` that none of the active `goals`
+    /// has, or, with every color taken, the one used least.
+    public static func suggested(besides goals: [Goal]) -> GoalColor {
+        var uses: [GoalColor: Int] = [:]
+        for goal in goals where !goal.isArchived {
+            uses[goal.color, default: 0] += 1
+        }
+        return suggestionOrder.min { uses[$0, default: 0] < uses[$1, default: 0] } ?? .blue
+    }
 }
 
 /// A web page, app deep link, or local file attached to a goal.
