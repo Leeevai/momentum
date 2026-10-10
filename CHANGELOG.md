@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- A Pomodoro block finished on two devices in different time zones, such as an iPhone on a trip
+  and the Mac at home, was logged twice. A session is now split into the days of the time zone it
+  started in, so every device logs it the same way.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
