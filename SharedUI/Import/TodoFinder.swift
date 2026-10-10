@@ -128,15 +128,15 @@ enum TodoFinder {
     static func listName(for todos: [FoundTodo], caption: String) async -> String {
         #if canImport(FoundationModels)
         if #available(macOS 26.0, iOS 26.0, *), SystemLanguageModel.default.isAvailable, todos.count > 1 {
-            let prompt = """
-            To-dos: \(todos.map(\.title).joined(separator: "; "))
-            Caption: \(String(caption.prefix(600)))
-            """
-            if let answer = try? await LanguageModelSession(instructions: Self.nameInstructions)
-                .respond(to: prompt, generating: ListName.self) {
-                let name = TodoText.goalName(answer.content.name)
-                if !name.isEmpty { return name }
+            let titles = todos.map(\.title).joined(separator: "; ")
+            let answer = await respond(Self.nameInstructions, generating: ListName.self) { share in
+                """
+                To-dos: \(titles.prefix(Int(1500 * share)))
+                Caption: \(caption.prefix(Int(600 * share)))
+                """
             }
+            let name = answer.map { TodoText.goalName($0.name) } ?? ""
+            if !name.isEmpty { return name }
         }
         #endif
         return TodoText.listName(for: todos, caption: caption)
@@ -372,6 +372,27 @@ enum TodoFinder {
         or "Morning mobility", in sentence case. Use the post's own words for what it's about.
         """
 
+    #if canImport(FoundationModels)
+    /// Apple's model's answer to a prompt made from `share` of each text: all of it, then a quarter
+    /// when that overflows the model's context, as Chinese or Japanese can, where a character is
+    /// about a token. Nil when the model can't or won't answer.
+    @available(macOS 26.0, iOS 26.0, *)
+    private static func respond<Content: Generable>(_ instructions: String, generating type: Content.Type,
+                                                    prompt: (Double) -> String) async -> Content? {
+        for share in [1.0, 0.25] {
+            do {
+                return try await LanguageModelSession(instructions: instructions)
+                    .respond(to: prompt(share), generating: type).content
+            } catch LanguageModelSession.GenerationError.exceededContextWindowSize {
+                continue
+            } catch {
+                return nil
+            }
+        }
+        return nil
+    }
+    #endif
+
     /// A video's to-do, and whether Apple's model named it as meant: false when the model is there
     /// but couldn't, and the name comes from the video's text instead.
     private static func videoTitle(for material: Material, caption: String) async -> (title: String, named: Bool) {
@@ -379,18 +400,16 @@ enum TodoFinder {
                                               fileName: material.name)
         #if canImport(FoundationModels)
         if #available(macOS 26.0, iOS 26.0, *), SystemLanguageModel.default.isAvailable {
-            let prompt = """
-            Caption: \(String(caption.prefix(800)))
-            Spoken: \(String(material.transcript.prefix(3000)))
-            On screen: \(String(material.screenText.prefix(1000)))
-            File: \(material.name)
-            """
-            if let answer = try? await LanguageModelSession(instructions: Self.videoInstructions)
-                .respond(to: prompt, generating: VideoTodo.self) {
-                let title = TodoText.tidyTitle(answer.content.title)
-                if !title.isEmpty { return (title, true) }
+            let answer = await respond(Self.videoInstructions, generating: VideoTodo.self) { share in
+                """
+                Caption: \(caption.prefix(Int(800 * share)))
+                Spoken: \(material.transcript.prefix(Int(3000 * share)))
+                On screen: \(material.screenText.prefix(Int(1000 * share)))
+                File: \(material.name)
+                """
             }
-            return (fallback, false)
+            let title = answer.map { TodoText.tidyTitle($0.title) } ?? ""
+            return title.isEmpty ? (fallback, false) : (title, true)
         }
         #endif
         return (fallback, true)
@@ -402,9 +421,10 @@ enum TodoFinder {
         guard !body.isEmpty else { return [] }
         #if canImport(FoundationModels)
         if #available(macOS 26.0, iOS 26.0, *), SystemLanguageModel.default.isAvailable {
-            if let answer = try? await LanguageModelSession(instructions: Self.listInstructions)
-                .respond(to: String(body.prefix(4000)), generating: ListedTodos.self) {
-                let items = answer.content.todos.compactMap { item -> (title: String, duration: TimeInterval?)? in
+            if let answer = await respond(Self.listInstructions, generating: ListedTodos.self, prompt: { share in
+                String(body.prefix(Int(4000 * share)))
+            }) {
+                let items = answer.todos.compactMap { item -> (title: String, duration: TimeInterval?)? in
                     let duration = item.duration.flatMap(TodoText.duration(in:)) ?? TodoText.duration(in: item.title)
                     let title = TodoText.tidyTitle(TodoText.removingTrailingDuration(from: item.title))
                     return title.isEmpty ? nil : (title, duration)
