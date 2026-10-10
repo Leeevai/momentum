@@ -34,7 +34,19 @@ final class FolderSync {
     @ObservationIgnored private var lastWritten: AppData?
     @ObservationIgnored private var peerDates: [String: Date] = [:]
     @ObservationIgnored private var peersByID: [String: Peer] = [:]
+    /// Devices whose files are in a newer data format, by file name: not merged until this
+    /// device is updated.
+    @ObservationIgnored private var newerPeers: [String: String] = [:]
     @ObservationIgnored private let logger = Logger(subsystem: "dev.momentum.app", category: "Sync")
+
+    /// What Settings shows while a device's file is in a newer format: syncing with it waits for
+    /// an update here.
+    private var newerVersionNotice: String? {
+        let names = Set(newerPeers.values).sorted()
+        guard let first = names.first else { return nil }
+        let devices = names.count == 1 ? "\(first) has" : "\(names.joined(separator: ", ")) have"
+        return "\(devices) a newer version of Momentum. Update Momentum here to sync with \(names.count == 1 ? "it" : "them")."
+    }
 
     private nonisolated static let bookmarkKey = "syncFolderBookmark"
     private nonisolated static let deviceKey = "syncDeviceID"
@@ -174,6 +186,7 @@ final class FolderSync {
         folder = nil
         lastWritten = nil
         peerDates = [:]
+        newerPeers = [:]
     }
 
     private func watch(_ url: URL) {
@@ -218,7 +231,7 @@ final class FolderSync {
                 try await Task.detached(priority: .utility) { try target.write(envelope) }.value
                 self.lastWritten = data
                 self.lastSync = .now
-                self.lastError = nil
+                self.lastError = self.newerVersionNotice
             } catch {
                 self.lastError = "Could not write to the sync folder: \(error.localizedDescription)"
                 self.logger.error("Sync write failed: \(error.localizedDescription, privacy: .public)")
@@ -238,32 +251,44 @@ final class FolderSync {
         Task { [weak self] in
             // Only files changed since they were last read are read; a file that couldn't be
             // read (still downloading) keeps no date, so the next pass tries it again.
-            let (dates, envelopes) = await Task.detached(priority: .utility) { () -> ([String: Date], [SyncEnvelope]) in
-                var dates: [String: Date] = [:]
-                var envelopes: [SyncEnvelope] = []
+            let pass = await Task.detached(priority: .utility) { () -> PullPass in
+                var pass = PullPass()
                 var stale: [SyncEnvelope] = []
                 for file in source.peerFiles() {
                     let name = file.url.lastPathComponent
                     if known[name] == file.modified {
-                        dates[name] = file.modified
+                        pass.dates[name] = file.modified
                         continue
                     }
+                    pass.read.insert(name)
                     switch source.read(file.url) {
                     case .read(let envelope):
-                        envelopes.append(envelope)
-                        dates[name] = file.modified
+                        pass.envelopes.append(envelope)
+                        pass.dates[name] = file.modified
                     case .stale(let envelope):
                         stale.append(envelope)
-                        dates[name] = file.modified
+                        pass.dates[name] = file.modified
+                    case .newer(let deviceName):
+                        // Not merged: this version would lose what it doesn't know. Not read
+                        // again either until it changes.
+                        pass.newer[name] = deviceName
+                        pass.dates[name] = file.modified
                     case .unreadable:
                         break
                     }
                 }
-                return (dates, startingFresh && envelopes.isEmpty && known.isEmpty ? stale : envelopes)
+                if startingFresh && pass.envelopes.isEmpty && known.isEmpty { pass.envelopes = stale }
+                return pass
             }.value
             guard let self else { return }
             self.isSyncing = false
-            self.peerDates = dates
+            self.peerDates = pass.dates
+            // Files read this time say whether they're newer; unchanged ones still say what they did.
+            let previousNotice = self.newerVersionNotice
+            self.newerPeers = self.newerPeers.filter { pass.dates[$0.key] != nil && !pass.read.contains($0.key) }
+                .merging(pass.newer) { $1 }
+            if self.newerVersionNotice != nil || self.lastError == previousNotice { self.lastError = self.newerVersionNotice }
+            let envelopes = pass.envelopes
             guard !envelopes.isEmpty else { return }
             for envelope in envelopes {
                 self.peersByID[envelope.deviceID] = Peer(id: envelope.deviceID, name: envelope.deviceName, platform: envelope.platform,
@@ -273,5 +298,16 @@ final class FolderSync {
             self.store?.merge(envelopes.map(\.data))
             self.lastSync = .now
         }
+    }
+
+    /// What one look at the folder found.
+    private struct PullPass: Sendable {
+        /// Every peer file's date as last read, by file name.
+        var dates: [String: Date] = [:]
+        /// Files read this time, rather than skipped as unchanged.
+        var read: Set<String> = []
+        /// Devices whose files are in a newer data format, by file name.
+        var newer: [String: String] = [:]
+        var envelopes: [SyncEnvelope] = []
     }
 }
