@@ -230,7 +230,7 @@ private struct TodayHero: View {
                     .minimumScaleFactor(0.7)
                 HStack(spacing: 10) {
                     if streak > 0 {
-                        Label("\(streak)", systemImage: "flame.fill").foregroundStyle(.orange)
+                        Label("\(streak)", systemImage: "flame.fill").foregroundStyle(.streak)
                     }
                     if focus > 0 {
                         Label(Formatting.duration(focus), systemImage: "timer").foregroundStyle(.secondary)

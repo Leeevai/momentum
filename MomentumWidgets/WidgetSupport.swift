@@ -140,7 +140,7 @@ struct WidgetActionButton: View {
     }
 
     private func icon(_ name: String) -> some View {
-        WidgetFilledLabel(fill: goal.color.linear, tint: goal.tint, shape: Circle()) {
+        WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Circle()) {
             Image(systemName: name)
                 .font(.system(size: size * 0.4, weight: .bold))
                 .frame(width: size, height: size)
@@ -183,7 +183,7 @@ struct WidgetWideButton: View {
     }
 
     private func label(_ title: String, _ systemImage: String) -> some View {
-        WidgetFilledLabel(fill: goal.color.linear, tint: goal.tint, shape: Capsule()) {
+        WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Capsule()) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
@@ -193,20 +193,22 @@ struct WidgetWideButton: View {
     }
 }
 
-/// A label on a filled shape, glasscn's filled button: white on the fill in full color. When the
-/// system draws widgets in one tint (the faded desktop, tinted Home Screens), the fill becomes a
-/// translucent wash with the label over it, rather than one shape the label disappears into.
+/// A label on a filled shape, glasscn's filled button: in full color, white or black on the fill,
+/// whichever contrasts more with `tint`, the fill's color. When the system draws widgets in one
+/// tint (the faded desktop, tinted Home Screens), the fill becomes a translucent wash with the
+/// label over it, rather than one shape the label disappears into.
 struct WidgetFilledLabel<S: InsettableShape, Fill: ShapeStyle, Content: View>: View {
     let fill: Fill
     let tint: Color
     let shape: S
     @ViewBuilder var content: Content
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.self) private var environment
 
     var body: some View {
         if renderingMode == .fullColor {
             content
-                .foregroundStyle(.white)
+                .foregroundStyle(tint.foreground(in: environment))
                 .background(shape.fill(fill).overlay(shape.strokeBorder(.white.opacity(0.3), lineWidth: 0.5)))
         } else {
             content
