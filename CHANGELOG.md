@@ -16,6 +16,8 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- While the data file couldn't be read, it was still kept as each day's copy, so after two weeks
+  the good copies a restore needs had been deleted. A file that can't be read isn't copied now.
 - After a change of time zone, such as on a trip, Momentum went on starting and ending days at the
   old zone's midnight until something was logged. It now follows the new time zone right away.
 - After adding 5 or 15 minutes to a session on the iPhone, the watch face counted down to the old
