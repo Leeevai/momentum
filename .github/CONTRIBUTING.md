@@ -17,20 +17,127 @@ Thanks for helping make Momentum better. Bug reports, ideas and pull requests ar
    ./scripts/install-hooks.sh
    ```
 
+## Issues first
+
+Everything that changes starts as an issue, whatever its size: a feature, a bug, an enhancement or
+a chore. The issue says what and why, and the pull request that closes it says how. From an issue
+you can follow the work to its branch, its pull request, the merge into `develop` and the release
+that shipped it.
+
+```mermaid
+flowchart LR
+    issue["Issue #7<br/>type and area labels<br/>milestone 2.3.0"]
+    branch["Branch<br/>feat/0007-next-video"]
+    commits["Commits<br/>feat(ui): show the next video"]
+    pr["Pull request into develop<br/>[0007]-[ui] show the next video<br/>Closes #7"]
+    checks{"Checks<br/>Ticket, Conventional commits,<br/>Merge gate"}
+    develop["Merge commit on develop<br/>closes issue #7"]
+    release["Release pull request<br/>develop into main"]
+    tag["Tag v2.3.0<br/>GitHub release<br/>milestone closed"]
+    issue --> branch --> commits --> pr --> checks
+    checks -- green --> develop --> release --> tag
+    checks -- red --> commits
+```
+
+### Opening an issue
+
+Pick a form: **Feature** for something new, **Enhancement** for an improvement to something that
+exists, **Bug** for something broken, and **Task** for upkeep nobody sees, such as a refactor, CI
+or tooling. Blank issues are turned off. Title the issue with what to do, plainly and without a
+prefix, such as `Show the next video beside the ring`; the labels carry the rest.
+
+Each form applies its type label and `status: needs triage`, asks which areas the issue touches,
+and asks for acceptance criteria. The **Issue area** workflow then adds the areas as labels. From
+the command line, an issue gets its labels and milestone directly:
+
+```bash
+gh issue create --title "Show the next video beside the ring" --body-file issue.md \
+  --label "type: feature" --label "area: ui" --milestone 2.3.0
+```
+
+### Labels
+
+`.github/labels.yml` defines every label, and the **Labels** workflow applies it to GitHub when it
+changes on `develop`; `./scripts/sync-labels.sh --dry-run` shows what that would change. Edit a
+label in the file, not on GitHub.
+
+Every issue has one type label:
+
+| Type | For |
+|------|-----|
+| `type: feature` | Something new people can see or do |
+| `type: bug` | Something doesn't work the way it should |
+| `type: enhancement` | An improvement to something Momentum already does |
+| `type: docs` | Documentation only |
+| `type: task` | Chores, refactors, CI and tooling: nothing people see changes |
+| `type: release` | A version: the bump, changelog, release pull request, tag and notes |
+
+And at least one area label, which tells the screens apart from the engine underneath:
+
+| Area | Covers |
+|------|--------|
+| `area: ui` | SwiftUI screens and components in `SharedUI/`, `Momentum/` and `MomentumMobile/` |
+| `area: core` | The backend: MomentumCore's models, engine and persistence in `Packages/MomentumKit` |
+| `area: sync` | Sync between devices: the sync folder, merges and save stamps |
+| `area: watch` | The watch app and its complications |
+| `area: widgets` | Widgets, controls and the Live Activity |
+| `area: mac` | The Mac app alone: its windows, menus and menu bar |
+| `area: ios` | The iPhone and iPad app alone |
+| `area: import` | Importing and exporting: backups, books, goals and to-dos from videos |
+| `area: ci` | GitHub workflows and checks, in `.github` |
+| `area: docs` | The README, this guide, `docs/` and the changelog |
+| `area: tooling` | Scripts, git hooks, project skills and other developer tools |
+| `area: release` | Versions, release pull requests, tags, notes and the App Store |
+
+`priority: high`, `priority: medium` and `priority: low` say how soon, once that matters.
+`status: needs triage` marks a new issue, and `status: blocked` one that waits on something the
+issue names. Dependabot's `dependencies` and `github_actions` stay, and so do GitHub's usual
+labels, such as `good first issue` and `duplicate`.
+
+### Triage
+
+Each new issue is looked at once: it has one type, the right areas, acceptance criteria someone can
+check, and the upcoming milestone. Then `status: needs triage` comes off.
+
+### Work across areas
+
+An issue that spans several areas is split, so that each pull request stays in one area. The issue
+becomes the parent, with one
+[sub-issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/adding-sub-issues)
+per area, and each pull request closes one sub-issue. Close the parent with its last sub-issue.
+
+```text
+#20  Show the next video beside the ring        type: feature
+├── #21  Store the next video's length          area: core   [0021]-[core] store the next video's length
+└── #22  Show the next video beside the ring    area: ui     [0022]-[ui] show the next video beside the ring
+```
+
+### Milestones
+
+Every version has a milestone named after it, and `2.3.0` is the next one. Triage puts each issue
+in the upcoming milestone, so the milestone shows what's left before the release. Releasing closes
+it, and anything unfinished moves to the next one.
+
+### The board
+
+The [Momentum project](https://github.com/users/Leeevai/projects/1) follows every issue: **Todo**
+once it's triaged, **In progress** while its branch exists, **In review** while its pull request is
+open, and **Done** once it merges.
+
 ## Branches
 
 `develop` is the default branch, where changes come together, and `main` holds what has been
 released. Nobody pushes to either one: every change is a branch and a pull request into `develop`,
 and `main` only takes release pull requests from `develop`, and hotfixes.
 
-Name a branch `<type>/<description>`: one of the commit types below, then a few words in lowercase
-kebab-case.
+Name a branch `<type>/<NNNN>-<description>`: one of the commit types below, the issue's number
+padded to four digits, then a few words in lowercase kebab-case.
 
 ```text
-feat/video-todos
-fix/streak-after-midnight
-docs/watch-simulators
-chore/release-2.3.0
+feat/0007-next-video
+fix/0012-streak-after-midnight
+docs/0015-watch-simulators
+chore/0020-release-2.3.0
 ```
 
 ## Commits
