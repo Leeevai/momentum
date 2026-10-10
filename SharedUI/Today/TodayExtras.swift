@@ -29,6 +29,7 @@ struct CoachStrip: View {
 
 private struct CoachCard: View {
     @Environment(GoalStore.self) private var store
+    @Environment(\.self) private var environment
     let tip: CoachTip
     @State private var isHovered = false
 
@@ -38,7 +39,7 @@ private struct CoachCard: View {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: tip.symbol)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(tint.foreground(in: environment))
                     .frame(width: 32, height: 32)
                     .background(Circle().fill(tint.gradient))
                     .shadow(color: tint.opacity(0.35), radius: 5, y: 2)
@@ -82,8 +83,8 @@ private struct CoachCard: View {
 
     private var color: Color {
         switch tip.tone {
-        case .urgent: .orange
-        case .positive: .green
+        case .urgent: .attention
+        case .positive: .success
         case .neutral: tip.goalID.flatMap(store.goal)?.tint ?? .accent
         }
     }
@@ -120,7 +121,7 @@ struct DayPlanCard: View {
                 Text(entry.intention)
                     .font(.system(.title3, design: .serif).italic())
                     .padding(.leading, 12)
-                    .overlay(alignment: .leading) { Capsule().fill(.orange.gradient).frame(width: 3) }
+                    .overlay(alignment: .leading) { Capsule().fill(Color.swatch(.orange).gradient).frame(width: 3) }
             }
             if !priorities.isEmpty {
                 HStack(spacing: 10) {
@@ -130,7 +131,7 @@ struct DayPlanCard: View {
                 }
             }
         }
-        .glassCard(tint: .orange, cornerRadius: 22)
+        .glassCard(tint: .swatch(.orange), cornerRadius: 22)
     }
 }
 
@@ -224,7 +225,7 @@ struct FocusTimeline: View {
                         }
                         if Calendar.current.isDate(now, inSameDayAs: day) {
                             Capsule()
-                                .fill(.red)
+                                .fill(Color.swatch(.red))
                                 .frame(width: 2, height: 34)
                                 .offset(x: position(now, in: range, width: width) - 1)
                         }
@@ -285,7 +286,7 @@ struct RestBanner: View {
                 ProgressRing(progress: over ? 1 : 1 - rest.remaining(at: now) / rest.duration, color: .mint, lineWidth: 10) {
                     Image(systemName: over ? "bell.fill" : (rest.isLong ? "cup.and.saucer.fill" : "leaf.fill"))
                         .font(.system(size: 26))
-                        .foregroundStyle(.mint.gradient)
+                        .foregroundStyle(Color.rest.gradient)
                         .symbolEffect(.bounce, value: over)
                         .contentTransition(.symbolEffect(.replace))
                 }
@@ -302,7 +303,7 @@ struct RestBanner: View {
                             .monospacedDigit()
                             .contentTransition(.numericText(countsDown: true))
                             .clockTick(now)
-                            .foregroundStyle(.mint)
+                            .foregroundStyle(.rest)
                     }
                     BlockDots(done: rest.isLong ? settings.blocksPerCycle : rest.completedBlocks, total: settings.blocksPerCycle)
                 }
@@ -325,7 +326,7 @@ struct RestBanner: View {
                 }
             }
         }
-        .glassCard(tint: .mint, cornerRadius: 24, padding: 22, highlighted: true)
+        .glassCard(tint: .rest, cornerRadius: 24, padding: 22, highlighted: true)
     }
 }
 
@@ -338,7 +339,7 @@ struct BlockDots: View {
         HStack(spacing: 6) {
             ForEach(0..<max(total, 1), id: \.self) { index in
                 Capsule()
-                    .fill(index < done ? AnyShapeStyle(Color.mint.gradient) : AnyShapeStyle(Color.primary.opacity(0.12)))
+                    .fill(index < done ? AnyShapeStyle(Color.rest.gradient) : AnyShapeStyle(Color.primary.opacity(0.12)))
                     .frame(width: index < done ? 18 : 10, height: 6)
             }
         }

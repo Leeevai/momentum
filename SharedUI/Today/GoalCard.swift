@@ -31,17 +31,17 @@ struct GoalCard: View {
                             .heroMatch("title-\(goal.id)", in: hero)
                         if let rank = store.data.journalEntry(for: DayID(now))?.priorities.firstIndex(of: goal.id) {
                             Image(systemName: "\(rank + 1).circle.fill")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(.swatch(.orange))
                                 .help("Priority \(rank + 1) today")
                         }
                         if complete {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                                .foregroundStyle(.success)
                                 .transition(.scale.combined(with: .opacity))
                         } else if goal.streakMinimum != nil && engine.keepsStreak(goal, periodContaining: now, now: now) {
                             Label("Streak safe", systemImage: "shield.checkered")
                                 .labelStyle(.iconOnly)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(.streak)
                                 .help("You've done the minimum: the streak is safe for today")
                                 .transition(.scale.combined(with: .opacity))
                         }
@@ -141,10 +141,10 @@ struct PaceLabel: View {
             Label("Target reached", systemImage: "checkmark.seal")
         case .onTrack:
             Label("On track\(pace.neededPerDay.map { " · \(goal.rateText(perDay: $0))" } ?? "")", systemImage: "chart.line.uptrend.xyaxis")
-                .foregroundStyle(.green)
+                .foregroundStyle(.success)
         case .behind:
             Label("Behind · need \(goal.rateText(perDay: pace.neededPerDay ?? 0))", systemImage: "exclamationmark.triangle")
-                .foregroundStyle(.orange)
+                .foregroundStyle(.attention)
         case .noDeadline:
             Label("\(goal.format(pace.remaining)) to go", systemImage: "flag")
         }
