@@ -18,6 +18,8 @@ enum Route: Hashable {
 enum SheetRoute: Identifiable {
     case quickActions
     case newGoal
+    /// To-dos from saved videos, screenshots or a caption, with a link to keep on them.
+    case importTodos(link: URL?)
     case editGoal(Goal)
     case log(goalID: UUID, entry: LogEntry? = nil, day: Date? = nil)
     case link(goalID: UUID, link: GoalLink?)
@@ -33,6 +35,7 @@ enum SheetRoute: Identifiable {
         switch self {
         case .quickActions: "quick-actions"
         case .newGoal: "new"
+        case .importTodos: "import-todos"
         case .editGoal(let goal): "edit-\(goal.id)"
         case .log(let id, let entry, let day): "log-\(id)-\(entry?.id.uuidString ?? "new")-\(day?.timeIntervalSince1970 ?? 0)"
         case .link(let goal, let link): "link-\(goal)-\(link?.id.uuidString ?? "new")"
