@@ -28,6 +28,8 @@ All notable changes to Momentum are recorded here. The format follows
   accents follow the palette too. The goal editor shows the palette's colors.
 - Widgets, the Live Activity and the Apple Watch app draw in your palette too, custom ones
   included, so a goal has the same color everywhere.
+- Confetti, the Momentum mark and award medals follow the palette too, the medals in softer
+  metals, and on iPhone alerts and swipe actions take the palette's accent.
 
 ### Fixed
 - Goals made from imported videos were always purple, and new blank goals always blue. A new goal
