@@ -149,6 +149,8 @@ struct MobileSheet: View {
             switch route {
             case .quickActions, .newGoal:
                 NewGoalFlow()
+            case .importTodos(let link):
+                ImportTodosSheet(initialLink: link)
             case .editGoal(let goal):
                 GoalEditor(goal: goal, isNew: false)
             case .log(let goalID, let entry, let day):
