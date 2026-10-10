@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- A widget's timer stopped at 0:00 when a planned session reached its end, and stayed there for up
+  to an hour; it now counts on. After midnight, the Today widget no longer keeps a checkmark on a
+  goal that was done the day before.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
