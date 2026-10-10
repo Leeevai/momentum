@@ -16,6 +16,8 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- Watch complications could miss an update from the iPhone when the Watch app wasn't open: the
+  watch could put the app back to sleep before the update had arrived.
 - After midnight the watch and its complications kept the day before's goals (a goal due only on
   some weekdays could be missing or extra) until something was logged on the iPhone, even once the
   iPhone app was opened. The iPhone now updates the watch when it comes forward and when the day
