@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Checks headers against the commit format in .github/CONTRIBUTING.md, Conventional Commits 1.0:
+# Checks commit subjects against the commit format in .github/CONTRIBUTING.md, Conventional
+# Commits 1.0:
 #
 #   <type>(<scope>)!: <subject>
 #
@@ -8,12 +9,11 @@
 # characters long.
 #
 # Usage:
-#   ./scripts/check-commits.sh --title "<title>"        a pull request title
 #   ./scripts/check-commits.sh --range <base>..<head>   each commit in the range, merges excepted
 #   ./scripts/check-commits.sh --message-file <file>    a commit message (the commit-msg hook)
 #
-# Options combine. Every header that breaks the format is printed with the reasons, and the script
-# exits 1 if there was one. The Conventions workflow runs it on each pull request.
+# Every subject that breaks the format is printed with the reasons, and the script exits 1 if
+# there was one. The Conventions workflow runs it on each pull request.
 #
 # Plain bash 3.2, so the hook runs with the bash that ships with macOS.
 set -euo pipefail
@@ -180,12 +180,11 @@ if [[ $# -eq 0 ]]; then
 fi
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --title | --range | --message-file)
+    --range | --message-file)
       if [[ $# -lt 2 ]]; then
         usage
       fi
       case $1 in
-        --title) check "PR title" "$2" ;;
         --range) check_range "$2" ;;
         --message-file) check_message_file "$2" ;;
       esac

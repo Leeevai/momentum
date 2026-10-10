@@ -23,9 +23,10 @@ jobs:
           # leaves the rest of the contents out of the clone.
           fetch-depth: 0
           sparse-checkout: scripts
-      - name: Check the title and every commit subject
+      # Commit subjects only: the pull request title has a format of its own. Editing a pull
+      # request reruns this, since changing its base changes which commits it holds.
+      - name: Check every commit subject
         env:
-          TITLE: ${{ github.event.pull_request.title }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: scripts/check-commits.sh --title "$TITLE" --range "$BASE_SHA..$HEAD_SHA"
+        run: scripts/check-commits.sh --range "$BASE_SHA..$HEAD_SHA"
