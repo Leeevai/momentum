@@ -242,12 +242,59 @@ To fix a subject, amend the last commit (`git commit --amend`) or reword older o
 ## Pull requests
 
 - Open it against `develop`, the default branch. Only releases and hotfixes go to `main`.
-- Fill in the template.
+- Title it with its ticket, `[NNNN]-[area] description`, as below.
+- Fill in the template, which starts with `Closes #N`: the same issue as the title, on a line of
+  its own. Merging into `develop` then closes the issue.
+- Close one issue. Work across areas is one sub-issue, and one pull request, per area.
 - If people will notice the change, add a line to `CHANGELOG.md` under *Unreleased*.
 - CI must be green before it's merged.
 - Merge it with **Create a merge commit**. Squash and rebase merging are turned off, so every
   commit keeps its author; tidy the commits before merging, and squash any `fixup!` commits.
 - The branch is deleted once it's merged.
+
+### The title
+
+```text
+[NNNN]-[area] description
+```
+
+- **NNNN** is the issue's number, padded to four digits: issue #7 is `[0007]`.
+- **area** is one area label without its prefix: `[ui]` for `area: ui`.
+- The **description** says what the pull request does, in the imperative. It starts with a
+  lowercase letter and has no period at the end.
+
+The title becomes the merge commit's title, so `develop`'s history reads as a list of tickets. The
+commits inside the pull request keep the commit format.
+
+Good:
+
+```text
+[0007]-[ui] show the next video beside the ring
+[0012]-[sync] keep the newer journal entry when two devices edit it
+[0020]-[release] prepare 2.3.0
+```
+
+Not good:
+
+```text
+feat(ui): show the next video beside the ring     the commit format: a title carries its ticket
+[7]-[ui] show the next video beside the ring      not padded to four digits
+[0007]-[UI] show the next video beside the ring   the area isn't lowercase
+[0007]-[ui, core] show the next video             two areas: split the issue
+[0007]-[ui] Show the next video.                  a capital letter, and a period at the end
+```
+
+The **Ticket** check holds every pull request to this: the title's format, an open issue (not a
+pull request) behind `[NNNN]`, an area that is an area label, and the matching `Closes` line. When
+something is off it says what, with a corrected title, and editing the pull request runs it again.
+It also gives the pull request its issue's type and area labels, which group the release notes.
+Dependabot's pull requests are exempt. The same script checks a title before you open the pull
+request, or a pull request that's open:
+
+```bash
+./scripts/check-ticket.sh --title "[0007]-[ui] show the next video beside the ring"
+./scripts/check-ticket.sh --pr 12
+```
 
 ### What CI runs
 
@@ -259,9 +306,13 @@ To fix a subject, amend the last commit (`git commit --amend`) or reword older o
 | Build iPhone and watch apps | Builds **MomentumMobile**, which embeds the watch app |
 | Merge gate | Passes when every job above passed or was skipped |
 | Conventional commits | Checks every commit subject, merges excepted |
+| Ticket | Checks the title's ticket and the `Closes` line, and copies the issue's labels |
 
-**Merge gate** and **Conventional commits** are the checks `develop` and `main` require. CI runs on
-pull requests into either branch, on pushes to them, and from the Actions tab.
+**Merge gate**, **Conventional commits** and **Ticket** are the checks `develop` and `main`
+require. CI runs on pull requests into either branch, on pushes to them, and from the Actions tab.
+Two more workflows look after labels: **Labels** applies `.github/labels.yml` when it changes on
+`develop`, and previews the change on its pull request, and **Issue area** labels each new issue
+with the areas its form names.
 
 CI builds and tests every pull request, so you don't have to before pushing. To run the core tests
 yourself:
