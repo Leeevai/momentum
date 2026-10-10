@@ -134,39 +134,62 @@ private struct RestRow: View {
             Label(rest.isLong ? "Long break" : "Break", systemImage: rest.isLong ? "cup.and.saucer.fill" : "leaf.fill")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(palette.rest)
-            // One reading of the clock for the check and the range: the end can pass between two.
-            let now = Date.now
-            if rest.isOver(at: now) {
-                Text("Break's over")
-                    .font(.title3.weight(.semibold))
-            } else {
-                Text(timerInterval: now...max(rest.end, now), countsDown: true)
-                    .font(.system(size: 30, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-            }
+            BreakClock(rest: rest)
             Button("Start block \(rest.nextBlock)") { store.perform(.startNextBlock(restStart: rest.start)) }
                 .tint(palette.color(item.color))
         }
     }
 }
 
+/// A break's countdown, then word that it's over. Drawn again when the break ends: a countdown
+/// stops at 0:00 and stays there until something else redraws it.
+private struct BreakClock: View {
+    let rest: RestPeriod
+
+    var body: some View {
+        TimelineView(.explicit([rest.end])) { context in
+            // One reading of the clock for the check and the range: the end can pass between two.
+            let now = max(context.date, .now)
+            if rest.isOver(at: now) {
+                Text("Break's over")
+                    .font(.title3.weight(.semibold))
+            } else {
+                Text(timerInterval: now...rest.end, countsDown: true)
+                    .font(.system(size: 30, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            }
+        }
+    }
+}
+
 /// The running session's clock: counting down a planned block, up otherwise; frozen when paused.
+/// Drawn again at the planned end, to go on counting the time so far: a countdown stops at 0:00
+/// and stays there until something else redraws it.
 struct SessionClock: View {
     let session: FocusSession
 
     var body: some View {
-        let now = Date.now
-        Group {
-            if !session.isRunning {
-                // Paused: the time left of a planned session (as the iPhone shows), else the time so far.
-                Text(Formatting.clock(session.remaining(at: now).map { max(0, $0) } ?? session.elapsed(at: now)))
-            } else if let end = session.plannedEnd, end > now {
-                Text(timerInterval: now...end, countsDown: true)
-            } else {
-                Text(timerInterval: session.clockStart(at: now)...Date.distantFuture, countsDown: false)
-            }
+        TimelineView(.explicit(turnovers)) { context in
+            clock(at: max(context.date, .now))
         }
         .monospacedDigit()
+    }
+
+    /// When the clock changes from counting down to counting up: a running session's planned end.
+    private var turnovers: [Date] {
+        session.plannedEnd.map { [$0] } ?? []
+    }
+
+    @ViewBuilder
+    private func clock(at now: Date) -> some View {
+        if !session.isRunning {
+            // Paused: the time left of a planned session (as the iPhone shows), else the time so far.
+            Text(Formatting.clock(session.remaining(at: now).map { max(0, $0) } ?? session.elapsed(at: now)))
+        } else if let end = session.plannedEnd, end > now {
+            Text(timerInterval: now...end, countsDown: true)
+        } else {
+            Text(timerInterval: session.clockStart(at: now)...Date.distantFuture, countsDown: false)
+        }
     }
 }
 
