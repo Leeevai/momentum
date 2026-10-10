@@ -93,6 +93,7 @@ daily journal, with widgets and a Live Activity.
 > - Challenges from 7 to 100 days, with a dot for every day
 > - More than forty awards to earn, from First Step to Year of Momentum
 > - Insights into when and how you work best
+> - Turn saved reels, videos and screenshots into to-dos as long as each video, with on-device AI
 > - Reading goals with a library, Open Library search and Goodreads import
 > - Habit stacking: one goal right after another
 > - Widgets for the Home Screen and Lock Screen, and Control Center
