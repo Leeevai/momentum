@@ -191,6 +191,17 @@ struct WeeklyRecapTests {
         #expect(ReminderPlanner.weeklyRecap(engine(data), now: referenceNow) == nil)
     }
 
+    @Test("A recap planned midweek counts only the week it's for")
+    func recapCountsThisWeek() throws {
+        let goal = Goal(name: "Focus", kind: .time, target: 1800, createdAt: date(2026, 9, 1))
+        var data = AppData(goals: [goal])
+        // Every day since Friday 2 October: three days of the week before, four of this one.
+        for offset in -6...0 { data.log(1800, for: goal.id, at: dayOffset(offset)) }
+        let recap = try #require(ReminderPlanner.weeklyRecap(engine(data), now: referenceNow))
+        #expect(recap.body.hasPrefix("2h focused"))
+        #expect(recap.body.contains("active 4 of 7 days"))
+    }
+
     @Test("Daily goals are on target at 70% of the week's due days")
     func onTarget() {
         let goal = checkInGoal(createdDaysAgo: 30)
