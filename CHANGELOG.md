@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- A day whose logs cancel out, such as a + taken back with −, no longer counts as a day of
+  activity. It kept the streaks of reading, project and overall goals going, and showed as active
+  on the heatmap, in the week's review and in Insights.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
