@@ -31,7 +31,7 @@ struct PaletteEditor: View {
             .scrollContentBackground(.hidden)
             footer(palette)
         }
-        .sheetFrame(width: 600, height: 760)
+        .sheetFrame(width: 600, height: 720)
         .background(Aurora(animates: false).palette(palette))
         .confirmationDialog("Delete \(draft.displayName)?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete Palette", role: .destructive) {
