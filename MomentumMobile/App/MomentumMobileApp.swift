@@ -35,7 +35,8 @@ struct MomentumMobileApp: App {
     /// The real store; in debug builds, `MOMENTUM_DEMO=1` swaps in demo data held in memory (`empty`
     /// for none), `MOMENTUM_DEMO=seed` writes the demo data to the real data file (for the watch
     /// and the widgets, which read that file), and
-    /// `MOMENTUM_TAB` opens a tab and `MOMENTUM_SHEET` a sheet, for screenshots and simulator runs.
+    /// `MOMENTUM_TAB` opens a tab and `MOMENTUM_SHEET` a sheet, for screenshots and simulator runs
+    /// (`MOMENTUM_SHEET=import` takes the `MOMENTUM_IMPORT_*` settings in `ImportTodosSheet`).
     private static func makeStore() -> GoalStore {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
@@ -69,6 +70,7 @@ struct MomentumMobileApp: App {
             case "edit": if let first = data.goals.first { store.sheet = .editGoal(first) }
             case "focus": store.isFocusModePresented = true
             case "review": store.sheet = .review
+            case "import": store.sheet = .importTodos(link: environment["MOMENTUM_IMPORT_LINK"].flatMap(TodoText.link(from:)))
             default: break
             }
             // MOMENTUM_RATING=1 shows the question asked after a session.
