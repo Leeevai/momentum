@@ -81,6 +81,22 @@ struct FocusSessionTests {
         #expect(engine(data).amount(for: goal, on: referenceNow, now: referenceNow) == 0)
     }
 
+    @Test("A correction made while a session runs counts at once, as it will once the session is saved")
+    func correctionWhileRunning() {
+        var data = AppData(goals: [goal])
+        data.startFocus(on: goal.id, at: referenceNow.addingTimeInterval(-1800), calendar: testCalendar)
+        data.log(-900, for: goal.id, at: referenceNow.addingTimeInterval(-60), note: "Correction")
+        let running = engine(data)
+        let today = running.currentAmount(for: goal, now: referenceNow)
+        let week = running.amount(for: goal, in: running.interval(of: .weekly, containing: referenceNow), now: referenceNow)
+        var stopped = data
+        stopped.stopFocus(at: referenceNow, calendar: testCalendar)
+        let saved = engine(stopped).currentAmount(for: goal, now: referenceNow)
+        #expect(saved == 900)
+        #expect(today == saved)
+        #expect(week == saved)
+    }
+
     @Test("Session stats count timer sessions only")
     func sessionStats() throws {
         var data = AppData(goals: [goal])

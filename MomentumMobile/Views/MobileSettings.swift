@@ -257,6 +257,8 @@ private struct MobileDataSection: View {
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         do {
             pendingImport = try FileStore.decode(Data(contentsOf: url))
+        } catch let error as FileStore.FormatError {
+            message = error.localizedDescription
         } catch {
             message = "That file isn't a Momentum backup: \(error.localizedDescription)"
         }

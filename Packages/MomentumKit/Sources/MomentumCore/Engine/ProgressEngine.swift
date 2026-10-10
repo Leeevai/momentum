@@ -11,7 +11,7 @@ public struct ProgressEngine: Sendable {
 
     /// Goal id -> day key -> logged amount.
     let dailyTotals: [UUID: [Int: Double]]
-    /// Goal id -> day keys with any activity (logs, finished milestones, finished books).
+    /// Goal id -> day keys with any activity (progress logged, finished milestones, finished books).
     let activityDays: [UUID: Set<Int>]
     /// Goal id -> the earliest day it has data for, so history from before creation still counts.
     private let firstDay: [UUID: Date]
@@ -41,8 +41,12 @@ public struct ProgressEngine: Sendable {
         for entry in data.entries {
             let key = Self.dayKey(entry.date, calendar)
             totals[entry.goalID, default: [:]][key, default: 0] += entry.amount
-            if entry.amount > 0 { activity[entry.goalID, default: []].insert(key) }
             if key < earliest[entry.goalID, default: .max] { earliest[entry.goalID] = key }
+        }
+        // A day counts as active when what was logged on it adds up to something: a log and the
+        // correction that takes it back cancel out.
+        for (goalID, days) in totals {
+            activity[goalID] = Set(days.compactMap { $0.value > 0 ? $0.key : nil })
         }
         for (goalID, key) in earliest {
             let day = DayID(year: key / 10_000, month: key / 100 % 100, day: key % 100).date(in: calendar)
@@ -115,6 +119,13 @@ public struct ProgressEngine: Sendable {
         isScheduled(goal, on: day) && !goal.isOnBreak(at: day)
     }
 
+    /// Whether a break excuses the goal from the target of its period `interval`. A day is judged
+    /// by its start, as streaks judge days; a week, month or year by any of its days, since its
+    /// target is set for all of them and most breaks start partway through.
+    func isExcused(_ goal: Goal, from interval: DateInterval) -> Bool {
+        goal.effectivePeriod == .daily ? goal.isOnBreak(at: interval.start) : goal.hasBreak(during: interval)
+    }
+
     /// The day `goal`'s history starts: its creation, or its earliest log if older.
     public func firstDay(of goal: Goal) -> Date {
         firstDay[goal.id] ?? startOfDay(goal.createdAt)
@@ -136,7 +147,10 @@ public struct ProgressEngine: Sendable {
         return max(0, stored + liveSeconds(for: goal, in: dayInterval(day), now: now))
     }
 
-    /// Logged amount within `interval`, plus the running session's share of it.
+    /// Logged amount within `interval`, plus the running session's share of it. Never negative.
+    ///
+    /// The running session is added before the floor at zero, as it will be once it's logged: a
+    /// correction made while it runs takes its time off at once.
     public func amount(for goal: Goal, in interval: DateInterval, now: Date) -> Double {
         guard interval.start > .distantPast else {
             let stored = dailyTotals[goal.id]?.values.reduce(0, +) ?? 0
@@ -146,7 +160,7 @@ public struct ProgressEngine: Sendable {
         guard let days = dailyTotals[goal.id] else { return live }
         // A single day (the common case: streaks, rings) is one lookup.
         if interval.duration <= 25 * 3600 {
-            return max(0, days[dayKey(interval.start)] ?? 0) + live
+            return max(0, (days[dayKey(interval.start)] ?? 0) + live)
         }
         // Day keys sort chronologically (yyyymmdd), so a range is a filter over logged days.
         let first = dayKey(interval.start)
@@ -157,7 +171,7 @@ public struct ProgressEngine: Sendable {
         for (key, amount) in days where key >= first && key < end {
             total += amount
         }
-        return max(0, total) + live
+        return max(0, total + live)
     }
 
     /// Every amount ever logged for the goal: time, count, amount, or pages read.
@@ -381,7 +395,7 @@ public struct ProgressEngine: Sendable {
                 if keepsStreak(goal, periodContaining: start, now: now) {
                     run += 1
                     best = max(best, run)
-                } else if !goal.isOnBreak(at: periodInterval.start) {
+                } else if !isExcused(goal, from: periodInterval) {
                     run = 0
                 }
                 guard let next = calendar.date(byAdding: component, value: 1, to: periodInterval.start) else { break }
@@ -441,7 +455,7 @@ public struct ProgressEngine: Sendable {
             let isCurrent = offset == 0
             let wasMet = isMet(goal, periodContaining: date, now: now)
             if period == .daily && !isRequired(goal, on: date) && !wasMet { continue }
-            if goal.isOnBreak(at: periodInterval.start) && !wasMet { continue }
+            if isExcused(goal, from: periodInterval) && !wasMet { continue }
             if isCurrent && !wasMet { continue }
             due += 1
             if wasMet { met += 1 }
