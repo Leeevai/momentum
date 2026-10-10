@@ -170,10 +170,10 @@ private struct GoalLarge: View {
     }
 }
 
-/// The goal's button, or for a goal archived since the widget was set up, a note in its place:
-/// an archived goal is put away, so nothing times or logs it from here. Tapping the widget still
-/// opens the goal, where it can be restored.
-private struct GoalWidgetButton: View {
+/// The goal's button, or for a goal archived since the widget was set up (Goal and Challenge
+/// widgets name theirs), a note in its place: an archived goal is put away, so nothing times or
+/// logs it from here. Tapping the widget still opens the goal, where it can be restored.
+struct GoalWidgetButton: View {
     let goal: Goal
     let engine: ProgressEngine
 
