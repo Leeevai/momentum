@@ -17,6 +17,70 @@ All notable changes to Momentum are recorded here. The format follows
   A bar shows how far it has got, and the review says what it couldn't read, and why.
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
+- Palettes of your own: pick an accent, a background tint, how goal colors spread around a base
+  hue (spectrum, analogous, complementary, triadic or monochrome) and how light and crisp it
+  all is, with a live preview in light and dark. Make one from New in the palette settings, or
+  customize a built-in palette; yours sync with your other settings.
+
+### Changed
+- Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
+  Dusk and Rose. Ocean, Lagoon, Amber, Lavender, Mint, Cherry and Midnight are retired; if you
+  used one, Momentum switches to the closest new palette.
+- Goal colors come from the palette: each goal keeps its color, drawn as the palette's own muted
+  version of it, and moods, energy, streak flames, awards, charts and the rest of the app's
+  accents follow the palette too. The goal editor shows the palette's colors.
+- Widgets, the Live Activity and the Apple Watch app draw in your palette too, custom ones
+  included, so a goal has the same color everywhere.
+
+### Fixed
+- Labels on filled buttons could be hard to read in dark mode: they now switch to black wherever
+  white wouldn't stand out, and symbols on goal icons and medals stay white on a deeper shade.
+  Widget and Live Activity buttons do the same.
+- A Pomodoro block finished on two devices in different time zones, such as an iPhone on a trip
+  and the Mac at home, was logged twice. A session is now split into the days of the time zone it
+  started in, so every device logs it the same way.
+- While the data file couldn't be read, it was still kept as each day's copy, so after two weeks
+  the good copies a restore needs had been deleted. A file that can't be read isn't copied now.
+- After a change of time zone, such as on a trip, Momentum went on starting and ending days at the
+  old zone's midnight until something was logged. It now follows the new time zone right away.
+- After adding 5 or 15 minutes to a session on the iPhone, the watch face counted down to the old
+  end and then counted up as if the time were over; it now follows the new end.
+- Watch complications could miss an update from the iPhone when the Watch app wasn't open: the
+  watch could put the app back to sleep before the update had arrived.
+- After midnight the watch and its complications kept the day before's goals (a goal due only on
+  some weekdays could be missing or extra) until something was logged on the iPhone, even once the
+  iPhone app was opened. The iPhone now updates the watch when it comes forward and when the day
+  turns, and passes on changes it makes while woken in the background.
+- A widget's timer stopped at 0:00 when a planned session reached its end, and stayed there for up
+  to an hour; it now counts on. After midnight, the Today widget no longer keeps a checkmark on a
+  goal that was done the day before.
+- On iPhone, a session started from the Control Center focus toggle, Siri or Shortcuts got no
+  Lock Screen timer until the app was opened, and one stopped from Control Center could leave the
+  timer counting there; the Live Activity now starts and ends with them.
+- A Goodreads import on a device set to the Buddhist or Japanese calendar dated books centuries
+  away, so none counted toward this year's reading. Goodreads dates are now read as the Gregorian
+  dates they are.
+- The buttons on "Time's up" and "Break's over" notifications act only on the session or break
+  they were about, after catching up with other devices. Tapped late, "Stop and save" could stop
+  a session started since, or count the time after it was stopped on another device.
+- The weekly recap counted focus and active days from the week before when Momentum was last
+  used before the week's last day. It now sums up only the week it's for.
+- One entry dated more than eleven years back, such as a mistyped year, made a weekly streak read
+  0. Weekly, monthly and yearly streaks now count back from today.
+- Taking time off with − while a timer runs moves the goal's ring at once. When nothing else was
+  logged that day, the correction showed only after the session was saved, when the ring dropped.
+- A day whose logs cancel out, such as a + taken back with −, no longer counts as a day of
+  activity. It kept the streaks of reading, project and overall goals going, and showed as active
+  on the heatmap, in the week's review and in Insights.
+- A break on a weekly, monthly or yearly goal protects every week, month or year it covers part
+  of. One that started partway through a week left that week unprotected, so the streak could
+  end while the goal said it was safe.
+- Data saved by a newer version of Momentum in a format this one doesn't know (the data file, a
+  backup, another device's sync file) was read as this version's data, and could be saved back
+  without what's new. It's now left as it is, and Momentum asks to be updated.
+- Siri and Shortcuts' Start and Stop Focus Session catch up with other devices before they change
+  the timer. On an iPhone that hadn't heard a session was stopped on the Mac, either one stopped it
+  again at that moment, counting the time in between.
 
 ## [2.2.0] - 2026-10-09
 

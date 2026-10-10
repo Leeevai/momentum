@@ -41,7 +41,7 @@ struct ChallengeCard: View {
         .animation(.snappy, value: status)
     }
 
-    private var accent: Color { status.isWon ? .yellow : goal.tint }
+    private var accent: Color { status.isWon ? .award : goal.tint }
 
     private var headline: String {
         let days = status.challenge.days

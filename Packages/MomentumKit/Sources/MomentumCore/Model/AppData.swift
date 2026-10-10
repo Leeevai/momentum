@@ -75,14 +75,19 @@ public struct FocusSession: Codable, Hashable, Sendable {
     public var note: String
     /// Which block of a Pomodoro cycle this is, counting from 1.
     public var block: Int
+    /// The identifier of the time zone it started in ("Asia/Tokyo"). Stopping splits it into the
+    /// days of that zone, so every device that stops it logs the same pieces. Nil for sessions
+    /// started before it was kept, which split in the stopping device's zone.
+    public var timeZone: String?
 
-    public init(goalID: UUID, plannedDuration: TimeInterval? = nil, start: Date, block: Int = 1) {
+    public init(goalID: UUID, plannedDuration: TimeInterval? = nil, start: Date, block: Int = 1, timeZone: String? = nil) {
         self.goalID = goalID
         self.plannedDuration = plannedDuration
         self.segments = []
         self.runningSince = start
         self.note = ""
         self.block = block
+        self.timeZone = timeZone
     }
 
     public var isRunning: Bool { runningSince != nil }
@@ -127,7 +132,7 @@ public struct FocusSession: Codable, Hashable, Sendable {
         return reference.addingTimeInterval(plannedDuration)
     }
 
-    private enum CodingKeys: String, CodingKey { case goalID, plannedDuration, segments, runningSince, note, block }
+    private enum CodingKeys: String, CodingKey { case goalID, plannedDuration, segments, runningSince, note, block, timeZone }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -137,6 +142,8 @@ public struct FocusSession: Codable, Hashable, Sendable {
         runningSince = try c.decodeIfPresent(Date.self, forKey: .runningSince)
         note = try c.decode(.note, default: "")
         block = max(1, try c.decode(.block, default: 1))
+        // Anything but a string is dropped, not the session.
+        timeZone = (try? c.decodeIfPresent(String.self, forKey: .timeZone)) ?? nil
     }
 }
 
@@ -253,14 +260,20 @@ public struct Preferences: Codable, Hashable, Sendable {
     public var journalPromptsEnabled: Bool
     /// After a focus session, a one-tap question about how it went.
     public var asksSessionQuality: Bool
-    /// The colors the app, its widgets and its watch app are drawn in.
+    /// The built-in palette the app, its widgets and its watch app are drawn in. While a custom
+    /// palette is in use, the built-in one closest to it: versions without custom palettes draw
+    /// in that.
     public var palette: ThemePalette
+    /// Palettes made in Settings, oldest first.
+    public var customPalettes: [CustomPalette]
+    /// The custom palette in use, if one is.
+    public var customPaletteID: UUID?
 
     public init(defaultFocusMinutes: Int = 25, celebratesCompletion: Bool = true, playsSounds: Bool = true, remindersEnabled: Bool = true,
                 showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60,
                 weeklyRecapEnabled: Bool = true, focusSound: FocusSound = .off, focusSoundVolume: Double = 0.4,
                 pomodoro: PomodoroSettings = PomodoroSettings(), journalPromptsEnabled: Bool = true, asksSessionQuality: Bool = true,
-                palette: ThemePalette = .dusk) {
+                palette: ThemePalette = .standard, customPalettes: [CustomPalette] = [], customPaletteID: UUID? = nil) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
@@ -275,11 +288,56 @@ public struct Preferences: Codable, Hashable, Sendable {
         self.journalPromptsEnabled = journalPromptsEnabled
         self.asksSessionQuality = asksSessionQuality
         self.palette = palette
+        self.customPalettes = customPalettes
+        self.customPaletteID = customPaletteID
+    }
+
+    /// The palette everything is drawn in: the custom one in use, or the built-in one.
+    public var activePalette: Palette {
+        if let customPaletteID, let custom = customPalettes.first(where: { $0.id == customPaletteID }) {
+            return Palette(custom)
+        }
+        return Palette(palette)
+    }
+
+    /// The custom palette in use, if one is and it still exists.
+    public var activeCustomPalette: CustomPalette? {
+        customPaletteID.flatMap { id in customPalettes.first { $0.id == id } }
+    }
+
+    /// Draws in a built-in palette.
+    public mutating func choose(_ palette: ThemePalette) {
+        self.palette = palette
+        customPaletteID = nil
+    }
+
+    /// Saves `custom`, adding it or replacing the one with its id, and draws in it.
+    public mutating func choose(_ custom: CustomPalette) {
+        save(custom)
+        customPaletteID = custom.id
+        palette = .nearest(to: custom.recipe)
+    }
+
+    /// Adds `custom`, or replaces the palette with its id, keeping the choice as it is.
+    public mutating func save(_ custom: CustomPalette) {
+        if let index = customPalettes.firstIndex(where: { $0.id == custom.id }) {
+            customPalettes[index] = custom
+        } else {
+            customPalettes.append(custom)
+        }
+        if customPaletteID == custom.id { palette = .nearest(to: custom.recipe) }
+    }
+
+    /// Removes a custom palette; if it was in use, the built-in one closest to it takes over.
+    public mutating func deleteCustomPalette(_ id: UUID) {
+        customPalettes.removeAll { $0.id == id }
+        if customPaletteID == id { customPaletteID = nil }
     }
 
     private enum CodingKeys: String, CodingKey {
         case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar, streakNudgesEnabled, streakNudgeMinute
         case weeklyRecapEnabled, focusSound, focusSoundVolume, pomodoro, journalPromptsEnabled, asksSessionQuality, palette
+        case customPalettes, customPaletteID
     }
 
     public init(from decoder: Decoder) throws {
@@ -298,8 +356,12 @@ public struct Preferences: Codable, Hashable, Sendable {
         pomodoro = try c.decode(.pomodoro, default: PomodoroSettings())
         journalPromptsEnabled = try c.decode(.journalPromptsEnabled, default: true)
         asksSessionQuality = try c.decode(.asksSessionQuality, default: true)
-        // A palette from a newer version draws in the default rather than failing the file.
-        palette = (try? c.decode(.palette, default: .dusk)) ?? .dusk
+        // A palette an earlier version had opens in the closest one there is now; one from a
+        // newer version draws in the default rather than failing the file.
+        palette = (try? c.decode(.palette, default: .standard)) ?? .standard
+        // A damaged custom palette is dropped, not the rest.
+        customPalettes = (try? c.decodeLossy(.customPalettes)) ?? []
+        customPaletteID = (try? c.decodeIfPresent(UUID.self, forKey: .customPaletteID)) ?? nil
     }
 }
 

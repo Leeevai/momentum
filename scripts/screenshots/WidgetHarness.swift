@@ -8,11 +8,11 @@ let output = URL(fileURLWithPath: CommandLine.arguments[1])
 
 MainActor.assumeIsolated {
     var data = AppData.demo()
-    // MOMENTUM_PALETTE=ocean renders in another palette.
-    if let name = ProcessInfo.processInfo.environment["MOMENTUM_PALETTE"], let palette = ThemePalette(rawValue: name) {
-        data.preferences.palette = palette
+    // MOMENTUM_PALETTE=fjord renders in another palette.
+    if let name = ProcessInfo.processInfo.environment["MOMENTUM_PALETTE"], let palette = ThemePalette(stored: name) {
+        data.preferences.choose(palette)
     }
-    ActivePalette.current = data.preferences.palette
+    ActivePalette.current = data.preferences.activePalette
     if let deepWork = data.goals.first(where: { $0.name == "Deep work" }) {
         data.session = FocusSession(goalID: deepWork.id, plannedDuration: 50 * 60, start: Date().addingTimeInterval(-32 * 60))
     }
@@ -33,7 +33,7 @@ MainActor.assumeIsolated {
             .background(Aurora(accent: accent, animates: false, scale: 0.3))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
-            .palette(data.preferences.palette)
+            .palette(data.preferences.activePalette)
     }
     let deepWorkTint = data.goals.first { $0.name == "Deep work" }?.tint
     let booksTint = data.goals.first { $0.kind == .books }?.tint

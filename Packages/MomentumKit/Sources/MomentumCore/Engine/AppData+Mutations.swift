@@ -138,7 +138,7 @@ extension AppData {
         stopFocus(at: now, calendar: calendar)
         let block = rest.flatMap { $0.goalID == goalID ? $0.nextBlock : nil } ?? 1
         rest = nil
-        session = FocusSession(goalID: goalID, plannedDuration: planned, start: now, block: block)
+        session = FocusSession(goalID: goalID, plannedDuration: planned, start: now, block: block, timeZone: calendar.timeZone.identifier)
     }
 
     public mutating func pauseFocus(at now: Date = .now) {
@@ -167,14 +167,19 @@ extension AppData {
         // Seconds only mean something to a time goal; one changed to another kind mid-session
         // (or deleted) gets nothing rather than seconds read as its own unit.
         guard goal(finished.goalID)?.kind == .time else { return [] }
+        // The days of the time zone the session started in: every device that stops it (each
+        // finishing the same Pomodoro block, say) then logs the same pieces under the same ids,
+        // wherever the device is.
+        var days = calendar
+        if let zone = finished.timeZone.flatMap(TimeZone.init(identifier:)) { days.timeZone = zone }
         var perDay: [Date: (start: Date, seconds: Double)] = [:]
         for segment in finished.allSegments(at: now) {
             // A stop dated before a later pause (settling a merge) counts only up to the stop.
             let segmentEnd = min(segment.end, max(now, segment.start))
             var cursor = segment.start
             while cursor < segmentEnd {
-                let dayStart = calendar.startOfDay(for: cursor)
-                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? segmentEnd
+                let dayStart = days.startOfDay(for: cursor)
+                let dayEnd = days.date(byAdding: .day, value: 1, to: dayStart) ?? segmentEnd
                 let end = min(dayEnd, segmentEnd)
                 let existing = perDay[dayStart]
                 perDay[dayStart] = (min(existing?.start ?? cursor, cursor), (existing?.seconds ?? 0) + end.timeIntervalSince(cursor))
@@ -185,7 +190,7 @@ extension AppData {
             .filter { $0.seconds >= 1 }
             .sorted { $0.start < $1.start }
             .map { piece in
-                LogEntry(id: Self.timerEntryID(goal: finished.goalID, sessionStart: finished.startedAt, day: calendar.startOfDay(for: piece.start)),
+                LogEntry(id: Self.timerEntryID(goal: finished.goalID, sessionStart: finished.startedAt, day: days.startOfDay(for: piece.start)),
                          goalID: finished.goalID, date: piece.start, amount: piece.seconds.rounded(), source: .timer, note: finished.note)
             }
         entries.append(contentsOf: logged)
@@ -219,6 +224,28 @@ extension AppData {
             let b = Array(pointer)
             return UUID(uuid: (b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]))
         }
+    }
+
+    /// Stops the session if it's still the one that started at `start` on `goalID`. For a stop from
+    /// something that showed one session, such as a notification: by the time it's tapped, that
+    /// session may have ended and another one begun.
+    @discardableResult
+    public mutating func stopFocus(startedAt start: Date, on goalID: UUID, at now: Date = .now, calendar: Calendar = .current) -> [LogEntry] {
+        guard hasSession(startedAt: start, on: goalID) else { return [] }
+        return stopFocus(at: now, calendar: calendar)
+    }
+
+    /// Adds `minutes` to the planned length of the session that started at `start` on `goalID`,
+    /// if it's still the one there.
+    public mutating func extendFocus(startedAt start: Date, on goalID: UUID, by minutes: Int) {
+        guard hasSession(startedAt: start, on: goalID), let planned = session?.plannedDuration else { return }
+        session?.plannedDuration = planned + Double(minutes) * 60
+    }
+
+    /// Whether the session, running or paused, is the one that started at `start` on `goalID`.
+    func hasSession(startedAt start: Date, on goalID: UUID) -> Bool {
+        guard let session, session.goalID == goalID else { return false }
+        return abs(session.startedAt.timeIntervalSince(start)) < 0.001
     }
 
     public mutating func discardFocus() {

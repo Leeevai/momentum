@@ -1,0 +1,79 @@
+name: Bug
+description: Something doesn't work the way it should.
+labels: ["type: bug", "status: needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Give the issue a plain title that says what goes wrong, such as "The streak resets after
+        midnight". A security problem goes through the security policy instead, not an issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a weekly count goal
+        2. Log three workouts
+        3. …
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: >-
+        The parts of Momentum it touches. Work across several areas becomes one sub-issue per area
+        at triage.
+      multiple: true
+      options:
+        - "ui: screens and components on Mac and iPhone"
+        - "core: the engine and saved data in MomentumCore"
+        - "sync: sync between devices"
+        - "watch: the watch app and complications"
+        - "widgets: widgets and the Live Activity"
+        - "mac: the Mac app only"
+        - "ios: the iPhone and iPad app only"
+        - "import: importing and exporting"
+        - "ci: GitHub workflows and checks"
+        - "docs: documentation"
+        - "tooling: scripts and developer tools"
+        - "release: versions and releases"
+        - "not sure: leave it for triage"
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      multiple: true
+      options: [Mac, iPhone, iPad, Apple Watch]
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System version
+      placeholder: macOS 26.1, iOS 26.1 or watchOS 26.1
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Momentum version
+      description: Settings → About.
+      placeholder: "2.2.0"
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What has to be true for this to count as fixed. Triage adds to it.
+      value: |
+        - [ ] The steps above no longer reproduce the bug
+        - [ ] A test covers it, where one can
+    validations:
+      required: true

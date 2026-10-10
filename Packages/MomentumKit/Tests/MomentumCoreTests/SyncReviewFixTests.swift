@@ -47,6 +47,25 @@ struct SyncReviewFixTests {
         #expect(merged.entries.first?.amount == 1500.0)
     }
 
+    @Test("Two devices in different time zones finishing the same block log it once")
+    func blockLoggedOnceAcrossTimeZones() throws {
+        var tokyo = Calendar(identifier: .gregorian)
+        tokyo.timeZone = try #require(TimeZone(identifier: "Asia/Tokyo"))
+        let goal = timeGoal()
+        var data = AppData(goals: [goal])
+        data.preferences.pomodoro.isEnabled = true
+        // Started on the phone in Tokyo, ten minutes before midnight there; the Mac, in Chicago,
+        // finishes the block too.
+        let start = try #require(tokyo.date(from: DateComponents(year: 2026, month: 10, day: 8, hour: 23, minute: 50)))
+        data.toggleFocus(on: goal.id, at: start, calendar: tokyo)
+        var phone = data
+        var mac = data
+        phone.advancePomodoro(at: start.addingTimeInterval(1500), calendar: tokyo)
+        mac.advancePomodoro(at: start.addingTimeInterval(1600), calendar: testCalendar)
+        let logged = SyncMerge.merge(mac, phone).entries.map(\.amount)
+        #expect(logged == [600, 900])
+    }
+
     @Test("A session from one device and a break from another are never both kept")
     func timerMergesWhole() {
         let first = timeGoal()

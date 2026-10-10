@@ -23,9 +23,9 @@ struct SessionRating: Identifiable, Equatable {
 extension FocusQuality {
     var tint: Color {
         switch self {
-        case .scattered: .orange
-        case .steady: .teal
-        case .flow: .indigo
+        case .scattered: .attention
+        case .steady: .swatch(.teal)
+        case .flow: .focus
         }
     }
 }

@@ -39,7 +39,7 @@ struct FocusWidgetView: View {
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(goal.tint)
             }
-            WidgetSessionClock(session: session)
+            WidgetSessionClock(session: session, now: entry.date)
                 .font(.system(size: family == .systemSmall ? 34 : 44, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(goal.color.linear)
@@ -57,7 +57,7 @@ struct FocusWidgetView: View {
                         .background(Capsule().fill(goal.tint.opacity(0.18)))
                 }
                 Button(intent: StopSessionIntent(goalID: goal.id)) {
-                    WidgetFilledLabel(fill: goal.color.linear, tint: goal.tint, shape: Capsule()) {
+                    WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Capsule()) {
                         Label("Stop", systemImage: "stop.fill")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
@@ -77,7 +77,7 @@ struct FocusWidgetView: View {
             VStack(spacing: 6) {
                 Image(systemName: "timer")
                     .font(.title)
-                    .foregroundStyle(.indigo)
+                    .foregroundStyle(.focus)
                 Text("Add a time goal to focus from here.")
                     .font(.caption)
                     .multilineTextAlignment(.center)
@@ -161,11 +161,11 @@ struct StreaksWidgetView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Longest streak", systemImage: "flame.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.streak)
                 Spacer(minLength: 0)
                 Text("\(top.1.current)")
                     .font(.system(size: 52, weight: .heavy, design: .rounded))
-                    .foregroundStyle(LinearGradient(colors: [.yellow, .orange, .red], startPoint: .top, endPoint: .bottom))
+                    .foregroundStyle(LinearGradient(colors: [.swatch(.yellow), .swatch(.orange), .swatch(.red)], startPoint: .top, endPoint: .bottom))
                     .minimumScaleFactor(0.5)
                 Text("\(Formatting.unit("\(top.1.unit)s", for: Double(top.1.current))) of \(top.0.name)")
                     .font(.caption)
@@ -177,7 +177,7 @@ struct StreaksWidgetView: View {
             VStack(alignment: .leading, spacing: 7) {
                 Label("Streaks", systemImage: "flame.fill")
                     .font(.headline)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.streak)
                 let best = max(1, ranked.first?.1.best ?? 1)
                 ForEach(ranked.prefix(family == .systemLarge ? 8 : 3), id: \.0.id) { goal, streak in
                     HStack(spacing: 8) {

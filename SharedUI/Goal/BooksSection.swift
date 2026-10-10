@@ -126,7 +126,7 @@ private struct BookRow: View {
                         .monospacedDigit()
                 case .finished:
                     HStack(spacing: 4) {
-                        StarRating(rating: book.rating ?? 0, tint: .yellow) { stars in
+                        StarRating(rating: book.rating ?? 0, tint: .award) { stars in
                             var updated = book
                             updated.rating = stars
                             store.perform("Rate Book") { $0.upsertBook(updated, in: goal.id) }
@@ -234,11 +234,12 @@ struct BookCover: View {
     }
 
     private var generated: some View {
-        let palette: [Color] = [.indigo, .teal, .orange, .pink, .purple, .brown, .blue, .green, .red, .mint]
+        let colors: [GoalColor] = [.indigo, .teal, .orange, .pink, .purple, .brown, .blue, .green, .red, .mint]
         let seed = book.title.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
-        let color = palette[seed % palette.count]
+        // A deep shade of a palette color, so the white initials read on it in light and dark.
+        let color = colors[seed % colors.count].deep
         let initials = book.title.split(separator: " ").prefix(2).compactMap(\.first).map(String.init).joined()
-        return LinearGradient(colors: [color.blended(with: .white, by: 0.2), color.blended(with: .black, by: 0.25)], startPoint: .top, endPoint: .bottom)
+        return LinearGradient(colors: [color.blended(with: .white, by: 0.12), color.blended(with: .black, by: 0.2)], startPoint: .top, endPoint: .bottom)
             .overlay {
                 Text(initials.uppercased())
                     .font(.system(size: height * 0.26, weight: .bold, design: .serif))
@@ -249,7 +250,7 @@ struct BookCover: View {
 
 struct StarRating: View {
     let rating: Int
-    var tint: Color = .yellow
+    var tint: Color = .award
     var onChange: ((Int) -> Void)?
 
     var body: some View {
