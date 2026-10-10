@@ -52,7 +52,10 @@ enum ActivePalette {
     nonisolated(unsafe) private static var paletteColors = PaletteColors(.standard)
 
     static var current: Palette {
-        get { lock.withLock { palette } }
+        get {
+            PaletteChanges.shared.track()
+            return lock.withLock { palette }
+        }
         set {
             lock.withLock {
                 guard newValue != palette else { return }
@@ -63,7 +66,10 @@ enum ActivePalette {
     }
 
     /// `current` as SwiftUI colors, made once per palette rather than on every use.
-    static var colors: PaletteColors { lock.withLock { paletteColors } }
+    static var colors: PaletteColors {
+        PaletteChanges.shared.track()
+        return lock.withLock { paletteColors }
+    }
 
     /// The active palette's colors, if `palette` is the active one.
     static func colors(for palette: Palette) -> PaletteColors? {
