@@ -123,7 +123,8 @@ enum TodoFinder {
         return findings
     }
 
-    /// A name for the list the to-dos go in.
+    /// A name for the goal the to-dos go in: Apple's model's, for several, else the post's title in
+    /// the caption, or the one to-do's name.
     static func listName(for todos: [FoundTodo], caption: String) async -> String {
         #if canImport(FoundationModels)
         if #available(macOS 26.0, iOS 26.0, *), SystemLanguageModel.default.isAvailable, todos.count > 1 {
@@ -131,14 +132,14 @@ enum TodoFinder {
             To-dos: \(todos.map(\.title).joined(separator: "; "))
             Caption: \(String(caption.prefix(600)))
             """
-            if let answer = try? await LanguageModelSession(instructions: Self.listInstructions)
+            if let answer = try? await LanguageModelSession(instructions: Self.nameInstructions)
                 .respond(to: prompt, generating: ListName.self) {
-                let name = answer.content.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                let name = TodoText.goalName(answer.content.name)
                 if !name.isEmpty { return name }
             }
         }
         #endif
-        return todos.count == 1 ? todos[0].title : "Saved videos"
+        return TodoText.listName(for: todos, caption: caption)
     }
 
     // MARK: - Reading files
@@ -364,6 +365,11 @@ enum TodoFinder {
         to do, make, build, watch or practice, in the post's order, each as a short imperative to-do. \
         Leave out advice, opinions, and requests to like, follow, comment or share. When a duration is \
         written next to an item (like 14:32, 1:05:00 or 20 min), give it.
+        """
+
+    private static let nameInstructions = """
+        You name a to-do list made from a social media post, in 2 to 5 words, like "Rebuild AI projects" \
+        or "Morning mobility", in sentence case. Use the post's own words for what it's about.
         """
 
     /// A video's to-do, and whether Apple's model named it as meant: false when the model is there

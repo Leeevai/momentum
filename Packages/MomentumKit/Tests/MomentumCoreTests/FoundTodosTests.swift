@@ -153,6 +153,33 @@ struct FoundTodosTests {
         #expect(durations == expectedDurations)
     }
 
+    @Test("Without the model, several to-dos go in a goal named after the post's title in its caption")
+    func goalNames() {
+        let caption = """
+            Save this for later 📌
+            5 AI projects to build this weekend 🚀🔥 #ai @coach
+            1. Build a tokenizer
+            2. Train a tiny GPT
+            """
+        let todos = [FoundTodo(title: "Build a tokenizer", source: "Caption"), FoundTodo(title: "Train a tiny GPT", source: "Caption")]
+        let fromCaption = TodoText.listName(for: todos, caption: caption)
+        let onlyList = TodoText.listName(for: todos, caption: "1. Build a tokenizer\n2. Train a tiny GPT")
+        let behindTags = TodoText.postTitle(in: "#fitness #workout\nhttps://instagram.com/p/x\nHow to learn SQL in 30 days:")
+        let single = TodoText.listName(for: [todos[0]], caption: caption)
+        #expect(fromCaption == "5 AI projects to build this weekend")
+        #expect(onlyList == "Saved videos")
+        #expect(behindTags == "How to learn SQL in 30 days")
+        #expect(single == "Build a tokenizer")
+    }
+
+    @Test("A suggested goal name is tidied and kept short")
+    func suggestedGoalNames() {
+        let quoted = TodoText.goalName("“Rebuild AI projects.”")
+        let long = TodoText.goalName("Morning mobility routine for runners who sit all day")
+        #expect(quoted == "Rebuild AI projects")
+        #expect(long == "Morning mobility routine for runners who")
+    }
+
     @Test("Titles read as to-dos: shouted captions in sentence case, without quotes or a full stop")
     func tidyingTitles() {
         let shouted = TodoText.tidyTitle("10 MIN AB WORKOUT")

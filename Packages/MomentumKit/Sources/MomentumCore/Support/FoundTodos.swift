@@ -173,6 +173,10 @@ public enum TodoText {
                                    "save for later", "subscribe", "tag a", "tag someone", "tag your", "link in bio",
                                    "dm me", "share this", "share with"]
 
+    /// A caption's first lines that hook rather than name the post.
+    private static let hooks = ["stop scrolling", "wait for it", "you need this", "you need to see", "read this",
+                                "don't skip", "watch till the end", "watch until the end"]
+
     /// Text a screen recording picks up from the phone or the app rather than the video.
     private static let interfaceText: Set<String> = ["follow", "following", "like", "likes", "share", "send", "reply",
                                                      "comment", "comments", "more", "reels", "for you", "explore",
@@ -217,6 +221,40 @@ public enum TodoText {
             guard !title.isEmpty, !requests.contains(where: { startsWithWord($0, title) }) else { return nil }
             return (title, duration(in: item))
         }
+    }
+
+    /// A name for the goal found to-dos go in when the on-device model doesn't name it: a single
+    /// to-do's own, else the post's title, the caption's first line that is one, else "Saved videos".
+    public static func listName(for todos: [FoundTodo], caption: String) -> String {
+        if todos.count == 1 { return todos[0].title }
+        return postTitle(in: caption) ?? "Saved videos"
+    }
+
+    /// The post's title in its caption: the first line of two words or more, once links, handles,
+    /// hashtags and emoji are taken out, that isn't a list item, a request or a hook. "5 AI projects
+    /// to build this weekend 🚀" is "5 AI projects to build this weekend".
+    public static func postTitle(in caption: String) -> String? {
+        for line in caption.split(whereSeparator: \.isNewline) where listItem(String(line)) == nil {
+            let words = line.split(separator: " ").filter { word in
+                !word.hasPrefix("#") && !word.hasPrefix("@") && !word.contains("://")
+            }
+            let text = words.joined(separator: " ").filter { !isEmoji($0) }
+                .trimmingCharacters(in: .whitespaces.union(CharacterSet(charactersIn: ":-–—|")))
+            guard text.split(separator: " ").count >= 2,
+                  !(requests + hooks).contains(where: { startsWithWord($0, text) }) else { continue }
+            return goalName(text, maxWords: 8)
+        }
+        return nil
+    }
+
+    /// A goal's name as it should read: tidied like a to-do's name and at most `maxWords` long.
+    public static func goalName(_ name: String, maxWords: Int = 6) -> String {
+        tidyTitle(name.split(separator: " ").prefix(maxWords).joined(separator: " "))
+    }
+
+    /// Whether a character is an emoji ("🚀", "❤️", "👍🏽"), rather than a digit or a sign that can be one.
+    private static func isEmoji(_ character: Character) -> Bool {
+        character.unicodeScalars.contains { $0.properties.isEmojiPresentation || ($0.properties.isEmoji && $0.value >= 0x203C) }
     }
 
     /// What follows a line's list marker; nil when the line doesn't start like a list item. A number
