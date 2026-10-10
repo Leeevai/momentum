@@ -32,12 +32,22 @@ device. Open Library sees the search text, that the request comes from Momentum,
 connection, your IP address; nothing else. Links you add to a goal open in the browser or app they
 point to, only when you open them.
 
+## To-dos from videos
+
+When you turn saved videos, screenshots or a caption into to-dos, Momentum reads them **on your
+device**: it measures each video, recognizes the speech and the text on screen, and names the to-dos
+with Apple's on-device language model. The videos, images and text never leave your device, and
+the copies made while reading them are deleted when you close the window. The first time, the
+system may download Apple's speech recognition model for your language; Momentum itself sends
+nothing.
+
 ## Permissions
 
 - **Notifications**: reminders and focus timers are scheduled on your device; nothing is sent to a
   server.
-- **Photos (add only)**: when you save a share card or your week as an image, Momentum asks to
-  add it to your photo library. It cannot read your photos.
+- **Photos**: when you save a share card or your week as an image, Momentum asks to add it to your
+  photo library. It can't read your library: to bring in videos or screenshots, you pick them in
+  the system's photo picker, which hands Momentum only the items you choose.
 - **Files and folders**: Momentum opens only the files and the sync folder you pick.
 
 Siri, Shortcuts, Spotlight, widgets, Live Activities and Focus filters work through the system on
