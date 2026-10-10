@@ -17,7 +17,7 @@ struct FocusLiveActivity: Widget {
         } dynamicIsland: { context in
             let attributes = context.attributes
             let state = context.state
-            let tint = attributes.tint
+            let tint = Color(state.swatch(for: attributes))
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     ActivityGlyph(attributes: attributes, state: state, size: 44)
@@ -71,13 +71,14 @@ private struct LockScreenFocusView: View {
     let isStale: Bool
 
     var body: some View {
+        let tint = Color(state.swatch(for: attributes))
         VStack(spacing: 12) {
             HStack(spacing: 14) {
                 ActivityGlyph(attributes: attributes, state: state, size: 48)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(state.phaseTitle(isStale: isStale))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(attributes.tint)
+                        .foregroundStyle(tint)
                     Text(attributes.goalName)
                         .font(.headline)
                         .foregroundStyle(.white)
@@ -90,25 +91,28 @@ private struct LockScreenFocusView: View {
                     .frame(maxWidth: 140, alignment: .trailing)
             }
             HStack(spacing: 12) {
-                ActivityProgress(state: state, tint: attributes.tint)
+                ActivityProgress(state: state, tint: tint)
                 ActivityButtons(attributes: attributes, state: state)
             }
         }
     }
 }
 
-/// The goal's symbol on its color; a leaf during a break.
+/// The goal's symbol on a deep shade of its color, which the white symbol reads on; a leaf
+/// during a break.
 private struct ActivityGlyph: View {
     let attributes: FocusActivityAttributes
     let state: FocusActivityAttributes.ContentState
     let size: CGFloat
 
     var body: some View {
+        let deep = state.swatch(for: attributes).deepened
+        let light = OKLCH(deep.lightness + 0.04, deep.chroma, deep.hue).inSRGB
         Image(systemName: state.phase == .resting ? "leaf.fill" : attributes.symbol)
             .font(.system(size: size * 0.45, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size, height: size)
-            .background(Circle().fill(attributes.goalColor.linear))
+            .background(Circle().fill(LinearGradient(colors: [Color(light), Color(deep)], startPoint: .topLeading, endPoint: .bottomTrailing)))
             .opacity(state.phase == .paused ? 0.6 : 1)
     }
 }
@@ -166,52 +170,62 @@ private struct ActivityButtons: View {
     let state: FocusActivityAttributes.ContentState
 
     var body: some View {
+        let swatch = state.swatch(for: attributes)
+        let filled = ActivityButtonStyle(fill: Color(swatch), label: swatch.prefersDarkLabel ? .black : .white)
+        let plain = ActivityButtonStyle(fill: .white.opacity(0.18), label: .white)
         HStack(spacing: 8) {
             switch state.phase {
             case .focusing, .paused:
                 Button(intent: SetPausedIntent(goalID: attributes.goalID, paused: state.phase != .paused)) {
                     Image(systemName: state.phase == .paused ? "play.fill" : "pause.fill")
                 }
-                .buttonStyle(ActivityButtonStyle(tint: .white.opacity(0.18)))
+                .buttonStyle(plain)
                 if let id = UUID(uuidString: attributes.goalID) {
                     Button(intent: StopSessionIntent(goalID: id)) {
                         Image(systemName: "stop.fill")
                     }
-                    .buttonStyle(ActivityButtonStyle(tint: attributes.tint))
+                    .buttonStyle(filled)
                 }
             case .resting:
                 Button(intent: EndBreakIntent()) {
                     Image(systemName: "forward.end.fill")
                 }
-                .buttonStyle(ActivityButtonStyle(tint: .white.opacity(0.18)))
+                .buttonStyle(plain)
                 Button(intent: StartNextBlockIntent()) {
                     Image(systemName: "play.fill")
                 }
-                .buttonStyle(ActivityButtonStyle(tint: attributes.tint))
+                .buttonStyle(filled)
             }
         }
     }
 }
 
+/// A capsule button on the activity: its label white or black, whichever reads on the fill.
 private struct ActivityButtonStyle: ButtonStyle {
-    let tint: Color
+    let fill: Color
+    let label: Color
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 15, weight: .bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(label)
             .frame(width: 44, height: 36)
-            .background(Capsule().fill(tint))
+            .background(Capsule().fill(fill))
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 
 extension FocusActivityAttributes {
     var goalColor: GoalColor { GoalColor(rawValue: color) ?? .indigo }
-    var tint: Color { goalColor.color }
 }
 
 extension FocusActivityAttributes.ContentState {
+    /// The goal's color as the app sent it, or the default palette's for an activity from a
+    /// version that didn't send one.
+    func swatch(for attributes: FocusActivityAttributes) -> OKLCH {
+        tint ?? Palette.standard.dark.swatch(attributes.goalColor)
+    }
+
     func phaseTitle(isStale: Bool) -> String {
         switch phase {
         case .focusing where isStale && end != nil: "Time's up"
