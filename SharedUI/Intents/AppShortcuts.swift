@@ -23,10 +23,19 @@ struct StartFocusIntent: AppIntent {
         let data = SharedStore.load()
         guard let stored = data.goal(goal.id) else { throw MomentumIntentError.goalNotFound }
         guard stored.kind == .time else { throw MomentumIntentError.notATimeGoal(stored.name) }
-        let length = minutes ?? stored.focusMinutes ?? data.preferences.defaultFocusMinutes
-        let updated = SharedStore.update { $0.startFocus(on: stored.id, planned: Double(length) * 60) }
+        guard !stored.isArchived else { throw MomentumIntentError.archived(stored.name) }
+        // Without minutes, the length a widget's or the watch's Start uses: the goal's own, the
+        // Pomodoro block, or none, for a session that runs until it's stopped.
+        var length: TimeInterval?
+        let updated = SharedStore.update { data in
+            length = minutes.map { Double($0) * 60 } ?? data.defaultFocusLength(for: stored.id)
+            data.startFocus(on: stored.id, planned: length)
+        }
         await LiveActivitySync.after(updated)
-        return .result(dialog: "Focusing on \(stored.name) for \(length) minutes.")
+        guard let length else { return .result(dialog: "Focusing on \(stored.name).") }
+        let planned = Int((length / 60).rounded())
+        let unit = planned == 1 ? "minute" : "minutes"
+        return .result(dialog: "Focusing on \(stored.name) for \(planned) \(unit).")
     }
 }
 
@@ -217,11 +226,13 @@ struct ChallengeStatusIntent: AppIntent {
 enum MomentumIntentError: Error, CustomLocalizedStringResourceConvertible {
     case goalNotFound
     case notATimeGoal(String)
+    case archived(String)
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .goalNotFound: "That goal no longer exists."
         case .notATimeGoal(let name): "\(name) isn't tracked by time. Use Log Progress for it instead."
+        case .archived(let name): "\(name) is archived. Restore it in Momentum to focus on it."
         }
     }
 }
