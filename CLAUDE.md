@@ -24,7 +24,7 @@ and read the checks instead (`fix-ci` skill); build locally only when the owner 
 conversation. What CI runs:
 
 ```bash
-swift test --package-path Packages/MomentumKit
+swift test --parallel --package-path Packages/MomentumKit
 xcodebuild -project Momentum.xcodeproj -scheme Momentum -destination 'platform=macOS' build
 xcodebuild -project Momentum.xcodeproj -scheme MomentumMobile -destination 'generic/platform=iOS Simulator' build
 ```
