@@ -52,6 +52,8 @@ enum WidgetTimeline {
     static func data(preview: Bool) -> AppData {
         let stored = SharedStore.load()
         let data = preview && stored.goals.isEmpty ? .demo() : stored
+        // Widget text sits on the aurora itself, without the apps' glass panes.
+        ActivePalette.textSurface = .aurora
         ActivePalette.current = data.preferences.activePalette
         return data
     }
@@ -63,6 +65,7 @@ enum WidgetTimeline {
     /// Entries at the moments rings need to move; see `WidgetSchedule`.
     static func timeline(goalID: UUID? = nil, now: Date = .now) -> Timeline<MomentumEntry> {
         let engine = ProgressEngine(data: SharedStore.load())
+        ActivePalette.textSurface = .aurora
         ActivePalette.current = engine.data.preferences.activePalette
         let entries = WidgetSchedule.entryDates(for: engine.data, now: now).map {
             MomentumEntry(date: $0, engine: engine, goalID: goalID)
@@ -144,7 +147,7 @@ struct WidgetActionButton: View {
     }
 
     private func icon(_ name: String) -> some View {
-        WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Circle()) {
+        WidgetFilledLabel(fill: goal.color.fill, tint: goal.color.swatch, shape: Circle()) {
             Image(systemName: name)
                 .font(.system(size: size * 0.4, weight: .bold))
                 .frame(width: size, height: size)
@@ -187,7 +190,7 @@ struct WidgetWideButton: View {
     }
 
     private func label(_ title: String, _ systemImage: String) -> some View {
-        WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Capsule()) {
+        WidgetFilledLabel(fill: goal.color.fill, tint: goal.color.swatch, shape: Capsule()) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)

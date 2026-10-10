@@ -57,7 +57,7 @@ struct FocusWidgetView: View {
                         .background(Capsule().fill(goal.tint.opacity(0.18)))
                 }
                 Button(intent: StopSessionIntent(goalID: goal.id)) {
-                    WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Capsule()) {
+                    WidgetFilledLabel(fill: goal.color.fill, tint: goal.color.swatch, shape: Capsule()) {
                         Label("Stop", systemImage: "stop.fill")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)

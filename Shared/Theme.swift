@@ -2,8 +2,13 @@ import MomentumCore
 import SwiftUI
 
 extension GoalColor {
-    /// The active palette's swatch for this color.
-    var color: Color { ActivePalette.colors.swatch(self) }
+    /// The color as `goal.tint` and the named roles draw it: the active palette's swatch in a
+    /// shade that reads as text on glass (4.5:1), since that's mostly what they color. Rings,
+    /// bars, tiles and glyphs draw the swatch itself, through `palette.color(_:)` or `swatch`.
+    var color: Color { ActivePalette.colors.text(self) }
+
+    /// The active palette's swatch itself, for a fill whose label is chosen by its color.
+    var swatch: Color { ActivePalette.colors.swatch(self) }
 
     /// A lighter companion hue for gradients.
     var highlight: Color { ActivePalette.colors.highlight(self) }

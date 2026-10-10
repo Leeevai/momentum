@@ -12,6 +12,7 @@ MainActor.assumeIsolated {
     if let name = ProcessInfo.processInfo.environment["MOMENTUM_PALETTE"], let palette = ThemePalette(stored: name) {
         data.preferences.choose(palette)
     }
+    ActivePalette.textSurface = .aurora
     ActivePalette.current = data.preferences.activePalette
     if let deepWork = data.goals.first(where: { $0.name == "Deep work" }) {
         data.session = FocusSession(goalID: deepWork.id, plannedDuration: 50 * 60, start: Date().addingTimeInterval(-32 * 60))

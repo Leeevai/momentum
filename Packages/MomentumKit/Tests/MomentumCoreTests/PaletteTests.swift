@@ -216,6 +216,43 @@ struct PaletteTests {
         #expect(throws: DecodingError.self) { try JSONDecoder().decode(OKLCH.self, from: Data(#"{"lightness": 0.5}"#.utf8)) }
     }
 
+    @Test("The accent reads as text on glass, 4.5:1 or better, in light and dark")
+    func accentIsReadable() {
+        var faint: [String] = []
+        for (name, tokens) in Self.everyToken() {
+            let dark = name.hasSuffix("dark")
+            let contrast = OKLCH.contrast(tokens.accent.luminance, TextSurface.glass.luminance(dark: dark))
+            if contrast < 4.5 { faint.append("\(name): \(contrast)") }
+        }
+        #expect(faint.isEmpty, "\(faint)")
+    }
+
+    @Test("A readable shade reaches 4.5:1 on glass and on the bare aurora, deeper in light and lighter in dark, and leaves a color that already does alone")
+    func readableShades() {
+        let light = TextSurface.glass.luminance(dark: false)
+        let dark = TextSurface.glass.luminance(dark: true)
+        var faint: [String] = []
+        for (name, tokens) in Self.everyToken() {
+            let isDark = name.hasSuffix("dark")
+            for surface in [TextSurface.glass, .aurora] {
+                let background = surface.luminance(dark: isDark)
+                for swatch in tokens.swatches {
+                    let text = swatch.readable(onLuminance: background)
+                    let contrast = OKLCH.contrast(text.luminance, background)
+                    if contrast < 4.5 || text.hue != swatch.hue { faint.append("\(name) \(surface): \(contrast)") }
+                }
+            }
+        }
+        #expect(faint.isEmpty, "\(faint)")
+        let pale = OKLCH(0.75, 0.08, 140)
+        let deepened = pale.readable(onLuminance: light)
+        let lightened = OKLCH(0.45, 0.08, 140).readable(onLuminance: dark)
+        let ink = OKLCH(0.3, 0.05, 250)
+        #expect(deepened.lightness < pale.lightness)
+        #expect(lightened.lightness > 0.45)
+        #expect(ink.readable(onLuminance: light) == ink)
+    }
+
     @Test("Mapping into sRGB keeps lightness and hue and lowers chroma")
     func gamutMapping() {
         let vivid = OKLCH(0.9, 0.3, 260)

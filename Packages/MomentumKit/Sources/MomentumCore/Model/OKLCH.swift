@@ -104,6 +104,23 @@ public struct OKLCH: Hashable, Sendable {
         return self
     }
 
+    // MARK: - Text
+
+    /// The same color as text: deeper on a light background, lighter on a dark one, until it
+    /// reaches `minimum` against `background`, a WCAG luminance. A color that already does is
+    /// returned as it is.
+    public func readable(onLuminance background: Double, minimum: Double = 4.5) -> OKLCH {
+        guard Self.contrast(luminance, background) < minimum else { return self }
+        let step = background > 0.18 ? -0.005 : 0.005
+        var candidate = self
+        for _ in 0..<200 {
+            candidate = OKLCH(candidate.lightness + step, chroma, hue).inSRGB
+            let reached = Self.contrast(candidate.luminance, background) >= minimum
+            if reached || candidate.lightness <= 0 || candidate.lightness >= 1 { break }
+        }
+        return candidate
+    }
+
     // MARK: - Shades
 
     public static let white = OKLCH(1, 0, 0)
