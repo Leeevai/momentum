@@ -23,8 +23,12 @@ struct ImportTodosSheet: View {
     @State private var choosesFiles = false
     @State private var pickedMedia: [PhotosPickerItem] = []
     @State private var problem: String?
+    /// The search under way, stopped by the Stop button or by closing the sheet.
+    @State private var finding: Task<Void, Never>?
+    /// Items still being copied out of Photos.
+    @State private var addingMedia: Task<Void, Never>?
     /// Copies of what was added, readable for as long as the sheet is open; removed with it.
-    @State private var folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-import-\(UUID().uuidString)")
+    @State private var folder = ImportScratch.newItem(named: "files")
 
     private static let fileTypes: [UTType] = [.movie, .video, .audio, .image]
 
@@ -47,16 +51,23 @@ struct ImportTodosSheet: View {
         }
         .onChange(of: pickedMedia) { _, items in loadPicked(items) }
         .dropDestination(for: URL.self) { urls, _ in
+            // Only while collecting: a file dropped on the review, or mid-search, would go unread.
+            guard !isReviewing, finding == nil else { return false }
             add(urls)
             return !urls.isEmpty
         }
         .onAppear {
             if let initialLink, linkText.isEmpty { linkText = initialLink.absoluteString }
+            Task.detached(priority: .background) { ImportScratch.removeLeftovers() }
             #if DEBUG
             addRequestedFiles()
             #endif
         }
-        .onDisappear { try? FileManager.default.removeItem(at: folder) }
+        .onDisappear {
+            finding?.cancel()
+            addingMedia?.cancel()
+            try? FileManager.default.removeItem(at: folder)
+        }
     }
 
     private var header: some View {
@@ -84,6 +95,7 @@ struct ImportTodosSheet: View {
                         Label("Photos", systemImage: "photo.on.rectangle")
                     }
                     .secondaryActionStyle(.accent, compact: true)
+                    .disabled(addingMedia != nil)
                 }
                 if files.isEmpty {
                     Text(Self.instagramHelp)
@@ -131,6 +143,8 @@ struct ImportTodosSheet: View {
                     .foregroundStyle(.orange)
             }
         }
+        // What's being read stays as it is until the search ends or is stopped.
+        .disabled(finding != nil)
     }
 
     private static let instagramHelp = """
@@ -230,9 +244,9 @@ struct ImportTodosSheet: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            if let status {
+            if let progress = status ?? (addingMedia == nil ? nil : "Adding from Photos…") {
                 ProgressView().controlSize(.small)
-                Text(status)
+                Text(progress)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -251,19 +265,33 @@ struct ImportTodosSheet: View {
                 .disabled(todos.count == skipped.count)
                 .keyboardShortcut(.defaultAction)
             } else {
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button {
-                    find()
-                } label: {
-                    Label("Find To-dos", systemImage: "sparkles")
-                }
-                .primaryActionStyle(.accent)
-                .disabled(status != nil || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-                .keyboardShortcut(.defaultAction)
+                collectActions
             }
         }
         .padding(16)
+    }
+
+    @ViewBuilder
+    private var collectActions: some View {
+        Button("Cancel") { dismiss() }
+            .keyboardShortcut(.cancelAction)
+        if finding != nil {
+            Button {
+                stopFinding()
+            } label: {
+                Label("Stop", systemImage: "stop.fill")
+            }
+            .primaryActionStyle(.accent)
+        } else {
+            Button {
+                find()
+            } label: {
+                Label("Find To-dos", systemImage: "sparkles")
+            }
+            .primaryActionStyle(.accent)
+            .disabled(addingMedia != nil || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+            .keyboardShortcut(.defaultAction)
+        }
     }
 
     // MARK: - Actions
@@ -280,26 +308,39 @@ struct ImportTodosSheet: View {
     private func loadPicked(_ items: [PhotosPickerItem]) {
         guard !items.isEmpty else { return }
         pickedMedia = []
-        Task {
+        addingMedia = Task {
             for item in items {
-                if let media = try? await item.loadTransferable(type: PickedMedia.self),
-                   let copy = try? Self.copy(media.url, into: folder) {
+                let media = try? await item.loadTransferable(type: PickedMedia.self)
+                // The sheet closed meanwhile, and its folder with it: the copy goes too.
+                guard !Task.isCancelled else {
+                    media?.discard()
+                    return
+                }
+                if let media, let copy = try? media.move(into: folder) {
                     files.append(copy)
-                    try? FileManager.default.removeItem(at: media.url)
                 } else {
                     problem = "One of the items couldn't be read from Photos."
                 }
             }
+            addingMedia = nil
         }
     }
 
     private func find() {
         problem = nil
         let link = TodoText.link(from: linkText)
+        let files = files
+        let caption = caption
         status = "Getting started…"
-        Task {
-            let found = await TodoFinder.todos(in: files, caption: caption, link: link) { status = $0 }
+        finding = Task {
+            let found = await TodoFinder.todos(in: files, caption: caption, link: link) { message in
+                // A stopped search can still be finishing a step; it no longer reports.
+                if !Task.isCancelled { status = message }
+            }
+            guard !Task.isCancelled else { return }
             let name = await TodoFinder.listName(for: found, caption: caption)
+            guard !Task.isCancelled else { return }
+            finding = nil
             status = nil
             if found.isEmpty {
                 problem = "No to-dos found. Try adding the video itself, or paste the caption."
@@ -313,6 +354,13 @@ struct ImportTodosSheet: View {
             if ProcessInfo.processInfo.environment["MOMENTUM_IMPORT_SAVE"] != nil { save() }
             #endif
         }
+    }
+
+    /// Stops looking, keeping what was added, to change it and look again.
+    private func stopFinding() {
+        finding?.cancel()
+        finding = nil
+        status = nil
     }
 
     #if DEBUG
@@ -341,7 +389,21 @@ struct ImportTodosSheet: View {
         store.select(target)
     }
 
-    static func copy(_ url: URL, into folder: URL) throws -> URL {
+    nonisolated static func copy(_ url: URL, into folder: URL) throws -> URL {
+        let destination = try freeName(for: url, in: folder)
+        try FileManager.default.copyItem(at: url, to: destination)
+        return destination
+    }
+
+    nonisolated static func move(_ url: URL, into folder: URL) throws -> URL {
+        let destination = try freeName(for: url, in: folder)
+        try FileManager.default.moveItem(at: url, to: destination)
+        return destination
+    }
+
+    /// Where `url`'s file goes in `folder`, which is made if need be: under its own name, or
+    /// "clip 2.mov" when there's a "clip.mov" already.
+    private nonisolated static func freeName(for url: URL, in folder: URL) throws -> URL {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         var destination = folder.appendingPathComponent(url.lastPathComponent)
         var counter = 2
@@ -350,12 +412,12 @@ struct ImportTodosSheet: View {
             destination = folder.appendingPathComponent("\(stem) \(counter)").appendingPathExtension(url.pathExtension)
             counter += 1
         }
-        try FileManager.default.copyItem(at: url, to: destination)
         return destination
     }
 }
 
-/// A video or image from the Photos picker, copied out of the picker's temporary file.
+/// A video or image from the Photos picker, copied out of the picker's temporary file into a folder
+/// of its own, which `move(into:)` and `discard()` remove.
 private struct PickedMedia: Transferable {
     let url: URL
 
@@ -365,7 +427,22 @@ private struct PickedMedia: Transferable {
     }
 
     init(copying file: URL) throws {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-picked-\(UUID().uuidString)")
-        url = try ImportTodosSheet.copy(file, into: folder)
+        let folder = ImportScratch.newItem(named: "picked")
+        do {
+            url = try ImportTodosSheet.copy(file, into: folder)
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
+    }
+
+    /// Moves the copy into `folder`, where the sheet keeps what was added.
+    func move(into folder: URL) throws -> URL {
+        defer { discard() }
+        return try ImportTodosSheet.move(url, into: folder)
+    }
+
+    func discard() {
+        try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
     }
 }
