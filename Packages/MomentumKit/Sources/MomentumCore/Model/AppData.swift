@@ -75,14 +75,19 @@ public struct FocusSession: Codable, Hashable, Sendable {
     public var note: String
     /// Which block of a Pomodoro cycle this is, counting from 1.
     public var block: Int
+    /// The identifier of the time zone it started in ("Asia/Tokyo"). Stopping splits it into the
+    /// days of that zone, so every device that stops it logs the same pieces. Nil for sessions
+    /// started before it was kept, which split in the stopping device's zone.
+    public var timeZone: String?
 
-    public init(goalID: UUID, plannedDuration: TimeInterval? = nil, start: Date, block: Int = 1) {
+    public init(goalID: UUID, plannedDuration: TimeInterval? = nil, start: Date, block: Int = 1, timeZone: String? = nil) {
         self.goalID = goalID
         self.plannedDuration = plannedDuration
         self.segments = []
         self.runningSince = start
         self.note = ""
         self.block = block
+        self.timeZone = timeZone
     }
 
     public var isRunning: Bool { runningSince != nil }
@@ -127,7 +132,7 @@ public struct FocusSession: Codable, Hashable, Sendable {
         return reference.addingTimeInterval(plannedDuration)
     }
 
-    private enum CodingKeys: String, CodingKey { case goalID, plannedDuration, segments, runningSince, note, block }
+    private enum CodingKeys: String, CodingKey { case goalID, plannedDuration, segments, runningSince, note, block, timeZone }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -137,6 +142,8 @@ public struct FocusSession: Codable, Hashable, Sendable {
         runningSince = try c.decodeIfPresent(Date.self, forKey: .runningSince)
         note = try c.decode(.note, default: "")
         block = max(1, try c.decode(.block, default: 1))
+        // Anything but a string is dropped, not the session.
+        timeZone = (try? c.decodeIfPresent(String.self, forKey: .timeZone)) ?? nil
     }
 }
 

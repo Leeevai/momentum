@@ -183,7 +183,8 @@ and no sync service has a conflict to resolve.
 - **The timer.** The running session and the break each take the latest change. What only a
   merge can produce, a timer on a deleted goal or a session alongside a break, is settled by the
   app afterwards (`settleTimer`) as a change of its own, which then syncs out. Entries a session
-  logs have ids derived from the session, so two devices stopping the same session log it once.
+  logs have ids derived from the session, and it's split into the days of the time zone it
+  started in, so two devices stopping the same session log it once, wherever they are.
 - **When.** A device writes its file a moment after each change, and merges others' files when
   the folder changes, every minute, when the app comes forward, and before a Lock Screen or
   widget button acts.
