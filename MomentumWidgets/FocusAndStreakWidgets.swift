@@ -39,7 +39,7 @@ struct FocusWidgetView: View {
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(goal.tint)
             }
-            WidgetSessionClock(session: session)
+            WidgetSessionClock(session: session, now: entry.date)
                 .font(.system(size: family == .systemSmall ? 34 : 44, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(goal.color.linear)

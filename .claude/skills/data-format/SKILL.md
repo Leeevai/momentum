@@ -19,8 +19,10 @@ data quietly, so:
 
 3. **Bump the version only for an incompatible change.** Additive fields leave
    `AppData.currentVersion` alone. A real format change bumps it, migrates in `FileStore.decode`,
-   and adds a fixture test, as `LegacyDataV1` does. `FileStore` won't save over a file from a newer
-   version; keep it that way.
+   and adds a fixture test, as `LegacyDataV1` does. `FileStore.decode` refuses a file from a newer
+   format, so it's never saved over, and `SyncEnvelope` refuses a sync file in one; keep it that
+   way. Sync files don't go through `FileStore.decode`: a migration has to cover
+   `SyncEnvelope.init(from:)` too.
 
 4. **Sync.** Saves are stamped by `FileStore.transform`, and a merge from another device is written
    with `stamping: false`. A new field on an existing record travels with its record. A new
