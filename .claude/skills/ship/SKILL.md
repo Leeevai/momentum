@@ -55,12 +55,12 @@ conventions.
    git log origin/develop..HEAD --format=%B | grep -niE 'claude|anthropic|co-authored|generated with' && echo 'STRIP IT'
    ```
 
-6. **Push and open a draft PR into `develop`.** Title it with the ticket, `[NNNN]-[area]
-   <description>` (the issue's area, imperative, lowercase start, no period), because it becomes
-   the merge commit's title. The body starts with `Closes #N` for the same issue: the first line of
-   `.github/PULL_REQUEST_TEMPLATE.md`. Fill every heading of the template, and say how the change
-   was verified (CI, reasoning, or a run the owner did); never claim a local run that didn't
-   happen.
+6. **Push and open a draft PR into `develop`.** Title it with the ticket,
+   `[NNNN]-[area] <description>` (the issue's area, imperative, lowercase start, no period),
+   because it becomes the merge commit's title. The body starts with `Closes #N` for the same
+   issue: the first line of `.github/PULL_REQUEST_TEMPLATE.md`. Fill every heading of the template,
+   and say how the change was verified (CI, reasoning, or a run the owner did); never claim a local
+   run that didn't happen.
 
    ```bash
    ./scripts/check-ticket.sh --title '[NNNN]-[area] <description>'
