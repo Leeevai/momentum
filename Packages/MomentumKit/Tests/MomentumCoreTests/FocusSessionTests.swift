@@ -93,4 +93,26 @@ struct FocusSessionTests {
         #expect(stats.average == 2400)
         #expect(stats.longest == 3600)
     }
+
+    @Test("A stop or an extension for one session leaves a newer one alone")
+    func actionsNameTheirSession() {
+        var data = AppData(goals: [goal])
+        let first = referenceNow.addingTimeInterval(-3600)
+        data.startFocus(on: goal.id, planned: 1500, at: first, calendar: testCalendar)
+        // Stopped, and another started, before the first one's notification is acted on.
+        data.stopFocus(at: first.addingTimeInterval(1500), calendar: testCalendar)
+        let second = referenceNow.addingTimeInterval(-600)
+        data.startFocus(on: goal.id, planned: 1500, at: second, calendar: testCalendar)
+        data.extendFocus(startedAt: first, on: goal.id, by: 5)
+        let stale = data.stopFocus(startedAt: first, on: goal.id, at: referenceNow, calendar: testCalendar)
+        let untouched = data.session?.plannedDuration
+        #expect(stale.isEmpty)
+        #expect(untouched == 1500)
+
+        data.extendFocus(startedAt: second, on: goal.id, by: 5)
+        let extended = data.session?.plannedDuration
+        let logged = data.stopFocus(startedAt: second, on: goal.id, at: referenceNow, calendar: testCalendar)
+        #expect(extended == 1800)
+        #expect(logged.map(\.amount) == [600])
+    }
 }
