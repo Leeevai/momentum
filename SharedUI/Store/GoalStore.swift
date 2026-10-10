@@ -308,6 +308,8 @@ final class GoalStore {
             let palette = after.activePalette
             ActivePalette.current = palette
             self.palette = palette
+            // Views that drew `goal.tint` or the roles redraw too, not only those that read the store.
+            PaletteChanges.shared.changed()
         }
         data = newData
         engine = ProgressEngine(data: newData)
