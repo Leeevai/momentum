@@ -16,6 +16,8 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- Taking time off with − while a timer runs moves the goal's ring at once. When nothing else was
+  logged that day, the correction showed only after the session was saved, when the ring dropped.
 - A day whose logs cancel out, such as a + taken back with −, no longer counts as a day of
   activity. It kept the streaks of reading, project and overall goals going, and showed as active
   on the heatmap, in the week's review and in Insights.
