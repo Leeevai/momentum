@@ -187,7 +187,9 @@ can't end a newer session. Out of the iPhone's reach, commands go by `transferUs
 ones queue behind them so they arrive in the order tapped.
 
 The watch keeps the last snapshot, so it opens instantly; one from an earlier day shows daily
-goals starting over. The complications read it from the app group: the iPhone pushes an update
+goals starting over. A watch app can be older than the iPhone app, so it reads a snapshot
+leniently: a color it doesn't know draws blue, a kind it doesn't know shows as a count with the
+iPhone's action, and a goal it can't read is left out rather than the whole snapshot. The complications read it from the app group: the iPhone pushes an update
 (`transferCurrentComplicationUserInfo`, a few dozen a day) when something on the face changes,
 and their timeline has an entry at midnight and at the end of a planned block.
 
