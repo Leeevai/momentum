@@ -44,7 +44,11 @@ app group container, `~/Library/Group Containers/<team>.<prefix>.momentum/Moment
   inside an `NSFileCoordinator` write, applies the change, and writes atomically. A widget button
   and the app can never overwrite each other's change.
 - **Decoding is tolerant.** Every field decodes with a default when missing, so adding a field
-  never makes an existing file unreadable, and a file from a newer version still opens.
+  never makes an existing file unreadable, and a file a newer version saved in the same format
+  still opens.
+- **Newer formats are refused.** A file whose `version` is above `AppData.currentVersion` would
+  read without what's new and lose it at the next save, so it's treated as unreadable instead,
+  and a sync file in a newer format isn't merged. Settings asks for an update.
 - **Old formats migrate.** A file without a `version` is the 0.1 format; it converts on read, and
   the first read keeps an untouched copy as `data.v1-backup.json`.
 - **Nothing is ever silently lost.** An unreadable file is copied aside before Momentum starts
@@ -192,7 +196,9 @@ and no sync service has a conflict to resolve.
 The watch app (`MomentumWatch/`) holds no data of its own. The iPhone works out a
 `WatchSnapshot` on every change (today's goals with progress, streaks and one-tap actions, the
 timer and the break: a few kilobytes) and sends it as the WatchConnectivity application context.
-A tap on the watch is a `WatchCommand`: an explicit action (start a goal; stop or pause *the
+It sends one too when the app comes forward and when the day turns, which changes what's due
+without changing the data, and the store passes on changes it takes in while the app runs in the
+background with no window. A tap on the watch is a `WatchCommand`: an explicit action (start a goal; stop or pause *the
 session the watch showed*; log), the time it was tapped, and an id. The iPhone, woken in the
 background if needed, applies it to the shared data file as a widget would, once per id, dated
 when it was tapped, and replies with the new snapshot. So a reply lost on the way back can be
@@ -217,10 +223,12 @@ On iPhone a running session or Pomodoro break shows on the Lock Screen and in th
 `FocusActivityController.sync(with:)` (in `Shared/`) derives the activity from the data, so the
 app calls it after every change and when it becomes active (only a foreground app may start one).
 Its buttons are App Intents that conform to `LiveActivityIntent`, so they run in the app's
-process, change the data and update the activity in one go. The goal's color in the active
-palette, as it looks on a dark background, travels in the content state rather than the
-attributes, so a new palette reaches a running activity; the widget extension never has to read
-the data file to draw it.
+process, change the data and update the activity in one go. So are the widgets' timer buttons,
+the Control Center focus toggle and Siri's start and stop: an app in the background may start a
+Live Activity only while it performs one, and a widget extension can't start or end the app's.
+The goal's color in the active palette, as it looks on a dark background, travels in the content
+state rather than the attributes, so a new palette reaches a running activity; the widget
+extension never has to read the data file to draw it.
 
 ## Performance
 

@@ -382,6 +382,8 @@ private struct DataSettings: View {
                 defer { if accessing { url.stopAccessingSecurityScopedResource() } }
                 do {
                     pendingImport = try FileStore.decode(Data(contentsOf: url))
+                } catch let error as FileStore.FormatError {
+                    message = error.localizedDescription
                 } catch {
                     message = "That file isn't a Momentum backup: \(error.localizedDescription)"
                 }
@@ -409,6 +411,8 @@ private struct DataSettings: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             pendingImport = try FileStore.decode(Data(contentsOf: url))
+        } catch let error as FileStore.FormatError {
+            message = error.localizedDescription
         } catch {
             message = "That copy can't be read: \(error.localizedDescription)"
         }

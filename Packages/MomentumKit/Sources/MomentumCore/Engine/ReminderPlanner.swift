@@ -68,9 +68,11 @@ public enum ReminderPlanner {
             }
             guard goal.kind != .books, goal.effectivePeriod != .total,
                   !engine.keepsStreak(goal, periodContaining: now, now: now) else { return nil }
-            // Only the period's last day puts the streak at risk tonight.
+            // Only the period's last day puts the streak at risk tonight, and only if no break
+            // excuses the period.
             let period = engine.interval(of: goal.effectivePeriod, containing: now)
-            guard period.end <= tomorrow, engine.isRequired(goal, on: today) || goal.effectivePeriod != .daily else { return nil }
+            guard period.end <= tomorrow, !engine.isExcused(goal, from: period),
+                  engine.isRequired(goal, on: today) || goal.effectivePeriod != .daily else { return nil }
             let streak = engine.streak(for: goal, now: now)
             guard streak.current >= 2 else { return nil }
             let done = engine.currentAmount(for: goal, now: now)
@@ -114,7 +116,10 @@ public enum ReminderPlanner {
         let minute = min(23 * 60, preferences.streakNudgeMinute + 60)
         guard let fire = wallClock(minute, on: lastDay, calendar: engine.calendar), fire > now else { return nil }
 
-        let report = engine.insights(days: 7, now: now)
+        // The week so far: planned before its last day (the last change was midweek), the 7 days
+        // up to now would count days of the week before.
+        let elapsed = engine.calendar.dateComponents([.day], from: week.start, to: engine.startOfDay(now)).day ?? 6
+        let report = engine.insights(days: min(7, max(1, elapsed + 1)), now: now)
         let scores = engine.activeGoals.compactMap { engine.isOnTargetThisWeek($0, now: now) }
         var parts: [String] = []
         if report.totalFocusSeconds > 0 { parts.append("\(Formatting.duration(report.totalFocusSeconds)) focused") }

@@ -64,7 +64,7 @@ private struct TodaySmall: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    WidgetSessionClock(session: session)
+                    WidgetSessionClock(session: session, now: entry.date)
                         .font(.system(.title, design: .rounded, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(goal.color.linear)
@@ -168,7 +168,7 @@ private struct TodayRow: View {
             Link(destination: DeepLink.goal(goal.id).url) {
                 row(engine: engine, streak: streak)
             }
-            WidgetActionButton(goal: goal, engine: engine)
+            WidgetActionButton(goal: goal, engine: engine, now: entry.date)
         }
     }
 
@@ -183,7 +183,7 @@ private struct TodayRow: View {
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                 if let session = entry.data.session, session.goalID == goal.id {
-                    WidgetSessionClock(session: session)
+                    WidgetSessionClock(session: session, now: entry.date)
                         .font(.caption.weight(.semibold))
                         .monospacedDigit()
                         .foregroundStyle(goal.tint)
@@ -287,7 +287,7 @@ private struct TodayTile: View {
                             StreakBadge(count: streak.current, unit: streak.unit)
                         }
                         if let session = entry.data.session, session.goalID == goal.id {
-                            WidgetSessionClock(session: session)
+                            WidgetSessionClock(session: session, now: entry.date)
                                 .font(.system(.title3, design: .rounded, weight: .bold))
                                 .monospacedDigit()
                                 .foregroundStyle(goal.tint)
@@ -301,7 +301,7 @@ private struct TodayTile: View {
                     }
                 }
             }
-            WidgetActionButton(goal: goal, engine: engine, size: 32)
+            WidgetActionButton(goal: goal, engine: engine, now: entry.date, size: 32)
         }
     }
 }
