@@ -94,7 +94,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         self = try DateCoding.decoder().decode(Self.self, from: encoded)
     }
 
-    private enum CodingKeys: String, CodingKey { case items, session, rest, done, total, generatedAt, day }
+    private enum CodingKeys: String, CodingKey { case items, session, rest, done, total, generatedAt, day, palette }
 
     /// A watch app can be older than the iPhone app sending to it, and one value it can't read
     /// mustn't stop it updating: a goal it can't read is left out, and a timer or break it can't
@@ -109,6 +109,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         let generated = try c.decode(.generatedAt, default: Date.distantPast)
         generatedAt = generated
         day = (try? c.decodeIfPresent(DayID.self, forKey: .day)) ?? DayID(generated)
+        palette = try? c.decodeIfPresent(WatchPalette.self, forKey: .palette)
     }
 }
 
