@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- Data saved by a newer version of Momentum in a format this one doesn't know (the data file, a
+  backup, another device's sync file) was read as this version's data, and could be saved back
+  without what's new. It's now left as it is, and Momentum asks to be updated.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
