@@ -61,7 +61,16 @@ struct MobileTodayView: View {
                     Button { showsSettings = true } label: { Label("Settings", systemImage: "gearshape") }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { store.sheet = .newGoal } label: { Label("New Goal", systemImage: "plus") }
+                    Menu {
+                        Button { store.sheet = .newGoal } label: { Label("New Goal", systemImage: "target") }
+                        Button { store.sheet = .importTodos(link: nil) } label: {
+                            Label("To-dos from Videos", systemImage: "play.rectangle.on.rectangle")
+                        }
+                    } label: {
+                        Label("New Goal", systemImage: "plus")
+                    } primaryAction: {
+                        store.sheet = .newGoal
+                    }
                 }
             }
             .navigationDestination(for: UUID.self) { id in
