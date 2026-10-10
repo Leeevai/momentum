@@ -16,6 +16,9 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- A widget's timer stopped at 0:00 when a planned session reached its end, and stayed there for up
+  to an hour; it now counts on. After midnight, the Today widget no longer keeps a checkmark on a
+  goal that was done the day before.
 - On iPhone, a session started from the Control Center focus toggle, Siri or Shortcuts got no
   Lock Screen timer until the app was opened, and one stopped from Control Center could leave the
   timer counting there; the Live Activity now starts and ends with them.
