@@ -87,16 +87,11 @@ extension ProgressEngine {
             spread(entry, into: &hours)
         }
 
-        var active = Set<Int>()
-        for entry in rangeEntries where entry.amount > 0 { active.insert(dayKey(entry.date)) }
         var milestones = 0
         var books = 0
         for goal in data.goals {
             for milestone in goal.milestones {
-                if let done = milestone.completedAt, range.holds(done) {
-                    milestones += 1
-                    active.insert(dayKey(done))
-                }
+                if let done = milestone.completedAt, range.holds(done) { milestones += 1 }
             }
             books += booksFinished(for: goal, in: range)
         }
@@ -110,7 +105,6 @@ extension ProgressEngine {
         for goal in timeGoals {
             previousFocus += amount(for: goal, in: previousRange, now: now)
         }
-        let previousActive = Set(data.entries.filter { previousRange.holds($0.date) && $0.amount > 0 }.map { dayKey($0.date) }).count
 
         let scores = activeGoals.map { goal in
             let streak = streak(for: goal, now: now)
@@ -122,7 +116,7 @@ extension ProgressEngine {
             days: days,
             focusByDay: focusByDay,
             totalFocusSeconds: total,
-            activeDays: active.count,
+            activeDays: activeDays(in: range),
             loggedEntries: rangeEntries.count,
             milestonesCompleted: milestones,
             booksFinished: books,
@@ -133,8 +127,20 @@ extension ProgressEngine {
             focusByCategory: categories.map { InsightsReport.CategoryShare(name: $0.key, seconds: $0.value) }
                 .sorted { $0.seconds != $1.seconds ? $0.seconds > $1.seconds : $0.name < $1.name },
             previousFocusSeconds: previousFocus,
-            previousActiveDays: previousActive
+            previousActiveDays: activeDays(in: previousRange)
         )
+    }
+
+    /// Days in `range` with anything done on any goal: progress that didn't cancel out, or a
+    /// milestone or book finished.
+    private func activeDays(in range: DateInterval) -> Int {
+        let first = dayKey(range.start)
+        let end = dayKey(range.end)
+        var days = Set<Int>()
+        for keys in activityDays.values {
+            for key in keys where key >= first && key < end { days.insert(key) }
+        }
+        return days.count
     }
 
     /// Spreads a timed entry across the clock hours it covered, starting at its start time.
