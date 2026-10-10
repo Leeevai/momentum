@@ -185,6 +185,16 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         static let stop = "stop"
         static let extend = "extend"
         static let nextBlock = "next-block"
+        /// The buttons that change the timer: they catch up with other devices before acting.
+        static let timer: Set<String> = [start, stop, extend, nextBlock]
+    }
+    /// What a notification is about, in its `userInfo`.
+    private enum Info {
+        static let goal = "goal"
+        /// The session a "Time's up" is for, as seconds since 2001, so its buttons leave any other alone.
+        static let sessionStart = "sessionStart"
+        /// The break a "Break's over" is for, likewise.
+        static let restStart = "restStart"
     }
 
     func activate() {
@@ -272,7 +282,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             content.subtitle = goal.name
             content.sound = .default
             content.categoryIdentifier = pomodoro.isEnabled ? "" : Category.sessionEnd
-            content.userInfo = ["goal": goal.id.uuidString]
+            content.userInfo = [Info.goal: goal.id.uuidString, Info.sessionStart: session.startedAt.timeIntervalSinceReferenceDate]
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, end.timeIntervalSinceNow), repeats: false)
             do {
                 try await center.add(UNNotificationRequest(identifier: Self.sessionEndID, content: content, trigger: trigger))
@@ -302,7 +312,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             content.body = "Ready for block \(rest.nextBlock)?"
             content.sound = .default
             content.categoryIdentifier = Category.restEnd
-            content.userInfo = ["goal": goal.id.uuidString]
+            content.userInfo = [Info.goal: goal.id.uuidString, Info.restStart: rest.start.timeIntervalSinceReferenceDate]
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, rest.end.timeIntervalSinceNow), repeats: false)
             do {
                 try await center.add(UNNotificationRequest(identifier: Self.restEndID, content: content, trigger: trigger))
@@ -324,11 +334,19 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        let goalID = (response.notification.request.content.userInfo["goal"] as? String).flatMap(UUID.init(uuidString:))
+        let info = response.notification.request.content.userInfo
+        let goalID = (info[Info.goal] as? String).flatMap(UUID.init(uuidString:))
+        let sessionStart = (info[Info.sessionStart] as? Double).map(Date.init(timeIntervalSinceReferenceDate:))
+        let restStart = (info[Info.restStart] as? Double).map(Date.init(timeIntervalSinceReferenceDate:))
         let action = response.actionIdentifier
         let isRecap = response.notification.request.identifier.contains(".recap.")
+        // A button can be tapped long after its notification came, on a device that hasn't heard
+        // what changed elsewhere since: merge that in first, as the Lock Screen buttons do, so a
+        // session stopped on another device isn't stopped again here, later.
+        if Action.timer.contains(action) { FolderSync.catchUpFromFolder() }
         await MainActor.run {
             guard let store = self.store else { return }
+            store.reload()
             switch action {
             case Action.start:
                 if let goalID, let goal = store.goal(goalID) {
@@ -343,12 +361,26 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             case Action.quickAdd:
                 if let goalID, let goal = store.goal(goalID) { store.quickAdd(goal) }
             case Action.stop:
-                store.stopFocus()
+                // Only the session the notification was about; one from before notifications
+                // named it stops whatever runs, as it did.
+                if let goalID, let sessionStart {
+                    store.stopFocus(startedAt: sessionStart, on: goalID)
+                } else {
+                    store.stopFocus()
+                }
             case Action.extend:
-                store.extendFocus()
+                if let goalID, let sessionStart {
+                    store.extendFocus(startedAt: sessionStart, on: goalID)
+                } else {
+                    store.extendFocus()
+                }
                 store.effects.notifications.syncSessionEnd(store.data.session, goal: goalID.flatMap(store.goal), pomodoro: store.data.preferences.pomodoro)
             case Action.nextBlock:
-                store.startNextBlock()
+                if let restStart {
+                    store.startNextBlock(afterRestStartedAt: restStart)
+                } else {
+                    store.startNextBlock()
+                }
             default:
                 if isRecap {
                     store.sheet = .review

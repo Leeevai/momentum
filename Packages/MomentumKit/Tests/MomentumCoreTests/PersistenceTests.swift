@@ -107,6 +107,26 @@ struct PersistenceTests {
         #expect(FileStore(fileURL: file).load().goals.map(\.name) == ["Restored"])
     }
 
+    @Test("A file in a newer data format is refused, and nothing is saved over it")
+    func newerFormatIsKept() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let file = folder.appendingPathComponent("data.json")
+        // Readable as this version's data, but without what the newer version keeps elsewhere.
+        let newer = Data(#"{"version":3,"goals":[{"name":"Read","kind":"books","target":12}],"entries":[],"logs":[{"pages":40}]}"#.utf8)
+        try newer.write(to: file)
+
+        #expect(throws: FileStore.FormatError.newerVersion(3)) { try FileStore.decode(newer) }
+        let store = FileStore(fileURL: file)
+        let result = store.transform { $0.upsert(Goal(name: "New", target: 1)) }
+        let unreadable = store.isUnreadable
+        let saved = try Data(contentsOf: file)
+        #expect(result.after.goals.isEmpty)
+        #expect(unreadable)
+        #expect(saved == newer)
+    }
+
     @Test("CSV quotes fields that need it")
     func csvEscaping() {
         #expect(CSVExporter.escape("plain") == "plain")

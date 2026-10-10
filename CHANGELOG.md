@@ -19,6 +19,24 @@ All notable changes to Momentum are recorded here. The format follows
 - A Goodreads import on a device set to the Buddhist or Japanese calendar dated books centuries
   away, so none counted toward this year's reading. Goodreads dates are now read as the Gregorian
   dates they are.
+- The buttons on "Time's up" and "Break's over" notifications act only on the session or break
+  they were about, after catching up with other devices. Tapped late, "Stop and save" could stop
+  a session started since, or count the time after it was stopped on another device.
+- The weekly recap counted focus and active days from the week before when Momentum was last
+  used before the week's last day. It now sums up only the week it's for.
+- One entry dated more than eleven years back, such as a mistyped year, made a weekly streak read
+  0. Weekly, monthly and yearly streaks now count back from today.
+- Taking time off with − while a timer runs moves the goal's ring at once. When nothing else was
+  logged that day, the correction showed only after the session was saved, when the ring dropped.
+- A day whose logs cancel out, such as a + taken back with −, no longer counts as a day of
+  activity. It kept the streaks of reading, project and overall goals going, and showed as active
+  on the heatmap, in the week's review and in Insights.
+- A break on a weekly, monthly or yearly goal protects every week, month or year it covers part
+  of. One that started partway through a week left that week unprotected, so the streak could
+  end while the goal said it was safe.
+- Data saved by a newer version of Momentum in a format this one doesn't know (the data file, a
+  backup, another device's sync file) was read as this version's data, and could be saved back
+  without what's new. It's now left as it is, and Momentum asks to be updated.
 
 ## [2.2.0] - 2026-10-09
 

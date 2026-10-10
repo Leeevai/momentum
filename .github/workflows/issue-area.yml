@@ -1,0 +1,45 @@
+name: Issue area
+
+# The issue forms ask which areas an issue touches. This adds the matching area labels when an
+# issue is opened, and follows the answer when the description is edited. GitHub runs it from the
+# default branch.
+on:
+  issues:
+    types: [opened, edited]
+
+concurrency:
+  group: issue-area-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  area:
+    name: Label the areas
+    # Issues from the forms, which have an Area section. On an edit, only when the description
+    # changed: a new title leaves labels set by hand alone.
+    if: >-
+      contains(github.event.issue.body, '### Area') &&
+      (github.event.action == 'opened' || github.event.changes.body)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts
+      # The descriptions come in through the environment, never into the script's text.
+      - name: Label the areas picked in the form
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: ${{ github.event.issue.body }}
+          OLD_BODY: ${{ github.event.changes.body.from }}
+          ACTION: ${{ github.event.action }}
+        run: |
+          if [ "$ACTION" = edited ]; then
+            scripts/label-issue-area.sh --number "$NUMBER" --body "$BODY" --old-body "$OLD_BODY"
+          else
+            scripts/label-issue-area.sh --number "$NUMBER" --body "$BODY"
+          fi
