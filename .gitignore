@@ -21,3 +21,7 @@ AppStoreScreenshots/
 
 # Index files a stray build flag can write inside the project
 -Xcc/
+
+# Local session worktrees and personal settings
+.claude/worktrees/
+.claude/settings.local.json
