@@ -28,6 +28,11 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         /// The day of a running challenge, and its length.
         public var challengeDay: Int?
         public var challengeLength: Int?
+
+        private enum CodingKeys: String, CodingKey {
+            case id, name, symbol, color, kind, progress, progressText, streak, streakUnit, isComplete, actionTitle, targetText
+            case periodEnd, doneText, challengeDay, challengeLength
+        }
     }
 
     public var items: [Item]
@@ -83,6 +88,50 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
 
     public init(encoded: Data) throws {
         self = try DateCoding.decoder().decode(Self.self, from: encoded)
+    }
+
+    private enum CodingKeys: String, CodingKey { case items, session, rest, done, total, generatedAt, day }
+
+    /// A watch app can be older than the iPhone app sending to it, and one value it can't read
+    /// mustn't stop it updating: a goal it can't read is left out, and a timer or break it can't
+    /// read isn't shown, rather than the whole snapshot failing.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        items = try c.decodeLossy(.items)
+        session = try? c.decodeIfPresent(FocusSession.self, forKey: .session)
+        rest = try? c.decodeIfPresent(RestPeriod.self, forKey: .rest)
+        done = try c.decode(.done, default: 0)
+        total = try c.decode(.total, default: 0)
+        let generated = try c.decode(.generatedAt, default: Date.distantPast)
+        generatedAt = generated
+        day = (try? c.decodeIfPresent(DayID.self, forKey: .day)) ?? DayID(generated)
+    }
+}
+
+extension WatchSnapshot.Item {
+    /// A goal from an iPhone app of any version, written here rather than in the type so the
+    /// memberwise initializer stays. A color this version doesn't know draws blue, as in the data
+    /// file. A kind it doesn't know is shown as a count: the watch then offers the action the
+    /// iPhone named for it, and the iPhone carries it out knowing the goal.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(.name, default: "")
+        let decodedKind = (try? c.decode(.kind, default: GoalKind.count)) ?? .count
+        kind = decodedKind
+        symbol = try c.decode(.symbol, default: SymbolCatalog.defaultSymbol(for: decodedKind))
+        color = (try? c.decode(.color, default: .blue)) ?? .blue
+        progress = try c.decode(.progress, default: 0)
+        progressText = try c.decode(.progressText, default: "")
+        streak = try c.decode(.streak, default: 0)
+        streakUnit = try c.decode(.streakUnit, default: "day")
+        isComplete = try c.decode(.isComplete, default: false)
+        actionTitle = try c.decodeIfPresent(String.self, forKey: .actionTitle)
+        targetText = try c.decode(.targetText, default: "")
+        periodEnd = try c.decodeIfPresent(Date.self, forKey: .periodEnd)
+        doneText = try c.decode(.doneText, default: "Done")
+        challengeDay = try c.decodeIfPresent(Int.self, forKey: .challengeDay)
+        challengeLength = try c.decodeIfPresent(Int.self, forKey: .challengeLength)
     }
 }
 
