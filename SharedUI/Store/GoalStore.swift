@@ -18,8 +18,9 @@ enum Route: Hashable {
 enum SheetRoute: Identifiable {
     case quickActions
     case newGoal
-    /// To-dos from saved videos, screenshots or a caption, with a link to keep on them.
-    case importTodos(link: URL?)
+    /// To-dos from saved videos, screenshots or a caption, with a link to keep on them, added to the
+    /// goal `goalID` when it's set (a milestones goal's own page opens it so).
+    case importTodos(link: URL?, goalID: UUID? = nil)
     case editGoal(Goal)
     case log(goalID: UUID, entry: LogEntry? = nil, day: Date? = nil)
     case link(goalID: UUID, link: GoalLink?)

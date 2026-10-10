@@ -11,6 +11,8 @@ struct ImportTodosSheet: View {
     @Environment(GoalStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     var initialLink: URL?
+    /// The goal to add to, chosen already when the sheet opens from that goal's page.
+    var initialGoal: UUID?
 
     @State private var files: [URL] = []
     @State private var linkText = ""
@@ -67,6 +69,7 @@ struct ImportTodosSheet: View {
         }
         .onAppear {
             if let initialLink, linkText.isEmpty { linkText = initialLink.absoluteString }
+            if let initialGoal, destination == nil { destination = initialGoal }
             Task.detached(priority: .background) { ImportScratch.removeLeftovers() }
             #if DEBUG
             addRequestedFiles()
