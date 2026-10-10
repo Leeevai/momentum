@@ -19,6 +19,8 @@ struct ImportTodosSheet: View {
     @State private var progress: TodoFinder.Progress?
     /// What the last search couldn't read, file by file.
     @State private var problems: [TodoFinder.Problem] = []
+    /// To-dos the goal chosen in "Add to" already has, unticked when it was chosen.
+    @State private var alreadyAdded: Set<UUID> = []
     @State private var todos: [FoundTodo] = []
     @State private var skipped: Set<UUID> = []
     @State private var listName = ""
@@ -261,6 +263,7 @@ struct ImportTodosSheet: View {
                 }
             }
             .glassCard(padding: 16)
+            .onChange(of: destination) { _, goalID in markAlreadyAdded(in: goalID) }
 
             VStack(alignment: .leading, spacing: 4) {
                 ForEach($todos) { $todo in
@@ -301,7 +304,7 @@ struct ImportTodosSheet: View {
                             .accessibilityLabel(Formatting.spokenDuration(duration))
                             .fixedSize()
                     }
-                    Text(todo.wrappedValue.source)
+                    Text(alreadyAdded.contains(id) ? "Already in this goal" : todo.wrappedValue.source)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
@@ -420,24 +423,40 @@ struct ImportTodosSheet: View {
         guard !chosen.isEmpty, adding == nil else { return nil }
         let folder = folder
         let task = Task {
+            var repeated: [String] = []
             for url in chosen {
                 addingNote = "Adding \(url.lastPathComponent)…"
                 let copy = await Self.copyWhileReadable(url, into: folder)
+                var original: URL?
+                if let copy { original = await Self.original(of: copy, among: files) }
                 // The sheet closed meanwhile: what was copied after its folder went goes too.
                 guard !Task.isCancelled else {
                     try? FileManager.default.removeItem(at: folder)
                     return
                 }
-                if let copy {
+                if let copy, original != nil {
+                    // The same file twice would be read twice and make the same to-do twice.
+                    try? FileManager.default.removeItem(at: copy)
+                    repeated.append(url.lastPathComponent)
+                } else if let copy {
                     files.append(copy)
                 } else {
                     problem = "\(url.lastPathComponent) couldn't be added."
                 }
             }
+            if !repeated.isEmpty { problem = "Already added: \(repeated.formatted(.list(type: .and)))." }
             adding = nil
         }
         adding = task
         return task
+    }
+
+    /// The file already added that `copy` matches byte for byte, if any: the same video chosen twice.
+    /// Only a file of the same size is read through.
+    private nonisolated static func original(of copy: URL, among files: [URL]) async -> URL? {
+        let size = { (url: URL) in (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize }
+        guard let length = size(copy) else { return nil }
+        return files.first { size($0) == length && FileManager.default.contentsEqual(atPath: $0.path, andPath: copy.path) }
     }
 
     /// A copy of `url` in `folder`, made while the access the picker gave to it lasts.
@@ -452,6 +471,7 @@ struct ImportTodosSheet: View {
         pickedMedia = []
         addingNote = "Adding from Photos…"
         adding = Task {
+            var repeated = 0
             for item in items {
                 let media = try? await item.loadTransferable(type: PickedMedia.self)
                 // The sheet closed meanwhile, and its folder with it: the copy goes too.
@@ -459,11 +479,19 @@ struct ImportTodosSheet: View {
                     media?.discard()
                     return
                 }
-                if let media, let copy = try? media.move(into: folder) {
-                    files.append(copy)
-                } else {
+                guard let media, let copy = try? media.move(into: folder) else {
                     problem = "One of the items couldn't be read from Photos."
+                    continue
                 }
+                if await Self.original(of: copy, among: files) != nil {
+                    try? FileManager.default.removeItem(at: copy)
+                    repeated += 1
+                } else {
+                    files.append(copy)
+                }
+            }
+            if repeated > 0 {
+                problem = repeated == 1 ? "One of the items was already added." : "\(repeated) of the items were already added."
             }
             adding = nil
         }
@@ -496,12 +524,23 @@ struct ImportTodosSheet: View {
             }
             todos = found
             skipped = []
+            alreadyAdded = []
+            markAlreadyAdded(in: destination)
             listName = name
             withAnimation { isReviewing = true }
             #if DEBUG
             if ProcessInfo.processInfo.environment["MOMENTUM_IMPORT_SAVE"] != nil { save() }
             #endif
         }
+    }
+
+    /// Unticks the to-dos the goal `goalID` already has, and ticks again those the goal chosen before
+    /// had: importing a post again adds only what's new.
+    private func markAlreadyAdded(in goalID: UUID?) {
+        skipped.subtract(alreadyAdded)
+        let goal = goalID.flatMap { store.goal($0) }
+        alreadyAdded = Set(todos.filter { goal?.hasMilestone(like: $0) == true }.map(\.id))
+        skipped.formUnion(alreadyAdded)
     }
 
     /// Stops looking, keeping what was added, to change it and look again.
