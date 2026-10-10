@@ -174,10 +174,13 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     @ObservationIgnored private let logger = Logger(subsystem: "dev.momentum.app", category: "Notifications")
 
     static let sessionEndID = "session.end"
+    /// The weekly recap and the morning prompt have none: a tap opens what they're about.
     private enum Category {
         static let reminder = "goal.reminder"
         static let sessionEnd = "session.end"
         static let restEnd = "rest.end"
+        /// The evening prompt, which can rate the day without opening the app.
+        static let reflect = "journal.reflect"
     }
     private enum Action {
         static let start = "start"
@@ -187,6 +190,8 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         static let nextBlock = "next-block"
         /// The buttons that change the timer: they catch up with other devices before acting.
         static let timer: Set<String> = [start, stop, extend, nextBlock]
+        /// Rates the day from the evening prompt: "mood.5" for great down to "mood.1" for rough.
+        static let moodPrefix = "mood."
     }
     /// What a notification is about, in its `userInfo`.
     private enum Info {
@@ -195,6 +200,19 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         static let sessionStart = "sessionStart"
         /// The break a "Break's over" is for, likewise.
         static let restStart = "restStart"
+        /// Which journal prompt this is, "plan" or "reflect", and the day it's for, as "2026-10-08".
+        static let prompt = "prompt"
+        static let day = "day"
+    }
+    /// The journal prompts, as `Info.prompt` names them.
+    private enum Prompt {
+        static let plan = "plan"
+        static let reflect = "reflect"
+    }
+    /// How Notification Center groups the notifications that aren't about a goal.
+    private enum ThreadID {
+        static let journal = "journal"
+        static let recap = "recap"
     }
 
     func activate() {
@@ -211,6 +229,10 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             UNNotificationCategory(identifier: Category.restEnd, actions: [
                 UNNotificationAction(identifier: Action.nextBlock, title: "Start next block"),
             ], intentIdentifiers: []),
+            UNNotificationCategory(identifier: Category.reflect, actions: Mood.allCases.reversed().map { mood in
+                UNNotificationAction(identifier: Action.moodPrefix + String(mood.rawValue), title: "\(mood.title) day", options: [],
+                                     icon: UNNotificationActionIcon(systemImageName: mood.symbolName))
+            }, intentIdentifiers: []),
         ])
         Task { await refreshAuthorization() }
     }
@@ -247,11 +269,7 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             content.subtitle = reminder.subtitle
             content.body = reminder.body
             content.sound = .default
-            content.categoryIdentifier = Category.reminder
-            if let goalID = reminder.goalID {
-                content.userInfo = ["goal": goalID.uuidString]
-                content.threadIdentifier = goalID.uuidString
-            }
+            Self.describe(reminder, in: content)
             let parts = engine.calendar.dateComponents([.year, .month, .day, .hour, .minute], from: reminder.fireDate)
             let request = UNNotificationRequest(identifier: reminder.identifier, content: content, trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false))
             do {
@@ -259,6 +277,29 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
             } catch {
                 logger.error("Could not schedule \(reminder.identifier, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
+        }
+    }
+
+    /// Gives a planned notification its buttons, what a tap opens and its group in Notification
+    /// Center, by what it's for: a goal's reminder and nudge act on the goal, the weekly recap
+    /// and the morning prompt only open, and the evening prompt rates the day.
+    private static func describe(_ reminder: PlannedReminder, in content: UNMutableNotificationContent) {
+        switch reminder.kind {
+        case .goal, .streakNudge:
+            content.categoryIdentifier = Category.reminder
+        case .weeklyRecap:
+            content.threadIdentifier = ThreadID.recap
+        case .plan(let day):
+            content.userInfo = [Info.prompt: Prompt.plan, Info.day: day.description]
+            content.threadIdentifier = ThreadID.journal
+        case .reflect(let day):
+            content.categoryIdentifier = Category.reflect
+            content.userInfo = [Info.prompt: Prompt.reflect, Info.day: day.description]
+            content.threadIdentifier = ThreadID.journal
+        }
+        if let goalID = reminder.goalID {
+            content.userInfo[Info.goal] = goalID.uuidString
+            content.threadIdentifier = goalID.uuidString
         }
     }
 
@@ -324,9 +365,11 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    /// Brings the app forward after a notification action; on iPhone, tapping already did.
+    /// Brings the app forward after a notification action, with its window if it was closed
+    /// (the app lives on in the menu bar); on iPhone, tapping already did.
     private static func activateApp() {
         #if os(macOS)
+        NotificationCenter.default.post(name: .reopenMainWindow, object: nil)
         NSApp.activate()
         #endif
     }
@@ -340,6 +383,8 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         let goalID = (info[Info.goal] as? String).flatMap(UUID.init(uuidString:))
         let sessionStart = (info[Info.sessionStart] as? Double).map(Date.init(timeIntervalSinceReferenceDate:))
         let restStart = (info[Info.restStart] as? Double).map(Date.init(timeIntervalSinceReferenceDate:))
+        let prompt = info[Info.prompt] as? String
+        let day = (info[Info.day] as? String).flatMap(DayID.init(string:))
         let action = response.actionIdentifier
         let isRecap = response.notification.request.identifier.contains(".recap.")
         // A button can be tapped long after its notification came, on a device that hasn't heard
@@ -383,8 +428,17 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
                 } else {
                     store.startNextBlock()
                 }
+            case let rating where rating.hasPrefix(Action.moodPrefix):
+                // The day the prompt was for, even when it's answered after midnight.
+                if let day, let mood = Int(rating.dropFirst(Action.moodPrefix.count)).flatMap(Mood.init(rawValue:)) {
+                    store.updateJournal(day, "Rate the Day") { $0.mood = mood }
+                }
             default:
-                if isRecap {
+                if let day, prompt == Prompt.plan {
+                    store.sheet = .plan(day)
+                } else if let day, prompt == Prompt.reflect {
+                    store.sheet = .reflect(day)
+                } else if isRecap {
                     store.sheet = .review
                 } else if let goalID {
                     store.select(goalID)

@@ -85,10 +85,11 @@ the anchor celebrates with a **Next up** button, and the coach suggests it.
 ### A daily journal
 Plan the morning with an intention and up to three priorities; Today shows them, ticking each one
 off as its goal is done. Reflect in the evening: mood as weather, energy as a battery, a win, a few
-lines. The **Journal** is a month calendar with every day ringed by how much got done, a **year
-in pixels**, **on this day** (what you wrote a week, a month and a year ago), and a **week in
-review** with your wins; **Insights** shows how your mood lines up
-with your progress.
+lines. A reminder at the times you choose asks for each, unless it's already written, and the
+evening one can rate the day right from the notification. The **Journal** is a month calendar
+with every day ringed by how much got done, a **year in pixels**, **on this day** (what you wrote
+a week, a month and a year ago), and a **week in review** with your wins; **Insights** shows how
+your mood lines up with your progress.
 
 ### Challenges
 Commit a goal to a run of days: 7, 21, 30, 66, 100. Its page shows a dot for every day, filled when

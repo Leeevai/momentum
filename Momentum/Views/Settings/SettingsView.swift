@@ -266,6 +266,12 @@ private struct NotificationSettings: View {
                     set: { value in store.updatePreferences { $0.weeklyRecapEnabled = value } }
                 ))
             }
+            Section("Journal") {
+                JournalReminderSettings()
+                Text("Skipped on days you've already planned or reflected on, on any of your devices. The evening one can rate the day from the notification.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Section("Permission") {
                 LabeledContent("Status") {
                     Text(scheduler.authorization.text)
