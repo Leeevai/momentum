@@ -17,6 +17,7 @@ All notable changes to Momentum are recorded here. The format follows
   A bar shows how far it has got, and the review says what it couldn't read, and why.
   Without Apple Intelligence, names skip greetings and the phone's own text, and lists numbered
   with emoji, steps or bullets are read. A new goal is named after the post's title in its caption.
+  It works with VoiceOver, which reads lengths as words, and fits an iPhone at large text sizes.
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 - Palettes of your own: pick an accent, a background tint, how goal colors spread around a base
