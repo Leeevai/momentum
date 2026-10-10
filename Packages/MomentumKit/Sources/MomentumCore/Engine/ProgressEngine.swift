@@ -11,7 +11,7 @@ public struct ProgressEngine: Sendable {
 
     /// Goal id -> day key -> logged amount.
     let dailyTotals: [UUID: [Int: Double]]
-    /// Goal id -> day keys with any activity (logs, finished milestones, finished books).
+    /// Goal id -> day keys with any activity (progress logged, finished milestones, finished books).
     let activityDays: [UUID: Set<Int>]
     /// Goal id -> the earliest day it has data for, so history from before creation still counts.
     private let firstDay: [UUID: Date]
@@ -41,8 +41,12 @@ public struct ProgressEngine: Sendable {
         for entry in data.entries {
             let key = Self.dayKey(entry.date, calendar)
             totals[entry.goalID, default: [:]][key, default: 0] += entry.amount
-            if entry.amount > 0 { activity[entry.goalID, default: []].insert(key) }
             if key < earliest[entry.goalID, default: .max] { earliest[entry.goalID] = key }
+        }
+        // A day counts as active when what was logged on it adds up to something: a log and the
+        // correction that takes it back cancel out.
+        for (goalID, days) in totals {
+            activity[goalID] = Set(days.compactMap { $0.value > 0 ? $0.key : nil })
         }
         for (goalID, key) in earliest {
             let day = DayID(year: key / 10_000, month: key / 100 % 100, day: key % 100).date(in: calendar)

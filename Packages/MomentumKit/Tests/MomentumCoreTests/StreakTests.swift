@@ -88,6 +88,27 @@ struct StreakTests {
         #expect(engine(data).streak(for: goal, now: referenceNow).current == 4)
     }
 
+    @Test("A log and the correction that takes it back leave the day inactive")
+    func cancelledDayInactive() {
+        let goal = Goal(name: "Novel", kind: .amount, unit: "words", period: .total, target: 50_000, quickAddStep: 500,
+                        createdAt: dayOffset(-10))
+        var data = AppData(goals: [goal])
+        data.log(500, for: goal.id, at: dayOffset(-4))
+        // Nothing written three days ago: 500 words tapped in by mistake, then taken back.
+        data.log(500, for: goal.id, at: dayOffset(-3, hour: 9))
+        data.log(-500, for: goal.id, at: dayOffset(-3, hour: 10), note: "Correction")
+        for offset in -2...(-1) { data.log(500, for: goal.id, at: dayOffset(offset)) }
+        let progress = engine(data)
+        let streak = progress.streak(for: goal, now: referenceNow)
+        let worked = progress.hasActivity(goal, on: dayOffset(-3), now: referenceNow)
+        let shade = progress.intensity(for: goal, on: dayOffset(-3), now: referenceNow)
+        let active = progress.insights(days: 7, now: referenceNow).activeDays
+        #expect(streak.current == 2)
+        #expect(!worked)
+        #expect(shade == 0)
+        #expect(active == 3)
+    }
+
     @Test("Completion rate ignores off days and an unfinished today")
     func completionRate() {
         let goal = checkInGoal(weekdays: Set(2...6), createdDaysAgo: 6)

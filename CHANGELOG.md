@@ -16,6 +16,9 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- A day whose logs cancel out, such as a + taken back with −, no longer counts as a day of
+  activity. It kept the streaks of reading, project and overall goals going, and showed as active
+  on the heatmap, in the week's review and in Insights.
 - A break on a weekly, monthly or yearly goal protects every week, month or year it covers part
   of. One that started partway through a week left that week unprotected, so the streak could
   end while the goal said it was safe.
