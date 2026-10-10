@@ -164,9 +164,7 @@ struct WidgetWideButton: View {
                 if engine.isRunning(goal) {
                     Button(intent: StopSessionIntent(goalID: goal.id)) { label("Stop", "stop.fill") }
                 } else {
-                    Button(intent: StartSessionIntent(goalID: goal.id)) {
-                        label(goal.focusMinutes.map { "\($0)m focus" } ?? "Start", "play.fill")
-                    }
+                    Button(intent: StartSessionIntent(goalID: goal.id)) { label(startTitle, "play.fill") }
                 }
             case .books:
                 if goal.currentBook != nil {
@@ -184,6 +182,13 @@ struct WidgetWideButton: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    /// What Start begins: "25m focus" for a planned session, plain Start for one that runs until
+    /// it's stopped.
+    private var startTitle: String {
+        guard let seconds = engine.data.defaultFocusLength(for: goal.id) else { return "Start" }
+        return "\(Int((seconds / 60).rounded()))m focus"
     }
 
     private func label(_ title: String, _ systemImage: String) -> some View {
