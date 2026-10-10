@@ -23,7 +23,7 @@
 # example and exits 1 when the pull request breaks the format, and writes a summary to
 # $GITHUB_STEP_SUMMARY when that's set.
 #
-# Plain bash 3.2, so it runs with the bash that ships with macOS. Needs gh, and jq for labels.
+# Plain bash 3.2, so it runs with the bash that ships with macOS. Needs gh.
 set -euo pipefail
 export LC_ALL=C
 
@@ -144,6 +144,19 @@ tidy() {
     first=$(lower "$first")
   fi
   printf '%s' "$first$rest"
+}
+
+# A label name as it goes in a URL path, byte by byte.
+uri() {
+  local text=$1 out="" char i
+  for ((i = 0; i < ${#text}; i++)); do
+    char=${text:i:1}
+    case $char in
+      [A-Za-z0-9._~-]) out=$out$char ;;
+      *) out=$out$(printf '%%%02X' "$(($(printf '%d' "'$char") & 255))") ;;
+    esac
+  done
+  printf '%s' "$out"
 }
 
 # Lines from stdin, joined with commas.
@@ -567,14 +580,19 @@ if [[ $apply_labels == true && -n $ticket && $issue_found == true ]]; then
     done <<<"$current"
     label_error=""
     if [[ -n $add ]]; then
-      payload=$(printf '%s' "$add" | jq -R . | jq -sc '{labels: .}')
-      if ! output=$(gh api -X POST "repos/$repo/issues/$number/labels" --input - <<<"$payload" 2>&1 >/dev/null); then
+      fields=()
+      while IFS= read -r name; do
+        if [[ -n $name ]]; then
+          fields+=(-f "labels[]=$name")
+        fi
+      done <<<"$add"
+      if ! output=$(gh api -X POST "repos/$repo/issues/$number/labels" "${fields[@]}" 2>&1 >/dev/null); then
         label_error=$output
       fi
     fi
     while IFS= read -r name; do
       [[ -n $name ]] || continue
-      if ! output=$(gh api -X DELETE "repos/$repo/issues/$number/labels/$(jq -rn --arg name "$name" '$name | @uri')" 2>&1 >/dev/null); then
+      if ! output=$(gh api -X DELETE "repos/$repo/issues/$number/labels/$(uri "$name")" 2>&1 >/dev/null); then
         label_error=$output
       fi
     done <<<"$remove"

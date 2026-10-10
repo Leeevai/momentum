@@ -11,7 +11,7 @@
 #
 # The Issue area workflow runs it when an issue is opened or its description is edited.
 #
-# Plain bash 3.2, so it runs with the bash that ships with macOS. Needs gh and jq.
+# Plain bash 3.2, so it runs with the bash that ships with macOS. Needs gh.
 set -euo pipefail
 export LC_ALL=C
 
@@ -79,6 +79,19 @@ if [[ $edited == true ]]; then
   fi
 fi
 
+# A label name as it goes in a URL path, byte by byte.
+uri() {
+  local text=$1 out="" char i
+  for ((i = 0; i < ${#text}; i++)); do
+    char=${text:i:1}
+    case $char in
+      [A-Za-z0-9._~-]) out=$out$char ;;
+      *) out=$out$(printf '%%%02X' "$(($(printf '%d' "'$char") & 255))") ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
 current=$(gh api "repos/$repo/issues/$number/labels?per_page=100" --jq '.[].name | select(startswith("area: ")) | ltrimstr("area: ")')
 has() {
   printf '%s\n' "$2" | grep -Fxq -- "$1"
@@ -92,15 +105,20 @@ while IFS= read -r area; do
   fi
 done <<<"$new"
 if [[ -n $to_add ]]; then
-  printf '%s' "$to_add" | jq -R . | jq -sc '{labels: .}' |
-    gh api -X POST "repos/$repo/issues/$number/labels" --input - >/dev/null
+  fields=()
+  while IFS= read -r name; do
+    if [[ -n $name ]]; then
+      fields+=(-f "labels[]=$name")
+    fi
+  done <<<"$to_add"
+  gh api -X POST "repos/$repo/issues/$number/labels" "${fields[@]}" >/dev/null
 fi
 added=$(printf '%s' "$to_add" | paste -sd, - | sed 's/,/, /g')
 
 removed=""
 while IFS= read -r area; do
   if [[ -n $area ]] && ! has "$area" "$new" && has "$area" "$current"; then
-    gh api -X DELETE "repos/$repo/issues/$number/labels/$(jq -rn --arg name "area: $area" '$name | @uri')" >/dev/null
+    gh api -X DELETE "repos/$repo/issues/$number/labels/$(uri "area: $area")" >/dev/null
     removed="${removed:+$removed, }area: $area"
   fi
 done <<<"$old"
