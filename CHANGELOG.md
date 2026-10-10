@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- A Goodreads import on a device set to the Buddhist or Japanese calendar dated books centuries
+  away, so none counted toward this year's reading. Goodreads dates are now read as the Gregorian
+  dates they are.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
