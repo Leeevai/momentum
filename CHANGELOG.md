@@ -15,6 +15,10 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- While the data file couldn't be read, it was still kept as each day's copy, so after two weeks
+  the good copies a restore needs had been deleted. A file that can't be read isn't copied now.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
