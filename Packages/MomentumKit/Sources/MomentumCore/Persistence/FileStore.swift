@@ -53,8 +53,8 @@ public final class FileStore: Sendable {
         return snapshot
     }
 
-    /// Whether the data file exists but couldn't be read (damaged, or written by a newer
-    /// version). Nothing is saved over it then, except an import or a restored copy.
+    /// Whether the data file exists but couldn't be read (damaged, or written in a newer data
+    /// format). Nothing is saved over it then, except an import or a restored copy.
     public var isUnreadable: Bool {
         cache.isUnreadable(modification: modificationDate())
     }
@@ -134,6 +134,12 @@ public final class FileStore: Sendable {
             try manager.createDirectory(at: backupsDirectory, withIntermediateDirectories: true)
             if !manager.fileExists(atPath: target.path) {
                 coordinate(writing: false) { url in
+                    // A file that can't be read isn't a day's copy: two weeks of them would push
+                    // out every good copy, the ones a restore needs. It's kept aside once anyway.
+                    guard self.read(url).isReadable else {
+                        self.logger.error("No daily backup: \(url.path, privacy: .public) can't be read")
+                        return
+                    }
                     do {
                         try manager.copyItem(at: url, to: target)
                         written = target
@@ -180,17 +186,32 @@ public final class FileStore: Sendable {
         (try? FileManager.default.attributesOfItem(atPath: fileURL.path))?[.modificationDate] as? Date
     }
 
-    /// Decodes any version of the data file, migrating older formats.
+    /// Why data can't be read as this version's.
+    public enum FormatError: Error, Equatable, LocalizedError {
+        /// Saved in a newer data format. Decoding is tolerant, so it would read, but without what
+        /// this version doesn't know, and the next save would lose that for good.
+        case newerVersion(Int)
+
+        public var errorDescription: String? {
+            switch self {
+            case .newerVersion: "That file was saved by a newer version of Momentum. Update Momentum to open it."
+            }
+        }
+    }
+
+    /// Decodes the data file of this version or an older one, migrating older formats. A newer
+    /// format is refused (`FormatError.newerVersion`), so it's never saved over.
     public static func decode(_ bytes: Data) throws -> AppData {
         let decoder = DateCoding.decoder()
         let probe = try decoder.decode(VersionProbe.self, from: bytes)
-        if probe.version == nil {
+        guard let version = probe.version else {
             return try decoder.decode(LegacyDataV1.self, from: bytes).migrated()
         }
+        guard version <= AppData.currentVersion else { throw FormatError.newerVersion(version) }
         return try decoder.decode(AppData.self, from: bytes)
     }
 
-    private struct VersionProbe: Decodable {
+    struct VersionProbe: Decodable {
         var version: Int?
     }
 

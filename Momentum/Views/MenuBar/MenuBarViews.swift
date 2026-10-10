@@ -73,7 +73,7 @@ struct MenuBarPanel: View {
                     if let filter = store.activeFocusFilter {
                         Label("Focus: \(filter.categories.sorted().formatted(.list(type: .and)))", systemImage: "moon.fill")
                             .font(.caption2)
-                            .foregroundStyle(.indigo)
+                            .foregroundStyle(.swatch(.indigo))
                     }
                 }
                 Spacer()
@@ -145,7 +145,7 @@ private struct MenuRestCard: View {
             HStack(spacing: 10) {
                 Image(systemName: over ? "bell.fill" : (rest.isLong ? "cup.and.saucer.fill" : "leaf.fill"))
                     .font(.title3)
-                    .foregroundStyle(.mint)
+                    .foregroundStyle(.rest)
                     .frame(width: 28)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(over ? "Break's over" : (rest.isLong ? "Long break" : "Short break"))
@@ -164,7 +164,7 @@ private struct MenuRestCard: View {
                     .help(over ? "Done for now" : "Skip break")
             }
         }
-        .glassCard(tint: .mint, cornerRadius: 14, padding: 10, highlighted: true)
+        .glassCard(tint: .rest, cornerRadius: 14, padding: 10, highlighted: true)
     }
 }
 

@@ -44,7 +44,11 @@ app group container, `~/Library/Group Containers/<team>.<prefix>.momentum/Moment
   inside an `NSFileCoordinator` write, applies the change, and writes atomically. A widget button
   and the app can never overwrite each other's change.
 - **Decoding is tolerant.** Every field decodes with a default when missing, so adding a field
-  never makes an existing file unreadable, and a file from a newer version still opens.
+  never makes an existing file unreadable, and a file a newer version saved in the same format
+  still opens.
+- **Newer formats are refused.** A file whose `version` is above `AppData.currentVersion` would
+  read without what's new and lose it at the next save, so it's treated as unreadable instead,
+  and a sync file in a newer format isn't merged. Settings asks for an update.
 - **Old formats migrate.** A file without a `version` is the 0.1 format; it converts on read, and
   the first read keeps an untouched copy as `data.v1-backup.json`.
 - **Nothing is ever silently lost.** An unreadable file is copied aside before Momentum starts
@@ -95,20 +99,41 @@ Timelines are computed from the same engine. Counters use `Text`'s timer styles 
 without new entries; rings only move when an entry renders, so a running session gets an entry
 every five minutes and one at its planned end, and otherwise the next entry is midnight. Buttons run
 App Intents (`Shared/Intents`) inside the widget process, which update the file and reload all
-timelines. Links in widgets use `momentum://` deep links that the app resolves.
+timelines. Links in widgets use `momentum://` deep links that the app resolves. The timeline sets
+the active palette, built-in or custom, from the file it loads, and a button's label is white or
+black, whichever reads on its goal's color (`WidgetFilledLabel`).
 
 ## The look
 
 The design follows [glasscn](https://glasscn.app): frosted panes with a lit rim over a drifting
 aurora, in one of its palettes.
 
-- **Palettes** live in the core (`ThemePalette`, in OKLCH as glasscn defines them) because the
-  choice is a synced preference (`Preferences.palette`) that the widgets read from the data file.
-  `Color(_: OKLCH)` in `Shared/GlassTheme.swift` converts them.
-- **Where the palette comes from.** Each window's root applies `.storePalette()`, which sets the
-  `palette` environment value and the tint. Colors that need a `Color` outside the view tree use
-  `Color.accent`, a dynamic color that reads `ActivePalette.current`; the store sets it on every
-  change, and the widget timeline sets it when it loads the file.
+- **Palettes** live in the core because the choice is a synced preference that the widgets read
+  from the data file. Every palette comes from a `PaletteRecipe`: an accent, a background tint,
+  goal colors in a harmony around a base hue (spectrum, analogous, complementary, triadic or
+  monochrome), and a lightness and contrast. `PaletteGenerator` turns it into light and dark
+  `PaletteTokens` in OKLCH, as glasscn defines its themes: the accent, the aurora, chart colors and
+  one swatch per `GoalColor`, so a goal's stored color picks the palette's matching swatch. Colors
+  are kept inside sRGB by lowering their chroma, and white or black text reaches 4.5:1 on every
+  swatch and accent. The built-in palettes (`ThemePalette`) are curated recipes, and a retired
+  one's name decodes as the closest that remains; custom ones are saved in
+  `Preferences.customPalettes`. `Preferences.activePalette` is the one in use. While a custom
+  palette is in use, `Preferences.palette` holds the closest built-in one, which versions without
+  custom palettes draw in. `Color(_: OKLCH)` in `Shared/GlassTheme.swift` converts the colors.
+- **Where the palette comes from.** The store works out the active palette (`GoalStore.palette`)
+  when the palette preferences change and sets `ActivePalette.current`; the widget timeline sets it
+  when it loads the file. Each window's root applies `.storePalette()`, which sets the `palette`
+  environment value and the tint. Components that draw goal colors (rings, bars, icons, glyphs,
+  challenge badges, highlighted glass) read the palette from the environment, so they redraw when
+  it changes and the palette editor's preview can draw another one. Elsewhere `goal.tint`,
+  `GoalColor.color`, `Color.accent` and the named roles (`.streak`, `.success`, `.attention`,
+  `.focus`, `.award`, `.rest`, `.swatch(_:)`) use the active palette's colors, made once per
+  palette (`PaletteColors`). Each is a dynamic color named after its palette, so a view redrawn in
+  a new palette gets a new color. Errors and warnings keep the system's red and orange.
+- **Labels on fills.** A prominent button's label is white or black, whichever contrasts more with
+  its fill (`Color.foreground(in:)`), so in dark mode, where swatches are light, labels are black.
+  Icon tiles, medals and kept days keep white symbols on a deep shade of their color
+  (`GoalColor.tile`), which holds white at 4.5:1.
 - **Glass.** `GlassTokens` holds glasscn's numbers (pane fills, rim, highlight, sheen, shadow,
   radii, press squash and easing) for light and dark. `GlassCard` uses Liquid Glass tinted with
   them on macOS 26 and iOS 26, and a frosted material with the fill, sheen, rim and shadow before.
@@ -158,7 +183,8 @@ and no sync service has a conflict to resolve.
 - **The timer.** The running session and the break each take the latest change. What only a
   merge can produce, a timer on a deleted goal or a session alongside a break, is settled by the
   app afterwards (`settleTimer`) as a change of its own, which then syncs out. Entries a session
-  logs have ids derived from the session, so two devices stopping the same session log it once.
+  logs have ids derived from the session, and it's split into the days of the time zone it
+  started in, so two devices stopping the same session log it once, wherever they are.
 - **When.** A device writes its file a moment after each change, and merges others' files when
   the folder changes, every minute, when the app comes forward, and before a Lock Screen or
   widget button acts.
@@ -171,13 +197,21 @@ and no sync service has a conflict to resolve.
 The watch app (`MomentumWatch/`) holds no data of its own. The iPhone works out a
 `WatchSnapshot` on every change (today's goals with progress, streaks and one-tap actions, the
 timer and the break: a few kilobytes) and sends it as the WatchConnectivity application context.
-A tap on the watch is a `WatchCommand`: an explicit action (start a goal; stop or pause *the
+It sends one too when the app comes forward and when the day turns, which changes what's due
+without changing the data, and the store passes on changes it takes in while the app runs in the
+background with no window. A tap on the watch is a `WatchCommand`: an explicit action (start a goal; stop or pause *the
 session the watch showed*; log), the time it was tapped, and an id. The iPhone, woken in the
 background if needed, applies it to the shared data file as a widget would, once per id, dated
 when it was tapped, and replies with the new snapshot. So a reply lost on the way back can be
 resent safely, a Stop that arrives late doesn't count the hours in between, and a stale Stop
 can't end a newer session. Out of the iPhone's reach, commands go by `transferUserInfo`, and new
 ones queue behind them so they arrive in the order tapped.
+
+The snapshot also carries the iPhone's palette as it looks in dark mode, the watch's only
+appearance (`WatchPalette`: the accent and a swatch per goal color), so a goal has the same color
+on the wrist. The watch app draws in it through the `watchPalette` environment value; a snapshot
+from an iPhone that doesn't send one, or a palette it can't read, draws in the default palette.
+The complications are drawn in the face's tint, as accessory complications are.
 
 The watch keeps the last snapshot, so it opens instantly; one from an earlier day shows daily
 goals starting over. The complications read it from the app group: the iPhone pushes an update
@@ -190,7 +224,12 @@ On iPhone a running session or Pomodoro break shows on the Lock Screen and in th
 `FocusActivityController.sync(with:)` (in `Shared/`) derives the activity from the data, so the
 app calls it after every change and when it becomes active (only a foreground app may start one).
 Its buttons are App Intents that conform to `LiveActivityIntent`, so they run in the app's
-process, change the data and update the activity in one go.
+process, change the data and update the activity in one go. So are the widgets' timer buttons,
+the Control Center focus toggle and Siri's start and stop: an app in the background may start a
+Live Activity only while it performs one, and a widget extension can't start or end the app's.
+The goal's color in the active palette, as it looks on a dark background, travels in the content
+state rather than the attributes, so a new palette reaches a running activity; the widget
+extension never has to read the data file to draw it.
 
 ## Performance
 

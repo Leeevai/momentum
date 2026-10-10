@@ -139,16 +139,18 @@ struct RingStack: View {
     let rings: [(goal: Goal, progress: Double)]
     var lineWidth: CGFloat = 14
     var spacing: CGFloat = 4
+    @Environment(\.palette) private var palette
 
     var body: some View {
         ZStack {
             ForEach(Array(rings.prefix(4).enumerated()), id: \.element.goal.id) { index, ring in
                 let inset = CGFloat(index) * (lineWidth + spacing)
+                let tint = palette.color(ring.goal.color)
                 ZStack {
                     Circle()
-                        .stroke(ring.goal.tint.opacity(0.16), lineWidth: lineWidth)
+                        .stroke(tint.opacity(0.16), lineWidth: lineWidth)
                     RingSweep(progress: ring.progress, color: ring.goal.color, lineWidth: lineWidth)
-                        .shadow(color: ring.goal.tint.opacity(ring.progress >= 1 ? 0.5 : 0.25), radius: lineWidth * 0.35)
+                        .shadow(color: tint.opacity(ring.progress >= 1 ? 0.5 : 0.25), radius: lineWidth * 0.35)
                 }
                 .padding(inset + lineWidth / 2)
             }
