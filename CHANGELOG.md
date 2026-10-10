@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- The buttons on "Time's up" and "Break's over" notifications act only on the session or break
+  they were about, after catching up with other devices. Tapped late, "Stop and save" could stop
+  a session started since, or count the time after it was stopped on another device.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
