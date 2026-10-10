@@ -60,6 +60,17 @@ struct MilestonesSection: View {
                     .onSubmit(add)
             }
             .padding(.vertical, 6)
+            // More from a course or a coach goes straight into this goal.
+            if goal.kind == .milestones, !goal.isArchived {
+                Button {
+                    store.sheet = .importTodos(link: nil, goalID: goal.id)
+                } label: {
+                    Label("Add from Videos…", systemImage: "play.rectangle.on.rectangle")
+                }
+                .buttonStyle(.borderless)
+                .font(.callout)
+                .foregroundStyle(goal.tint)
+            }
         }
         .glassCard(tint: goal.tint)
     }
