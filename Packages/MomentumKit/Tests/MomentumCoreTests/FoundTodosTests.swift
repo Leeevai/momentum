@@ -129,6 +129,30 @@ struct FoundTodosTests {
         #expect(random == "Watch the video")
     }
 
+    @Test("Lists are read from numbers, keycaps, steps and bullets; a decimal or a hyphenated number isn't an item")
+    func listsWithoutModel() {
+        let caption = """
+            5 projects to build this weekend 🚀
+            1️⃣ Build a tokenizer · 14:32
+            2️⃣ Train a tiny GPT
+            Step 3: Fine-tune it (20 min)
+            #4 Ship a RAG app
+            5 - Write it up
+            ✅ Share what you made
+            👉 Follow for more
+            3.5 hours of practice
+            10-minute ab workout
+            """
+        let items = TodoText.listItems(in: caption)
+        let titles = items.map { $0.title }
+        let durations = items.map { $0.duration }
+        let expectedTitles = ["Build a tokenizer", "Train a tiny GPT", "Fine-tune it", "Ship a RAG app", "Write it up",
+                              "Share what you made"]
+        let expectedDurations: [TimeInterval?] = [872, nil, 1200, nil, nil, nil]
+        #expect(titles == expectedTitles)
+        #expect(durations == expectedDurations)
+    }
+
     @Test("Titles read as to-dos: shouted captions in sentence case, without quotes or a full stop")
     func tidyingTitles() {
         let shouted = TodoText.tidyTitle("10 MIN AB WORKOUT")

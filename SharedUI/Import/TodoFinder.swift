@@ -408,13 +408,7 @@ enum TodoFinder {
         }
         #endif
         // Without the model, a numbered or bulleted line is a to-do.
-        let listed = body.split(separator: "\n").map(String.init).compactMap { line -> (title: String, duration: TimeInterval?)? in
-            guard let match = line.firstMatch(of: #/^\s*(?:\d{1,2}[.)]|[-•*])\s*(.+)$/#) else { return nil }
-            let line = String(match.1)
-            let title = TodoText.tidyTitle(TodoText.removingTrailingDuration(from: line))
-            return title.isEmpty ? nil : (title, TodoText.duration(in: line))
-        }
-        return listed
+        return TodoText.listItems(in: body)
     }
 }
 

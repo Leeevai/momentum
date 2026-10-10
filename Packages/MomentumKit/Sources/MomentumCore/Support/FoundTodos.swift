@@ -168,6 +168,11 @@ public enum TodoText {
                                     "subscribe", "don't forget to", "make sure to like", "make sure to subscribe",
                                     "follow me", "follow for more", "comment below"]
 
+    /// List items that ask for something rather than say what to do.
+    private static let requests = ["follow for more", "follow me", "like and", "like this", "comment", "save this",
+                                   "save for later", "subscribe", "tag a", "tag someone", "tag your", "link in bio",
+                                   "dm me", "share this", "share with"]
+
     /// Text a screen recording picks up from the phone or the app rather than the video.
     private static let interfaceText: Set<String> = ["follow", "following", "like", "likes", "share", "send", "reply",
                                                      "comment", "comments", "more", "reels", "for you", "explore",
@@ -199,6 +204,35 @@ public enum TodoText {
         let words = title.split(separator: " ")
         title = tidyTitle(words.count > 1 ? words.prefix(maxWords).joined(separator: " ") : String(title.prefix(40)))
         return title.isEmpty ? "Watch the video" : title
+    }
+
+    /// The to-dos a screenshot or a caption lists, read without the on-device model: each line that
+    /// starts like a list item, numbered ("1.", "1)", "1 -", "1/", "#1", "Step 1:", "1️⃣") or bulleted
+    /// ("-", "•", "✅", "👉" and the like), with a duration written beside it. Items that only ask to
+    /// follow, like, comment or share are left out.
+    public static func listItems(in text: String) -> [(title: String, duration: TimeInterval?)] {
+        text.split(whereSeparator: \.isNewline).compactMap { line -> (title: String, duration: TimeInterval?)? in
+            guard let item = listItem(String(line)) else { return nil }
+            let title = tidyTitle(removingTrailingDuration(from: item))
+            guard !title.isEmpty, !requests.contains(where: { startsWithWord($0, title) }) else { return nil }
+            return (title, duration(in: item))
+        }
+    }
+
+    /// What follows a line's list marker; nil when the line doesn't start like a list item. A number
+    /// followed by more digits ("3.5 hours", "10:30") or by a hyphenated word ("10-minute") isn't one.
+    static func listItem(_ line: String) -> String? {
+        // Keycap numbers (1️⃣) read as "1)", and emoji bullets without their variation selector.
+        let plain = line.replacingOccurrences(of: "\u{FE0F}", with: "")
+            .replacingOccurrences(of: "\u{20E3}", with: ")")
+            .replacingOccurrences(of: "🔟", with: "10)")
+        let numbered = #/^\s*(?:step\s*)?\d{1,2}\s*(?:[.):](?!\d)|\s[-–—]\s|/(?!\d))\s*(.+)$/#.ignoresCase()
+        let hashed = #/^\s*#\d{1,2}[.):]?\s+(.+)$/#
+        let bulleted = #/^\s*[-–—•*▪◾▫●○◦‣⁃✓✔✅☑👉➡▶►→🔹🔸⭐📌]+\s*(.+)$/#
+        if let match = plain.firstMatch(of: numbered) { return String(match.1) }
+        if let match = plain.firstMatch(of: hashed) { return String(match.1) }
+        if let match = plain.firstMatch(of: bulleted) { return String(match.1) }
+        return nil
     }
 
     /// `sentence` without the openers it starts with, however many: "So, in this video, we build" is
