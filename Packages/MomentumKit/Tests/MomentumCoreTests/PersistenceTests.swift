@@ -66,6 +66,22 @@ struct PersistenceTests {
         #expect(preferences.focusSoundVolume == 1)
     }
 
+    @Test("A session keeps the time zone it started in; one saved without it, or with a bad one, still reads")
+    func sessionTimeZone() throws {
+        let goal = timeGoal()
+        var data = AppData(goals: [goal])
+        data.startFocus(on: goal.id, at: referenceNow, calendar: testCalendar)
+        let saved = try FileStore.decode(FileStore.encode(data)).session?.timeZone
+        #expect(saved == "America/Chicago")
+
+        let older = #"{"version": 2, "session": {"goalID": "\#(goal.id.uuidString)", "runningSince": 813254400}}"#
+        let bad = #"{"version": 2, "session": {"goalID": "\#(goal.id.uuidString)", "runningSince": 813254400, "timeZone": 5}}"#
+        let olderSession = try #require(FileStore.decode(Data(older.utf8)).session)
+        let badSession = try #require(FileStore.decode(Data(bad.utf8)).session)
+        #expect(olderSession.timeZone == nil)
+        #expect(badSession.timeZone == nil)
+    }
+
     @Test("The file store applies updates on top of what is on disk")
     func fileStoreUpdates() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
@@ -190,6 +206,23 @@ struct DailyBackupTests {
         #expect(names == ["data-2026-10-12.json", "data-2026-10-11.json", "data-2026-10-10.json"])
         let restored = try FileStore.decode(Data(contentsOf: store.dailyBackups()[0]))
         #expect(restored.goals.map(\.name) == ["Backed up"])
+    }
+
+    @Test("A file that can't be read isn't kept as a day's copy, so the good copies stay")
+    func noDailyCopyOfUnreadableFile() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = FileStore(fileURL: folder.appendingPathComponent("data.json"))
+        store.update { $0.upsert(Goal(name: "Backed up", target: 1)) }
+        store.backUpDaily(keep: 1, now: dayOffset(0), calendar: testCalendar)
+        try Data("not json".utf8).write(to: store.fileURL)
+        // A date of its own, so the store can't take it for the version it wrote.
+        try FileManager.default.setAttributes([.modificationDate: Date.now.addingTimeInterval(60)], ofItemAtPath: store.fileURL.path)
+
+        let written = store.backUpDaily(keep: 1, now: dayOffset(1), calendar: testCalendar)
+        let names = try store.dailyBackups().map(\.lastPathComponent)
+        #expect(written == nil)
+        #expect(names == ["data-2026-10-08.json"])
     }
 }
 

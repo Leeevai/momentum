@@ -170,10 +170,31 @@ final class GoalStore {
         #endif
         observers.append(NotificationCenter.default.addObserver(forName: becameActive, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
+                // A time zone change while the app was suspended isn't announced on return.
+                self?.followTimeZone()
                 self?.reload()
                 self?.sync?.pull()
             }
         })
+        observers.append(NotificationCenter.default.addObserver(forName: .NSSystemTimeZoneDidChange, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.followTimeZone() }
+        })
+    }
+
+    /// Days start and end in the device's time zone. After it changes (on a trip), the engine and
+    /// the day timer would go on counting in the old one until the data next changed: rebuild
+    /// them now, and start the day over as if it had turned.
+    private func followTimeZone() {
+        NSTimeZone.resetSystemTimeZone()
+        guard TimeZone.current != engine.calendar.timeZone else { return }
+        engine = ProgressEngine(data: data)
+        tipsCache = nil
+        now = .now
+        currentDay = engine.calendar.startOfDay(for: now)
+        dismissedTips = Self.loadDismissedTips(on: now)
+        effects.dayDidChange(engine: engine)
+        onChange?(engine)
+        if persistence.watchedDirectory != nil { SharedStore.reloadWidgets() }
     }
 
     /// An in-memory store with demo data, for previews and screenshots.
