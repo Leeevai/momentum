@@ -15,6 +15,10 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- After a change of time zone, such as on a trip, Momentum went on starting and ending days at the
+  old zone's midnight until something was logged. It now follows the new time zone right away.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
