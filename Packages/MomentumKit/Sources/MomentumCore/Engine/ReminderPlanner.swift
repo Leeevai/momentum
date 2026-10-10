@@ -2,8 +2,25 @@ import Foundation
 
 /// A notification Momentum should have scheduled.
 public struct PlannedReminder: Hashable, Sendable {
+    /// What a notification is for, so the app can give it the right buttons and open the right
+    /// place when it's tapped.
+    public enum Kind: Hashable, Sendable {
+        /// A goal's own reminder.
+        case goal
+        /// Tonight's "your streak ends at midnight", or a challenge day still to do.
+        case streakNudge
+        /// The summary on the week's last evening.
+        case weeklyRecap
+        /// The morning prompt to plan a day.
+        case plan(DayID)
+        /// The evening prompt to reflect on a day.
+        case reflect(DayID)
+    }
+
     public var identifier: String
-    public var goalID: UUID
+    public var kind: Kind
+    /// The goal it's about; nil for the weekly recap and the journal prompts.
+    public var goalID: UUID?
     public var fireDate: Date
     public var title: String
     public var subtitle: String = ""
@@ -18,11 +35,13 @@ public struct PlannedReminder: Hashable, Sendable {
 public enum ReminderPlanner {
     public static let identifierPrefix = "reminder."
 
-    /// Goal reminders, streak nudges and the weekly recap, each behind its own switch.
+    /// Goal reminders, streak nudges, the weekly recap and the journal's prompts, each behind its
+    /// own switch.
     public static func plan(_ engine: ProgressEngine, now: Date, days: Int = 7, limit: Int = 60) -> [PlannedReminder] {
         let calendar = engine.calendar
         var planned = streakNudges(engine, now: now)
         planned += weeklyRecap(engine, now: now).map { [$0] } ?? []
+        planned += journalPrompts(engine, now: now, days: days)
         let goalsWithReminders = engine.data.preferences.remindersEnabled ? engine.activeGoals : []
         for goal in goalsWithReminders {
             guard let reminder = goal.reminder, reminder.isEnabled else { continue }
@@ -40,6 +59,7 @@ public enum ReminderPlanner {
                     if doneThisPeriod && fire >= current.start && fire < current.end { continue }
                     planned.append(PlannedReminder(
                         identifier: "\(identifierPrefix)\(goal.id.uuidString).\(engine.dayKey(day)).\(minute)",
+                        kind: .goal,
                         goalID: goal.id,
                         fireDate: fire,
                         title: goal.name,
@@ -79,6 +99,7 @@ public enum ReminderPlanner {
             let left = goal.format(max(0, engine.streakThreshold(for: goal) - done))
             return PlannedReminder(
                 identifier: "\(identifierPrefix)nudge.\(goal.id.uuidString).\(engine.dayKey(today))",
+                kind: .streakNudge,
                 goalID: goal.id,
                 fireDate: fire,
                 title: "Your \(Goal.streakText(streak.current, unit: streak.unit)) ends at midnight",
@@ -99,6 +120,7 @@ public enum ReminderPlanner {
         }
         return PlannedReminder(
             identifier: "\(identifierPrefix)nudge.\(goal.id.uuidString).\(engine.dayKey(today))",
+            kind: .streakNudge,
             goalID: goal.id,
             fireDate: fire,
             title: "Day \(challenge.dayNumber) of your \(challenge.challenge.title)",
@@ -110,7 +132,7 @@ public enum ReminderPlanner {
     /// A summary on the last evening of the week, an hour after the streak-nudge time.
     static func weeklyRecap(_ engine: ProgressEngine, now: Date) -> PlannedReminder? {
         let preferences = engine.data.preferences
-        guard preferences.weeklyRecapEnabled, let anyGoal = engine.activeGoals.first else { return nil }
+        guard preferences.weeklyRecapEnabled, !engine.activeGoals.isEmpty else { return nil }
         let week = engine.interval(of: .weekly, containing: now)
         let lastDay = engine.day(-1, from: week.end)
         let minute = min(23 * 60, preferences.streakNudgeMinute + 60)
@@ -130,11 +152,59 @@ public enum ReminderPlanner {
         let summary = parts.joined(separator: " · ")
         return PlannedReminder(
             identifier: "\(identifierPrefix)recap.\(engine.dayKey(lastDay))",
-            goalID: anyGoal.id,
+            kind: .weeklyRecap,
             fireDate: fire,
             title: "Your week in Momentum",
             body: summary.prefix(1).uppercased() + summary.dropFirst() + "."
         )
+    }
+
+    /// The journal's morning prompt to plan the day and evening prompt to reflect on it, at the
+    /// times chosen for them, for each of the next `days` days. A day already planned gets no
+    /// morning prompt and a day already reflected on no evening one; replanning after each change,
+    /// including one merged from another device, drops a prompt once its day is written.
+    static func journalPrompts(_ engine: ProgressEngine, now: Date, days: Int) -> [PlannedReminder] {
+        let preferences = engine.data.preferences
+        guard preferences.planReminderMinute != nil || preferences.reflectReminderMinute != nil else { return [] }
+        let calendar = engine.calendar
+        var planned: [PlannedReminder] = []
+        for offset in 0..<days {
+            let day = engine.day(offset, from: now)
+            let id = DayID(day, calendar: calendar)
+            let entry = engine.data.journalEntry(for: id)
+            if let minute = preferences.planReminderMinute, entry?.hasPlan != true,
+               let fire = wallClock(minute, on: day, calendar: calendar), fire > now {
+                planned.append(PlannedReminder(
+                    identifier: "\(identifierPrefix)plan.\(id)",
+                    kind: .plan(id),
+                    fireDate: fire,
+                    title: "Plan your day",
+                    body: "Set an intention and pick up to three priorities. It takes a minute."
+                ))
+            }
+            if let minute = preferences.reflectReminderMinute, entry?.hasReflection != true,
+               let fire = wallClock(minute, on: day, calendar: calendar), fire > now {
+                planned.append(PlannedReminder(
+                    identifier: "\(identifierPrefix)reflect.\(id)",
+                    kind: .reflect(id),
+                    fireDate: fire,
+                    title: "How did today go?",
+                    body: reflectBody(engine, isToday: offset == 0, now: now)
+                ))
+            }
+        }
+        return planned
+    }
+
+    /// Today's evening prompt says how the day went so far, as of the last change; later days
+    /// can only ask.
+    private static func reflectBody(_ engine: ProgressEngine, isToday: Bool, now: Date) -> String {
+        let ask = "Note your mood, your energy and one win."
+        guard isToday else { return ask }
+        let summary = engine.todaySummary(now: now)
+        guard summary.total > 0 else { return ask }
+        let done = summary.done == summary.total ? "Every goal done today." : "\(summary.done) of \(summary.total) goals done so far."
+        return "\(done) \(ask)"
     }
 
     /// The time `minute` minutes after midnight on the clock, which on a daylight-saving day is

@@ -258,6 +258,10 @@ public struct Preferences: Codable, Hashable, Sendable {
     public var pomodoro: PomodoroSettings
     /// A morning prompt to plan the day, and an evening one to reflect on it.
     public var journalPromptsEnabled: Bool
+    /// Minutes after midnight for a notification to plan the day; nil sends none.
+    public var planReminderMinute: Int?
+    /// Minutes after midnight for a notification to reflect on the day; nil sends none.
+    public var reflectReminderMinute: Int?
     /// After a focus session, a one-tap question about how it went.
     public var asksSessionQuality: Bool
     /// The built-in palette the app, its widgets and its watch app are drawn in. While a custom
@@ -273,7 +277,8 @@ public struct Preferences: Codable, Hashable, Sendable {
                 showsTimerInMenuBar: Bool = true, streakNudgesEnabled: Bool = true, streakNudgeMinute: Int = 20 * 60,
                 weeklyRecapEnabled: Bool = true, focusSound: FocusSound = .off, focusSoundVolume: Double = 0.4,
                 pomodoro: PomodoroSettings = PomodoroSettings(), journalPromptsEnabled: Bool = true, asksSessionQuality: Bool = true,
-                palette: ThemePalette = .standard, customPalettes: [CustomPalette] = [], customPaletteID: UUID? = nil) {
+                palette: ThemePalette = .standard, customPalettes: [CustomPalette] = [], customPaletteID: UUID? = nil,
+                planReminderMinute: Int? = nil, reflectReminderMinute: Int? = nil) {
         self.defaultFocusMinutes = defaultFocusMinutes
         self.celebratesCompletion = celebratesCompletion
         self.playsSounds = playsSounds
@@ -290,6 +295,13 @@ public struct Preferences: Codable, Hashable, Sendable {
         self.palette = palette
         self.customPalettes = customPalettes
         self.customPaletteID = customPaletteID
+        self.planReminderMinute = planReminderMinute.flatMap(Self.minuteOfDay)
+        self.reflectReminderMinute = reflectReminderMinute.flatMap(Self.minuteOfDay)
+    }
+
+    /// `minute` if it's a minute of the day, from 0 (midnight) to 1439 (23:59).
+    static func minuteOfDay(_ minute: Int) -> Int? {
+        (0..<24 * 60).contains(minute) ? minute : nil
     }
 
     /// The palette everything is drawn in: the custom one in use, or the built-in one.
@@ -337,7 +349,7 @@ public struct Preferences: Codable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case defaultFocusMinutes, celebratesCompletion, playsSounds, remindersEnabled, showsTimerInMenuBar, streakNudgesEnabled, streakNudgeMinute
         case weeklyRecapEnabled, focusSound, focusSoundVolume, pomodoro, journalPromptsEnabled, asksSessionQuality, palette
-        case customPalettes, customPaletteID
+        case customPalettes, customPaletteID, planReminderMinute, reflectReminderMinute
     }
 
     public init(from decoder: Decoder) throws {
@@ -362,6 +374,9 @@ public struct Preferences: Codable, Hashable, Sendable {
         // A damaged custom palette is dropped, not the rest.
         customPalettes = (try? c.decodeLossy(.customPalettes)) ?? []
         customPaletteID = (try? c.decodeIfPresent(UUID.self, forKey: .customPaletteID)) ?? nil
+        // A time that isn't a minute of the day sends no reminder rather than failing the file.
+        planReminderMinute = (try? c.decodeIfPresent(Int.self, forKey: .planReminderMinute)).flatMap(Self.minuteOfDay)
+        reflectReminderMinute = (try? c.decodeIfPresent(Int.self, forKey: .reflectReminderMinute)).flatMap(Self.minuteOfDay)
     }
 }
 

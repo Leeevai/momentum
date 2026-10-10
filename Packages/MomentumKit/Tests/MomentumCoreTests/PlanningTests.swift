@@ -268,3 +268,98 @@ struct RepeatingReminderTests {
         #expect(reminder.times == [510])
     }
 }
+
+@Suite("Journal prompts")
+struct JournalPromptTests {
+    let thursday = DayID(year: 2026, month: 10, day: 8)
+    let friday = DayID(year: 2026, month: 10, day: 9)
+    let saturday = DayID(year: 2026, month: 10, day: 10)
+
+    @Test("The journal's prompts come each day at their times, and only once a time is set")
+    func promptsEachDay() {
+        var data = AppData(goals: [checkInGoal()])
+        #expect(ReminderPlanner.journalPrompts(engine(data), now: referenceNow, days: 3).isEmpty)
+
+        data.preferences.planReminderMinute = 8 * 60
+        data.preferences.reflectReminderMinute = 21 * 60 + 30
+        let prompts = ReminderPlanner.journalPrompts(engine(data), now: referenceNow, days: 3)
+        // 3 pm on Thursday: this morning's prompt is past.
+        let fires = prompts.map(\.fireDate)
+        let expectedFires = [date(2026, 10, 8, 21, 30), date(2026, 10, 9, 8), date(2026, 10, 9, 21, 30),
+                             date(2026, 10, 10, 8), date(2026, 10, 10, 21, 30)]
+        let kinds = prompts.map(\.kind)
+        let expectedKinds: [PlannedReminder.Kind] = [.reflect(thursday), .plan(friday), .reflect(friday), .plan(saturday), .reflect(saturday)]
+        let goals = prompts.compactMap(\.goalID)
+        let identifiers = Set(prompts.map(\.identifier))
+        #expect(fires == expectedFires)
+        #expect(kinds == expectedKinds)
+        #expect(goals.isEmpty)
+        #expect(identifiers.count == 5)
+        #expect(identifiers.allSatisfy { $0.hasPrefix(ReminderPlanner.identifierPrefix) })
+    }
+
+    @Test("A planned day gets no morning prompt, and a reflected one no evening prompt")
+    func skipsWrittenDays() {
+        var data = AppData(goals: [checkInGoal()])
+        data.preferences.planReminderMinute = 8 * 60
+        data.preferences.reflectReminderMinute = 21 * 60
+        data.updateJournal(for: friday, at: referenceNow) { $0.intention = "Ship the release" }
+        data.updateJournal(for: saturday, at: referenceNow) { $0.mood = .good }
+        let kinds = ReminderPlanner.journalPrompts(engine(data), now: referenceNow, days: 3).map(\.kind)
+        let expected: [PlannedReminder.Kind] = [.reflect(thursday), .reflect(friday), .plan(saturday)]
+        #expect(kinds == expected)
+    }
+
+    @Test("Tonight's prompt says how the day went so far; later ones only ask")
+    func reflectBody() {
+        let done = checkInGoal()
+        var data = AppData(goals: [done, checkInGoal()])
+        data.preferences.reflectReminderMinute = 21 * 60
+        data.log(1, for: done.id, at: referenceNow)
+        let bodies = ReminderPlanner.journalPrompts(engine(data), now: referenceNow, days: 2).map(\.body)
+        let expected = ["1 of 2 goals done so far. Note your mood, your energy and one win.", "Note your mood, your energy and one win."]
+        #expect(bodies == expected)
+    }
+
+    @Test("Prompts keep their wall-clock time on a daylight-saving day")
+    func dst() {
+        // Chicago falls back on Sunday 1 November 2026.
+        var data = AppData(goals: [checkInGoal()])
+        data.preferences.planReminderMinute = 8 * 60
+        let fires = ReminderPlanner.journalPrompts(engine(data), now: date(2026, 10, 31, 12), days: 2).map(\.fireDate)
+        let expected = [date(2026, 11, 1, 8)]
+        #expect(fires == expected)
+    }
+
+    @Test("The full plan includes the prompts, and the recap and prompts are about no goal")
+    func inThePlan() throws {
+        let goal = Goal(name: "Focus", kind: .time, target: 1800, createdAt: date(2026, 9, 1))
+        var data = AppData(goals: [goal])
+        data.preferences.planReminderMinute = 7 * 60
+        let planned = ReminderPlanner.plan(engine(data), now: referenceNow, days: 2)
+        let kinds = planned.map(\.kind)
+        #expect(kinds.contains(.plan(friday)))
+        let recap = try #require(planned.first { $0.kind == .weeklyRecap })
+        #expect(recap.goalID == nil)
+    }
+
+    @Test("Preferences without reminder times decode with none, odd times are dropped, and set ones round-trip")
+    func decoding() throws {
+        let older = #"{"version": 2, "preferences": {"journalPromptsEnabled": true}}"#
+        let decoded = try FileStore.decode(Data(older.utf8)).preferences
+        #expect(decoded.planReminderMinute == nil)
+        #expect(decoded.reflectReminderMinute == nil)
+
+        let odd = #"{"version": 2, "preferences": {"planReminderMinute": 1440, "reflectReminderMinute": "nine"}}"#
+        let dropped = try FileStore.decode(Data(odd.utf8)).preferences
+        #expect(dropped.planReminderMinute == nil)
+        #expect(dropped.reflectReminderMinute == nil)
+
+        var data = AppData()
+        data.preferences.planReminderMinute = 7 * 60 + 30
+        data.preferences.reflectReminderMinute = 22 * 60
+        let kept = try FileStore.decode(FileStore.encode(data)).preferences
+        #expect(kept.planReminderMinute == 450)
+        #expect(kept.reflectReminderMinute == 1320)
+    }
+}
