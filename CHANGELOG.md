@@ -15,6 +15,10 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- After adding 5 or 15 minutes to a session on the iPhone, the watch face counted down to the old
+  end and then counted up as if the time were over; it now follows the new end.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
