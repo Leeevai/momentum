@@ -159,6 +159,37 @@ struct PaletteTests {
         #expect(!OKLCH(0.4, 0.1, 250).prefersDarkLabel)
     }
 
+    @Test("A deep shade holds white text at 4.5:1, and leaves a swatch that already does as it is")
+    func deepShades() {
+        var illegible: [String] = []
+        for (name, tokens) in Self.everyToken() {
+            for swatch in tokens.swatches where swatch.deepened.contrast(with: .white) < 4.5 {
+                illegible.append("\(name) \(swatch)")
+            }
+        }
+        #expect(illegible.isEmpty, "\(illegible)")
+        for swatch in ThemePalette.slate.tokens(dark: false).swatches {
+            let deep = swatch.deepened
+            #expect(deep == swatch)
+        }
+        for swatch in ThemePalette.slate.tokens(dark: true).swatches {
+            let deep = swatch.deepened
+            #expect(deep.lightness < swatch.lightness)
+            #expect(deep.hue == swatch.hue)
+        }
+    }
+
+    @Test("A highlight is lighter than its swatch, in the same hue")
+    func highlights() {
+        for color in GoalColor.allCases {
+            let swatch = ThemePalette.dusk.tokens(dark: false).swatch(color)
+            let highlight = swatch.highlight
+            #expect(highlight.lightness > swatch.lightness)
+            #expect(highlight.hue == swatch.hue)
+            #expect(highlight.isInSRGB)
+        }
+    }
+
     @Test("Mapping into sRGB keeps lightness and hue and lowers chroma")
     func gamutMapping() {
         let vivid = OKLCH(0.9, 0.3, 260)

@@ -104,6 +104,26 @@ public struct OKLCH: Hashable, Sendable {
         return self
     }
 
+    // MARK: - Shades
+
+    public static let white = OKLCH(1, 0, 0)
+
+    /// A lighter, softer companion: where a ring's sweep starts.
+    public var highlight: OKLCH {
+        OKLCH(min(0.95, lightness + 0.1), chroma * 0.85, hue).inSRGB
+    }
+
+    /// The same color, deep enough that white text and symbols on it reach 4.5:1: for icon tiles
+    /// and medals, which keep white symbols in light and dark. A color that already holds white
+    /// text is returned as it is.
+    public var deepened: OKLCH {
+        for step in 0...100 {
+            let candidate = OKLCH(lightness - Double(step) * 0.01, chroma, hue).inSRGB
+            if candidate.contrast(with: .white) >= 4.5 { return candidate }
+        }
+        return OKLCH(0, 0, hue)
+    }
+
     // MARK: - Helpers
 
     static func contrast(_ first: Double, _ second: Double) -> Double {
