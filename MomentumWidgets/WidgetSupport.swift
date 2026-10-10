@@ -144,7 +144,7 @@ struct WidgetActionButton: View {
     }
 
     private func icon(_ name: String) -> some View {
-        WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Circle()) {
+        WidgetFilledLabel(fill: goal.color.fill, tint: goal.color.swatch, shape: Circle()) {
             Image(systemName: name)
                 .font(.system(size: size * 0.4, weight: .bold))
                 .frame(width: size, height: size)
@@ -187,7 +187,7 @@ struct WidgetWideButton: View {
     }
 
     private func label(_ title: String, _ systemImage: String) -> some View {
-        WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Capsule()) {
+        WidgetFilledLabel(fill: goal.color.fill, tint: goal.color.swatch, shape: Capsule()) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
