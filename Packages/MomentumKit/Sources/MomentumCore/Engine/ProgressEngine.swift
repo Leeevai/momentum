@@ -136,7 +136,10 @@ public struct ProgressEngine: Sendable {
         return max(0, stored + liveSeconds(for: goal, in: dayInterval(day), now: now))
     }
 
-    /// Logged amount within `interval`, plus the running session's share of it.
+    /// Logged amount within `interval`, plus the running session's share of it. Never negative.
+    ///
+    /// The running session is added before the floor at zero, as it will be once it's logged: a
+    /// correction made while it runs takes its time off at once.
     public func amount(for goal: Goal, in interval: DateInterval, now: Date) -> Double {
         guard interval.start > .distantPast else {
             let stored = dailyTotals[goal.id]?.values.reduce(0, +) ?? 0
@@ -146,7 +149,7 @@ public struct ProgressEngine: Sendable {
         guard let days = dailyTotals[goal.id] else { return live }
         // A single day (the common case: streaks, rings) is one lookup.
         if interval.duration <= 25 * 3600 {
-            return max(0, days[dayKey(interval.start)] ?? 0) + live
+            return max(0, (days[dayKey(interval.start)] ?? 0) + live)
         }
         // Day keys sort chronologically (yyyymmdd), so a range is a filter over logged days.
         let first = dayKey(interval.start)
@@ -157,7 +160,7 @@ public struct ProgressEngine: Sendable {
         for (key, amount) in days where key >= first && key < end {
             total += amount
         }
-        return max(0, total) + live
+        return max(0, total + live)
     }
 
     /// Every amount ever logged for the goal: time, count, amount, or pages read.
