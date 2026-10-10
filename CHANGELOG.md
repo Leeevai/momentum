@@ -16,6 +16,9 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- The buttons on "Time's up" and "Break's over" notifications act only on the session or break
+  they were about, after catching up with other devices. Tapped late, "Stop and save" could stop
+  a session started since, or count the time after it was stopped on another device.
 - The weekly recap counted focus and active days from the week before when Momentum was last
   used before the week's last day. It now sums up only the week it's for.
 - One entry dated more than eleven years back, such as a mistyped year, made a weekly streak read

@@ -106,4 +106,24 @@ struct PomodoroTests {
         #expect(data.session == nil)
         #expect(data.rest == before.rest)
     }
+
+    @Test("The next block starts only from the break it was offered for")
+    func nextBlockNamesItsBreak() throws {
+        let goal = timeGoal()
+        var data = pomodoroData(goal)
+        data.toggleFocus(on: goal.id, at: referenceNow, calendar: testCalendar)
+        data.advancePomodoro(at: referenceNow.addingTimeInterval(1500), calendar: testCalendar)
+        let offered = try #require(data.rest).start
+        // The break was skipped elsewhere before "Start next block" was tapped here.
+        var skipped = data
+        skipped.endRest()
+        skipped.startNextBlock(afterRestStartedAt: offered, at: referenceNow.addingTimeInterval(1900), calendar: testCalendar)
+        #expect(skipped.session == nil)
+
+        data.startNextBlock(afterRestStartedAt: offered.addingTimeInterval(-3600), at: referenceNow.addingTimeInterval(1900), calendar: testCalendar)
+        #expect(data.session == nil)
+        data.startNextBlock(afterRestStartedAt: offered, at: referenceNow.addingTimeInterval(1900), calendar: testCalendar)
+        let block = data.session?.block
+        #expect(block == 2)
+    }
 }
