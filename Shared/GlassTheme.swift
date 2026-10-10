@@ -75,6 +75,9 @@ enum ActivePalette {
 /// lighter highlight and a deep shade that white symbols read on.
 struct PaletteColors: Sendable {
     let accent: Color
+    /// A lighter companion of the accent, and a shade of it deep enough for white on it.
+    let accentHighlight: Color
+    let accentDeep: Color
     private let swatches: [GoalColor: Color]
     private let highlights: [GoalColor: Color]
     private let deepShades: [GoalColor: Color]
@@ -92,6 +95,8 @@ struct PaletteColors: Sendable {
             })
         }
         accent = .dynamic(named: "\(key).accent", light: palette.light.accent, dark: palette.dark.accent)
+        accentHighlight = .dynamic(named: "\(key).accent-highlight", light: palette.light.accent.highlight, dark: palette.dark.accent.highlight)
+        accentDeep = .dynamic(named: "\(key).accent-deep", light: palette.light.accent.deepened, dark: palette.dark.accent.deepened)
         swatches = colors("swatch") { $0 }
         highlights = colors("highlight") { $0.highlight }
         deepShades = colors("deep") { $0.deepened }
