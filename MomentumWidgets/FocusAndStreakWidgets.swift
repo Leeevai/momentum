@@ -98,7 +98,7 @@ struct FocusWidgetView: View {
                                 .lineLimit(1)
                             Spacer(minLength: 4)
                             if family != .systemSmall {
-                                Text(goal.focusMinutes.map { "\($0)m" } ?? "∞")
+                                Text(length(of: goal))
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(.secondary)
                             }
@@ -116,6 +116,12 @@ struct FocusWidgetView: View {
             }
             .widgetURL(DeepLink.today.url)
         }
+    }
+
+    /// What Start begins: "25m" for a planned session, ∞ for one that runs until it's stopped.
+    private func length(of goal: Goal) -> String {
+        guard let seconds = entry.data.defaultFocusLength(for: goal.id) else { return "∞" }
+        return "\(Int((seconds / 60).rounded()))m"
     }
 }
 

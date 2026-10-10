@@ -56,6 +56,11 @@ All notable changes to Momentum are recorded here. The format follows
 - On iPhone, a session started from the Control Center focus toggle, Siri or Shortcuts got no
   Lock Screen timer until the app was opened, and one stopped from Control Center could leave the
   timer counting there; the Live Activity now starts and ends with them.
+- Siri, Shortcuts and the Control Center focus toggle stopped a session after 25 minutes on a goal
+  set to run until stopped, where its widget or watch Start didn't. They now start a session as
+  those do: at the goal's length, a Pomodoro block, or open-ended. With Pomodoro on, the Focus
+  widget showed ∞ for a goal that would start a 25-minute block; it now shows the length. Siri
+  also no longer starts a session on an archived goal.
 - A Goodreads import on a device set to the Buddhist or Japanese calendar dated books centuries
   away, so none counted toward this year's reading. Goodreads dates are now read as the Gregorian
   dates they are.
