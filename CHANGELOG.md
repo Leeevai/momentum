@@ -16,6 +16,9 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- On iPhone, a session started from the Control Center focus toggle, Siri or Shortcuts got no
+  Lock Screen timer until the app was opened, and one stopped from Control Center could leave the
+  timer counting there; the Live Activity now starts and ends with them.
 - A Goodreads import on a device set to the Buddhist or Japanese calendar dated books centuries
   away, so none counted toward this year's reading. Goodreads dates are now read as the Gregorian
   dates they are.
