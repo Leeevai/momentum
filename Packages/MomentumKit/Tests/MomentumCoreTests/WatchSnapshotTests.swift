@@ -20,6 +20,23 @@ struct WatchSnapshotTests {
         #expect(snapshot.total == 2)
     }
 
+    @Test("A break's goal goes out with the snapshot, however many goals come before it")
+    func breakGoal() throws {
+        let work = timeGoal()
+        var data = AppData(goals: (0..<WatchSnapshot.itemLimit).map { _ in checkInGoal() } + [work])
+        data.preferences.pomodoro.isEnabled = true
+        data.startFocus(on: work.id, planned: 1500, at: referenceNow.addingTimeInterval(-1600), calendar: testCalendar)
+        data.advancePomodoro(at: referenceNow, calendar: testCalendar)
+        let rest = try #require(data.rest)
+        #expect(data.session == nil)
+        let snapshot = engine(data).watchSnapshot(now: referenceNow)
+        let ids = snapshot.items.map(\.id)
+        // The twelve goals ahead of it, and the break's goal first, as a running timer's would be.
+        #expect(ids.count == WatchSnapshot.itemLimit + 1)
+        #expect(ids.first == work.id)
+        #expect(snapshot.rest == rest)
+    }
+
     @Test("Commands from the watch change the data like the app would, dated when tapped")
     func commands() throws {
         let gym = checkInGoal()
