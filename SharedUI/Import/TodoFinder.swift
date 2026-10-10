@@ -214,9 +214,17 @@ enum TodoFinder {
         return lines.prefix(60).joined(separator: "\n")
     }
 
+    /// The text in an image, read from a copy at most 3,000 pixels long and turned the right way up:
+    /// a 48-megapixel photo is some 200 MB decoded, and text on its side isn't read.
     private static func imageText(at url: URL) -> String {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return "" }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 3000,
+            kCGImageSourceShouldCacheImmediately: true,
+        ]
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return "" }
         return recognizedText(in: image).joined(separator: "\n")
     }
 
