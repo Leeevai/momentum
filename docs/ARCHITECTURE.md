@@ -95,7 +95,9 @@ Timelines are computed from the same engine. Counters use `Text`'s timer styles 
 without new entries; rings only move when an entry renders, so a running session gets an entry
 every five minutes and one at its planned end, and otherwise the next entry is midnight. Buttons run
 App Intents (`Shared/Intents`) inside the widget process, which update the file and reload all
-timelines. Links in widgets use `momentum://` deep links that the app resolves.
+timelines. Links in widgets use `momentum://` deep links that the app resolves. The timeline sets
+the active palette, built-in or custom, from the file it loads, and a button's label is white or
+black, whichever reads on its goal's color (`WidgetFilledLabel`).
 
 ## The look
 
@@ -198,6 +200,12 @@ resent safely, a Stop that arrives late doesn't count the hours in between, and 
 can't end a newer session. Out of the iPhone's reach, commands go by `transferUserInfo`, and new
 ones queue behind them so they arrive in the order tapped.
 
+The snapshot also carries the iPhone's palette as it looks in dark mode, the watch's only
+appearance (`WatchPalette`: the accent and a swatch per goal color), so a goal has the same color
+on the wrist. The watch app draws in it through the `watchPalette` environment value; a snapshot
+from an iPhone that doesn't send one, or a palette it can't read, draws in the default palette.
+The complications are drawn in the face's tint, as accessory complications are.
+
 The watch keeps the last snapshot, so it opens instantly; one from an earlier day shows daily
 goals starting over. The complications read it from the app group: the iPhone pushes an update
 (`transferCurrentComplicationUserInfo`, a few dozen a day) when something on the face changes,
@@ -209,7 +217,10 @@ On iPhone a running session or Pomodoro break shows on the Lock Screen and in th
 `FocusActivityController.sync(with:)` (in `Shared/`) derives the activity from the data, so the
 app calls it after every change and when it becomes active (only a foreground app may start one).
 Its buttons are App Intents that conform to `LiveActivityIntent`, so they run in the app's
-process, change the data and update the activity in one go.
+process, change the data and update the activity in one go. The goal's color in the active
+palette, as it looks on a dark background, travels in the content state rather than the
+attributes, so a new palette reaches a running activity; the widget extension never has to read
+the data file to draw it.
 
 ## Performance
 
