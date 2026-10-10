@@ -15,6 +15,11 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Changed
+- Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
+  Dusk and Rose. Ocean, Lagoon, Amber, Lavender, Mint, Cherry and Midnight are retired; if you
+  used one, Momentum switches to the closest new palette.
+
 ### Fixed
 - A Pomodoro block finished on two devices in different time zones, such as an iPhone on a trip
   and the Mac at home, was logged twice. A session is now split into the days of the time zone it
