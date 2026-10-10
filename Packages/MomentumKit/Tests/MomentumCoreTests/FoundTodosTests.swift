@@ -256,6 +256,18 @@ struct FoundTodosTests {
         #expect(goal.links.count == 1)
     }
 
+    @Test("A goal already has a to-do with its name, or the same video under another name")
+    func existingMilestones() throws {
+        let link = try #require(URL(string: "https://www.instagram.com/reel/ABC/"))
+        var goal = Goal(name: "Workouts", kind: .milestones, target: 0)
+        goal.milestones = [Milestone(title: "Leg  day", duration: 600, link: link)]
+        let renamed = FoundTodo(title: "Do the leg workout", duration: 600.4, link: link, source: "a.mov")
+        let sameName = FoundTodo(title: "leg day", source: "b.mov")
+        let sameLink = FoundTodo(title: "Arm day", duration: 300, link: link, source: "c.mov")
+        let has = [renamed, sameName, sameLink].map { goal.hasMilestone(like: $0) }
+        #expect(has == [true, true, false])
+    }
+
     @Test("Milestones from before durations and links decode, and the new fields survive a save")
     func milestoneDecoding() throws {
         let old = #"{"version": 2, "goals": [{"name": "G", "kind": "milestones", "target": 0, "milestones": [{"title": "Step"}]}]}"#

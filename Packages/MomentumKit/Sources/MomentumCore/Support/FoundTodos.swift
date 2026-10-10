@@ -48,6 +48,24 @@ extension AppData {
     }
 }
 
+extension Goal {
+    /// Whether one of the goal's milestones already stands for `todo`: one with the same name, case
+    /// and spacing aside, or with the same link and length, the same video under another name.
+    public func hasMilestone(like todo: FoundTodo) -> Bool {
+        let title = Self.comparable(todo.title)
+        return milestones.contains { milestone in
+            if !title.isEmpty, Self.comparable(milestone.title) == title { return true }
+            guard let link = todo.link, let length = todo.duration, milestone.link == link,
+                  let otherLength = milestone.duration else { return false }
+            return abs(otherLength - length) < 1
+        }
+    }
+
+    private static func comparable(_ title: String) -> String {
+        title.lowercased().split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+}
+
 /// The text handling behind found to-dos: cleaning links, reading durations, and naming a to-do
 /// when the on-device model can't.
 public enum TodoText {
