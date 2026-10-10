@@ -15,6 +15,12 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- After midnight the watch and its complications kept the day before's goals (a goal due only on
+  some weekdays could be missing or extra) until something was logged on the iPhone, even once the
+  iPhone app was opened. The iPhone now updates the watch when it comes forward and when the day
+  turns, and passes on changes it makes while woken in the background.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
