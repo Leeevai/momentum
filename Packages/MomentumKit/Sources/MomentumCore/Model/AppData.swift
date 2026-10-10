@@ -55,7 +55,9 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
         goalID = try c.decode(UUID.self, forKey: .goalID)
         date = try c.decode(Date.self, forKey: .date)
         amount = try c.decode(.amount, default: 0)
-        source = try c.decode(.source, default: .manual)
+        // A source from a newer version reads as manual, rather than failing the entry and with it
+        // the whole file. Sync keeps the newer copy's source: a tie goes to the longer record.
+        source = (try? c.decode(.source, default: .manual)) ?? .manual
         note = try c.decode(.note, default: "")
         bookID = try c.decodeIfPresent(UUID.self, forKey: .bookID)
         // A rating this version doesn't know is dropped, not the entry.
