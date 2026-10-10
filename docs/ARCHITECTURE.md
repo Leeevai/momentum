@@ -102,9 +102,18 @@ timelines. Links in widgets use `momentum://` deep links that the app resolves.
 The design follows [glasscn](https://glasscn.app): frosted panes with a lit rim over a drifting
 aurora, in one of its palettes.
 
-- **Palettes** live in the core (`ThemePalette`, in OKLCH as glasscn defines them) because the
-  choice is a synced preference (`Preferences.palette`) that the widgets read from the data file.
-  `Color(_: OKLCH)` in `Shared/GlassTheme.swift` converts them.
+- **Palettes** live in the core because the choice is a synced preference that the widgets read
+  from the data file. Every palette comes from a `PaletteRecipe`: an accent, a background tint,
+  goal colors in a harmony around a base hue (spectrum, analogous, complementary, triadic or
+  monochrome), and a lightness and contrast. `PaletteGenerator` turns it into light and dark
+  `PaletteTokens` in OKLCH, as glasscn defines its themes: the accent, the aurora, chart colors and
+  one swatch per `GoalColor`, so a goal's stored color picks the palette's matching swatch. Colors
+  are kept inside sRGB by lowering their chroma, and white or black text reaches 4.5:1 on every
+  swatch and accent. The built-in palettes (`ThemePalette`) are curated recipes, and a retired
+  one's name decodes as the closest that remains; custom ones are saved in
+  `Preferences.customPalettes`. `Preferences.activePalette` is the one in use. While a custom
+  palette is in use, `Preferences.palette` holds the closest built-in one, which versions without
+  custom palettes draw in. `Color(_: OKLCH)` in `Shared/GlassTheme.swift` converts the colors.
 - **Where the palette comes from.** Each window's root applies `.storePalette()`, which sets the
   `palette` environment value and the tint. Colors that need a `Color` outside the view tree use
   `Color.accent`, a dynamic color that reads `ActivePalette.current`; the store sets it on every
