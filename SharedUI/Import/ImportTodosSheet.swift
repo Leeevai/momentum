@@ -367,7 +367,9 @@ struct ImportTodosSheet: View {
     @ViewBuilder
     private var footerActions: some View {
         if isReviewing {
+            // Escape goes back, as it cancels on the first screen: twice closes the sheet.
             Button("Back") { withAnimation { isReviewing = false } }
+                .keyboardShortcut(.cancelAction)
             Button {
                 save()
             } label: {
