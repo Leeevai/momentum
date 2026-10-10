@@ -81,9 +81,11 @@ struct StreakTests {
         let streak = progress.streak(for: goal, now: referenceNow)
         let worked = progress.hasActivity(goal, on: dayOffset(-3), now: referenceNow)
         let shade = progress.intensity(for: goal, on: dayOffset(-3), now: referenceNow)
+        let active = progress.insights(days: 7, now: referenceNow).activeDays
         #expect(streak.current == 2)
         #expect(!worked)
         #expect(shade == 0)
+        #expect(active == 3)
     }
 
     @Test("Completion rate ignores off days and an unfinished today")
