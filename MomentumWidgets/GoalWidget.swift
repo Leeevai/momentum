@@ -71,7 +71,7 @@ private struct GoalSmall: View {
                 StreakBadge(count: streak.current, unit: streak.unit)
             }
             WidgetGoalRing(goal: goal, engine: entry.engine, now: entry.date)
-            WidgetWideButton(goal: goal, engine: entry.engine)
+            GoalWidgetButton(goal: goal, engine: entry.engine)
         }
     }
 }
@@ -86,7 +86,7 @@ private struct GoalMedium: View {
         HStack(spacing: 14) {
             VStack(spacing: 6) {
                 WidgetGoalRing(goal: goal, engine: engine, now: entry.date)
-                WidgetWideButton(goal: goal, engine: engine)
+                GoalWidgetButton(goal: goal, engine: engine)
             }
             .frame(width: 108)
             VStack(alignment: .leading, spacing: 6) {
@@ -143,7 +143,7 @@ private struct GoalLarge: View {
                 }
                 Spacer(minLength: 0)
             }
-            WidgetWideButton(goal: goal, engine: engine)
+            GoalWidgetButton(goal: goal, engine: engine)
             GoalDetailPanel(goal: goal, entry: entry, compact: false)
             if !goal.links.isEmpty {
                 HStack(spacing: 6) {
@@ -166,6 +166,28 @@ private struct GoalLarge: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title).font(.caption2).foregroundStyle(.secondary)
             Text(value).font(.system(.subheadline, design: .rounded, weight: .semibold)).lineLimit(1)
+        }
+    }
+}
+
+/// The goal's button, or for a goal archived since the widget was set up, a note in its place:
+/// an archived goal is put away, so nothing times or logs it from here. Tapping the widget still
+/// opens the goal, where it can be restored.
+private struct GoalWidgetButton: View {
+    let goal: Goal
+    let engine: ProgressEngine
+
+    var body: some View {
+        if goal.isArchived {
+            Label("Archived", systemImage: "archivebox")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(Color.primary.opacity(0.08)))
+        } else {
+            WidgetWideButton(goal: goal, engine: engine)
         }
     }
 }
