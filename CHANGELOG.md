@@ -28,6 +28,10 @@ All notable changes to Momentum are recorded here. The format follows
   accents follow the palette too. The goal editor shows the palette's colors.
 - Widgets, the Live Activity and the Apple Watch app draw in your palette too, custom ones
   included, so a goal has the same color everywhere.
+- On iPhone and iPad, Today ends with the goals that aren't due today, folded under Not today, so
+  every goal can be opened, and worked on ahead of time. As on the Mac, goals on a break have a
+  section of their own, Today says when everything is done or nothing is due, and a Focus filter
+  in effect shows with a way to see every goal.
 
 ### Fixed
 - Goals made from imported videos were always purple, and new blank goals always blue. A new goal
