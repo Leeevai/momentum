@@ -102,7 +102,8 @@ final class GoalStore {
     /// A Focus filter the user chose to see past ("Show all") until it changes.
     var ignoredFocusFilter: FocusFilter?
 
-    /// Told about every change, with the rebuilt engine: the iPhone app passes it on to the watch.
+    /// Told about every change, with the rebuilt engine, and when the day turns: the iPhone app
+    /// passes it on to the watch.
     @ObservationIgnored var onChange: ((ProgressEngine) -> Void)?
 
     /// The main window's undo manager, attached by the root view.
@@ -526,6 +527,8 @@ final class GoalStore {
                     self.tipsCache = nil
                     self.effects.dayDidChange(engine: self.engine)
                     self.persistence.backUpDaily()
+                    // What's due today changed, though the data didn't.
+                    self.onChange?(self.engine)
                 }
             }
         }
