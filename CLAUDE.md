@@ -20,8 +20,7 @@ Read `docs/ARCHITECTURE.md` before changing how data flows between the app and t
 
 CI builds and tests every pull request on GitHub (macos-15, Xcode 26.3), running each check as a
 parallel job. **Don't run builds, tests or simulators on the owner's Mac**: they pin its CPU. Push
-and read the checks instead (`fix-ci` skill); build locally only when the owner asks for it in the
-conversation. What CI runs:
+and read the checks instead (`fix-ci` skill). What CI runs:
 
 ```bash
 swift test --package-path Packages/MomentumKit
@@ -32,6 +31,12 @@ xcodebuild -project Momentum.xcodeproj -scheme MomentumMobile -destination 'gene
 Local-only scripts, run only on the owner's request: `scripts/install.sh` (Release build into
 /Applications), `scripts/screenshots/render.sh` (docs/images from demo data),
 `scripts/app-store-screenshots.sh` and `scripts/archive.sh`.
+
+**The guard.** `.claude/settings.json` runs `.claude/hooks/guard_bash.py` before every shell
+command. It always refuses pushes straight to `main` or `develop` and commits that skip their hooks
+(`--no-verify`, `-n`). On a checkout with `git config momentum.noLocalBuilds true` (the owner's
+Mac) it also refuses builds, tests, simulators and the scripts above. When the owner asks for a
+local build or install in the conversation, prefix that command with `MOMENTUM_ALLOW_LOCAL_BUILD=1`.
 
 ## Where things go
 
