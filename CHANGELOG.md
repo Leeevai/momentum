@@ -6,6 +6,15 @@ All notable changes to Momentum are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- To-dos from videos: add saved reels, videos or screenshots of a post (or paste its caption), and
+  each video becomes a to-do as long as the video, with the post's link on it. Durations written
+  on a slide are read too. Speech and text recognition and Apple's on-device model do the work
+  on the device; nothing is uploaded. Find it in File on the Mac, the + menu on iPhone, or as
+  From videos when making a new goal.
+- Milestones can carry a duration and a link: the goal shows the time left, and the next one can
+  be watched straight from its page.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
