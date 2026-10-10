@@ -18,6 +18,10 @@ All notable changes to Momentum are recorded here. The format follows
   hue (spectrum, analogous, complementary, triadic or monochrome) and how light and crisp it
   all is, with a live preview in light and dark. Make one from New in the palette settings, or
   customize a built-in palette; yours sync with your other settings.
+- Journal reminders: a notification in the morning to plan the day and one in the evening to
+  reflect on it, each at a time you choose in the notification settings, and skipped on a day
+  that's already planned or reflected on, on whichever device. Tap one to plan or reflect, or rate
+  the day from the evening one without opening the app.
 
 ### Changed
 - Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
@@ -80,6 +84,9 @@ All notable changes to Momentum are recorded here. The format follows
 - Siri and Shortcuts' Start and Stop Focus Session catch up with other devices before they change
   the timer. On an iPhone that hadn't heard a session was stopped on the Mac, either one stopped it
   again at that moment, counting the time in between.
+- The weekly recap notification had Start now and Log progress buttons, which acted on the first
+  goal; it now only opens the week in review. On the Mac, tapping a notification brings the window
+  back if it was closed.
 
 ## [2.2.0] - 2026-10-09
 
