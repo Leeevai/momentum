@@ -1,38 +1,5 @@
 import Foundation
 
-/// A color in OKLCH: perceptual lightness from 0 to 1, chroma, and hue in degrees. The palettes
-/// are defined in it, as glasscn defines them, so their colors keep even steps of lightness.
-public struct OKLCH: Hashable, Sendable {
-    public var lightness: Double
-    public var chroma: Double
-    public var hue: Double
-
-    public init(_ lightness: Double, _ chroma: Double, _ hue: Double) {
-        self.lightness = lightness
-        self.chroma = chroma
-        self.hue = hue
-    }
-
-    /// Gamma-encoded sRGB components from 0 to 1, clipped where the color falls outside sRGB.
-    public var sRGB: (red: Double, green: Double, blue: Double) {
-        let angle = hue * .pi / 180
-        let a = chroma * cos(angle)
-        let b = chroma * sin(angle)
-        // OKLab to linear sRGB (Björn Ottosson's matrices).
-        let l = pow(lightness + 0.3963377774 * a + 0.2158037573 * b, 3)
-        let m = pow(lightness - 0.1055613458 * a - 0.0638541728 * b, 3)
-        let s = pow(lightness - 0.0894841775 * a - 1.2914855480 * b, 3)
-        return (Self.encode(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
-                Self.encode(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
-                Self.encode(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s))
-    }
-
-    private static func encode(_ linear: Double) -> Double {
-        let value = min(1, max(0, linear))
-        return value <= 0.0031308 ? 12.92 * value : 1.055 * pow(value, 1 / 2.4) - 0.055
-    }
-}
-
 /// One appearance of a palette: the accent, the aurora behind every screen (a base and three
 /// drifting colors), and five chart colors, the first being the accent.
 public struct PaletteTokens: Hashable, Sendable {
