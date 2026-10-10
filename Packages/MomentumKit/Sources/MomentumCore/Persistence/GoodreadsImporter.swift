@@ -59,11 +59,15 @@ public enum GoodreadsImporter {
         "\(book.title.lowercased())|\(book.author.lowercased())"
     }
 
-    /// Goodreads writes dates as "2024/05/14".
+    /// Goodreads writes dates as "2024/05/14", in the Gregorian calendar whatever the device uses:
+    /// read in a Buddhist or Japanese calendar, the year would land centuries away. Noon in
+    /// `calendar`'s time zone, clear of any daylight-saving change.
     static func date(_ text: String, calendar: Calendar) -> Date? {
         let parts = text.split(separator: "/").compactMap { Int($0) }
         guard parts.count == 3 else { return nil }
-        return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: 12))
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        return gregorian.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: 12))
     }
 }
 

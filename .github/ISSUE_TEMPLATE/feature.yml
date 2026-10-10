@@ -1,0 +1,61 @@
+name: Feature
+description: Something new that Momentum doesn't do yet.
+labels: ["type: feature", "status: needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Give the issue a plain title that says what to build, such as "Show the next video beside
+        the ring". To change something Momentum already does, open an enhancement instead.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The goal or situation, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: The feature as you picture it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today instead?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: >-
+        The parts of Momentum it touches. Work across several areas becomes one sub-issue per area
+        at triage.
+      multiple: true
+      options:
+        - "ui: screens and components on Mac and iPhone"
+        - "core: the engine and saved data in MomentumCore"
+        - "sync: sync between devices"
+        - "watch: the watch app and complications"
+        - "widgets: widgets and the Live Activity"
+        - "mac: the Mac app only"
+        - "ios: the iPhone and iPad app only"
+        - "import: importing and exporting"
+        - "ci: GitHub workflows and checks"
+        - "docs: documentation"
+        - "tooling: scripts and developer tools"
+        - "release: versions and releases"
+        - "not sure: leave it for triage"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What has to be true for this to be done, one checkbox each.
+      placeholder: |
+        - [ ] The next video's length shows beside the ring
+        - [ ] It fits at phone width
+    validations:
+      required: true
