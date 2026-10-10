@@ -124,19 +124,23 @@ enum TodoFinder {
         var material = Material(name: url.lastPathComponent, isVideo: true, duration: seconds.isFinite && seconds > 0 ? seconds : nil)
         guard !Task.isCancelled else { return material }
         await step(.listening)
-        material.transcript = await transcript(of: asset)
+        material.transcript = await transcript(of: asset, duration: material.duration)
         guard !Task.isCancelled else { return material }
         await step(.reading)
         material.screenText = await frameText(of: asset, duration: material.duration ?? 0)
         return material
     }
 
+    /// How much of a video's sound is transcribed. Naming reads the first 3,000 characters of what's
+    /// said, a few minutes of speech, so a long talk isn't worth exporting and transcribing whole.
+    private static let listeningSpan: TimeInterval = 5 * 60
+
     /// What's said in the file, on-device; empty without speech, or before macOS 26 and iOS 26.
-    private static func transcript(of asset: AVURLAsset) async -> String {
+    private static func transcript(of asset: AVURLAsset, duration: TimeInterval?) async -> String {
         #if canImport(Speech)
         if #available(macOS 26.0, iOS 26.0, *) {
             do {
-                return try await speech(in: asset)
+                return try await speech(in: asset, duration: duration)
             } catch {
                 return ""
             }
@@ -147,12 +151,15 @@ enum TodoFinder {
 
     #if canImport(Speech)
     @available(macOS 26.0, iOS 26.0, *)
-    private static func speech(in asset: AVURLAsset) async throws -> String {
+    private static func speech(in asset: AVURLAsset, duration: TimeInterval?) async throws -> String {
         guard try await !asset.loadTracks(withMediaType: .audio).isEmpty else { return "" }
         // The analyzer reads audio files: the sound comes out of the video first.
         let audio = ImportScratch.newItem(named: "audio").appendingPathExtension("m4a")
         defer { try? FileManager.default.removeItem(at: audio) }
         guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else { return "" }
+        if let duration, duration > listeningSpan {
+            export.timeRange = CMTimeRange(start: .zero, duration: CMTime(seconds: listeningSpan, preferredTimescale: 600))
+        }
         try await export.export(to: audio, as: .m4a)
         try Task.checkCancellation()
 
@@ -207,9 +214,17 @@ enum TodoFinder {
         return lines.prefix(60).joined(separator: "\n")
     }
 
+    /// The text in an image, read from a copy at most 3,000 pixels long and turned the right way up:
+    /// a 48-megapixel photo is some 200 MB decoded, and text on its side isn't read.
     private static func imageText(at url: URL) -> String {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return "" }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 3000,
+            kCGImageSourceShouldCacheImmediately: true,
+        ]
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return "" }
         return recognizedText(in: image).joined(separator: "\n")
     }
 

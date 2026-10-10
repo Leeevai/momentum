@@ -25,8 +25,9 @@ struct ImportTodosSheet: View {
     @State private var problem: String?
     /// The search under way, stopped by the Stop button or by closing the sheet.
     @State private var finding: Task<Void, Never>?
-    /// Items still being copied out of Photos.
-    @State private var addingMedia: Task<Void, Never>?
+    /// Files being copied in, or items coming out of Photos, and what the footer says meanwhile.
+    @State private var adding: Task<Void, Never>?
+    @State private var addingNote = ""
     /// Copies of what was added, readable for as long as the sheet is open; removed with it.
     @State private var folder = ImportScratch.newItem(named: "files")
 
@@ -52,7 +53,7 @@ struct ImportTodosSheet: View {
         .onChange(of: pickedMedia) { _, items in loadPicked(items) }
         .dropDestination(for: URL.self) { urls, _ in
             // Only while collecting: a file dropped on the review, or mid-search, would go unread.
-            guard !isReviewing, finding == nil else { return false }
+            guard !isReviewing, finding == nil, adding == nil else { return false }
             add(urls)
             return !urls.isEmpty
         }
@@ -65,7 +66,7 @@ struct ImportTodosSheet: View {
         }
         .onDisappear {
             finding?.cancel()
-            addingMedia?.cancel()
+            adding?.cancel()
             try? FileManager.default.removeItem(at: folder)
         }
     }
@@ -91,11 +92,12 @@ struct ImportTodosSheet: View {
                 HStack(spacing: 10) {
                     Button { choosesFiles = true } label: { Label("Choose Files…", systemImage: "folder") }
                         .secondaryActionStyle(.accent, compact: true)
+                        .disabled(adding != nil)
                     PhotosPicker(selection: $pickedMedia, matching: .any(of: [.videos, .images])) {
                         Label("Photos", systemImage: "photo.on.rectangle")
                     }
                     .secondaryActionStyle(.accent, compact: true)
-                    .disabled(addingMedia != nil)
+                    .disabled(adding != nil)
                 }
                 if files.isEmpty {
                     Text(Self.instagramHelp)
@@ -268,7 +270,7 @@ struct ImportTodosSheet: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            if let progress = status ?? (addingMedia == nil ? nil : "Adding from Photos…") {
+            if let progress = status ?? (adding == nil ? nil : addingNote) {
                 ProgressView().controlSize(.small)
                 Text(progress)
                     .font(.callout)
@@ -313,31 +315,61 @@ struct ImportTodosSheet: View {
                 Label("Find To-dos", systemImage: "sparkles")
             }
             .primaryActionStyle(.accent)
-            .disabled(addingMedia != nil || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+            .disabled(adding != nil || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
             .keyboardShortcut(.defaultAction)
         }
     }
 
     // MARK: - Actions
 
-    /// Keeps a copy of each file, so it can still be read once the picker's access ends.
-    private func add(_ urls: [URL]) {
+    /// Keeps a copy of each file, so it can still be read once the picker's access ends. The copies
+    /// are made off the main actor: a big video from another drive would freeze the sheet.
+    @discardableResult
+    private func add(_ urls: [URL]) -> Task<Void, Never>? {
+        var chosen: [URL] = []
         for url in urls {
             // A link dragged in from a browser is the post's link, not a file to read.
-            guard url.isFileURL else {
-                if let link = TodoText.link(from: url.absoluteString) { linkText = link.absoluteString }
-                continue
+            if url.isFileURL {
+                chosen.append(url)
+            } else if let link = TodoText.link(from: url.absoluteString) {
+                linkText = link.absoluteString
             }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            if let copy = try? Self.copy(url, into: folder) { files.append(copy) }
         }
+        guard !chosen.isEmpty, adding == nil else { return nil }
+        let folder = folder
+        let task = Task {
+            for url in chosen {
+                addingNote = "Adding \(url.lastPathComponent)…"
+                let copy = await Self.copyWhileReadable(url, into: folder)
+                // The sheet closed meanwhile: what was copied after its folder went goes too.
+                guard !Task.isCancelled else {
+                    try? FileManager.default.removeItem(at: folder)
+                    return
+                }
+                if let copy {
+                    files.append(copy)
+                } else {
+                    problem = "\(url.lastPathComponent) couldn't be added."
+                }
+            }
+            adding = nil
+        }
+        adding = task
+        return task
+    }
+
+    /// A copy of `url` in `folder`, made while the access the picker gave to it lasts.
+    private nonisolated static func copyWhileReadable(_ url: URL, into folder: URL) async -> URL? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        return try? copy(url, into: folder)
     }
 
     private func loadPicked(_ items: [PhotosPickerItem]) {
         guard !items.isEmpty else { return }
         pickedMedia = []
-        addingMedia = Task {
+        addingNote = "Adding from Photos…"
+        adding = Task {
             for item in items {
                 let media = try? await item.loadTransferable(type: PickedMedia.self)
                 // The sheet closed meanwhile, and its folder with it: the copy goes too.
@@ -351,7 +383,7 @@ struct ImportTodosSheet: View {
                     problem = "One of the items couldn't be read from Photos."
                 }
             }
-            addingMedia = nil
+            adding = nil
         }
     }
 
@@ -399,9 +431,14 @@ struct ImportTodosSheet: View {
     private func addRequestedFiles() {
         let environment = ProcessInfo.processInfo.environment
         guard files.isEmpty, let names = environment["MOMENTUM_IMPORT_FILES"] else { return }
-        add(names.split(separator: ",").map { FileManager.default.temporaryDirectory.appendingPathComponent(String($0)) })
+        let copying = add(names.split(separator: ",").map { FileManager.default.temporaryDirectory.appendingPathComponent(String($0)) })
         caption = environment["MOMENTUM_IMPORT_CAPTION"] ?? caption
-        if environment["MOMENTUM_IMPORT_FIND"] != nil { find() }
+        if environment["MOMENTUM_IMPORT_FIND"] != nil {
+            Task {
+                await copying?.value
+                find()
+            }
+        }
     }
     #endif
 
