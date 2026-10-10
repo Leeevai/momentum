@@ -24,6 +24,58 @@ struct FoundTodosTests {
         #expect(empty == nil)
     }
 
+    @Test("The first web link is picked out of a share sheet's message, without what wraps it")
+    func linksInText() {
+        let shared = TodoText.link(from: "Check out this reel by @coach https://www.instagram.com/reel/C9xYz/?igsh=MWQ1 so good")
+        let lines = TodoText.link(from: "https://youtu.be/zduSFxRajkE?si=abc\nhttps://www.tiktok.com/@a/video/1")
+        let wrapped = TodoText.link(from: "<https://www.youtube.com/watch?v=abc&feature=share>")
+        let sentence = TodoText.link(from: "Saved from vm.tiktok.com/ZMabc123/.")
+        let email = TodoText.link(from: "send it to me@example.com")
+        let script = TodoText.link(from: "shortcuts://run-shortcut?name=x")
+        #expect(shared?.absoluteString == "https://www.instagram.com/reel/C9xYz/")
+        #expect(lines?.absoluteString == "https://youtu.be/zduSFxRajkE")
+        #expect(wrapped?.absoluteString == "https://www.youtube.com/watch?v=abc")
+        #expect(sentence?.absoluteString == "https://vm.tiktok.com/ZMabc123/")
+        #expect(email == nil)
+        #expect(script == nil)
+    }
+
+    @Test("Each site's tracking comes off its links; a look-alike site keeps its query")
+    func cleaningSites() throws {
+        let cases: [(String, String)] = [
+            ("https://m.youtube.com/watch?v=abc&pp=ygUE&t=42", "https://m.youtube.com/watch?v=abc&t=42"),
+            ("https://www.youtube.com/shorts/abc?feature=share", "https://www.youtube.com/shorts/abc"),
+            ("https://x.com/name/status/123?s=46&t=aBc", "https://x.com/name/status/123"),
+            ("https://www.threads.net/@name/post/C1?xmt=AQ", "https://www.threads.net/@name/post/C1"),
+            ("https://instagr.am/p/C1/?igsh=x", "https://instagr.am/p/C1/"),
+            ("https://notinstagram.com/p/1?page=2", "https://notinstagram.com/p/1?page=2"),
+            ("https://example.com/recipe?feature=pasta&utm_source=ig", "https://example.com/recipe?feature=pasta"),
+        ]
+        for (pasted, expected) in cases {
+            let url = try #require(URL(string: pasted))
+            let cleaned = TodoText.cleanLink(url).absoluteString
+            #expect(cleaned == expected, "\(pasted)")
+        }
+    }
+
+    @Test("A goal's link is called by its site")
+    func linkTitles() throws {
+        let cases: [(String, String)] = [
+            ("https://www.instagram.com/reel/a/", "Instagram"),
+            ("https://instagr.am/p/a/", "Instagram"),
+            ("https://vm.tiktok.com/ZMa/", "TikTok"),
+            ("https://youtu.be/a", "YouTube"),
+            ("https://music.youtube.com/watch?v=a", "YouTube"),
+            ("https://www.awww.com/a", "awww.com"),
+            ("https://example.org", "example.org"),
+        ]
+        for (link, expected) in cases {
+            let url = try #require(URL(string: link))
+            let title = TodoText.linkTitle(for: url)
+            #expect(title == expected, "\(link)")
+        }
+    }
+
     @Test("Durations are read from clocks and from words")
     func durations() {
         let cases: [(String, TimeInterval?)] = [

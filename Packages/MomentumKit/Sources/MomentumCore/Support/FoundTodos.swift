@@ -51,40 +51,66 @@ extension AppData {
 /// The text handling behind found to-dos: cleaning links, reading durations, and naming a to-do
 /// when the on-device model can't.
 public enum TodoText {
+    /// Sites whose post links need no query at all: all it says is who shared the post, and where.
+    private static let queryFreeSites = ["instagram.com", "instagr.am", "tiktok.com", "x.com", "twitter.com", "threads.net"]
+    private static let youTubeSites = ["youtube.com", "youtu.be"]
     /// Query items that only track who shared a link and where it was opened.
     private static let trackingItems: Set<String> = ["igsh", "igshid", "vrfl", "fbclid", "gclid", "si", "mibextid"]
+    /// YouTube's own: what was tapped to share the video, and the search it was found by.
+    private static let youTubeTrackingItems: Set<String> = ["feature", "pp"]
 
-    /// `url` without its tracking query items. Instagram and TikTok post links need no query at all.
+    /// `url` without its tracking query items. Instagram, TikTok, X and Threads post links need no
+    /// query at all.
     public static func cleanLink(_ url: URL) -> URL {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         let host = components.host?.lowercased() ?? ""
-        if host.hasSuffix("instagram.com") || host.hasSuffix("tiktok.com") {
+        if queryFreeSites.contains(where: { isOn(host, $0) }) {
             components.queryItems = nil
         } else if let items = components.queryItems {
-            let kept = items.filter { !trackingItems.contains($0.name.lowercased()) && !$0.name.lowercased().hasPrefix("utm_") }
+            let isYouTube = youTubeSites.contains { isOn(host, $0) }
+            let kept = items.filter { item in
+                let name = item.name.lowercased()
+                return !trackingItems.contains(name) && !name.hasPrefix("utm_")
+                    && !(isYouTube && youTubeTrackingItems.contains(name))
+            }
             components.queryItems = kept.isEmpty ? nil : kept
         }
         return components.url ?? url
     }
 
-    /// A link typed or pasted by hand: trimmed, given https when it has no scheme, and cleaned.
+    /// The post's link in text typed or pasted by hand, which is often a share sheet's whole message
+    /// ("Watch this reel by @name https://…"): the first web link in it, given https when it was
+    /// written without a scheme, and cleaned. Nil when there's no web link.
     public static func link(from text: String) -> URL? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !trimmed.contains(" ") else { return nil }
-        let withScheme = trimmed.contains("://") ? trimmed : "https://" + trimmed
-        guard let url = URL(string: withScheme), url.host != nil else { return nil }
-        return cleanLink(url)
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return nil }
+        let whole = NSRange(text.startIndex..., in: text)
+        for match in detector.matches(in: text, range: whole) {
+            // Only web pages: not an email address (mailto:), nor a link that would open another app.
+            guard let scheme = match.url?.scheme?.lowercased(), scheme == "https" || scheme == "http",
+                  let range = Range(match.range, in: text) else { continue }
+            // Written without a scheme, a link is detected as http; posts are on https.
+            let found = String(text[range])
+            let hasScheme = found.lowercased().hasPrefix("http://") || found.lowercased().hasPrefix("https://")
+            guard let url = URL(string: hasScheme ? found : "https://" + found), url.host != nil else { continue }
+            return cleanLink(url)
+        }
+        return nil
     }
 
     /// What to call a link on a goal: the site it's on.
     public static func linkTitle(for url: URL) -> String {
-        let host = (url.host ?? "").lowercased().replacingOccurrences(of: "www.", with: "")
-        switch host {
-        case let host where host.hasSuffix("instagram.com"): return "Instagram"
-        case let host where host.hasSuffix("tiktok.com"): return "TikTok"
-        case "youtube.com", "m.youtube.com", "youtu.be": return "YouTube"
-        default: return host.isEmpty ? "Link" : host
-        }
+        let host = (url.host ?? "").lowercased()
+        if isOn(host, "instagram.com") || isOn(host, "instagr.am") { return "Instagram" }
+        if isOn(host, "tiktok.com") { return "TikTok" }
+        if youTubeSites.contains(where: { isOn(host, $0) }) { return "YouTube" }
+        let site = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+        return site.isEmpty ? "Link" : site
+    }
+
+    /// Whether `host` is `site` or one of its subdomains: "www.instagram.com" is on "instagram.com",
+    /// "notinstagram.com" isn't.
+    private static func isOn(_ host: String, _ site: String) -> Bool {
+        host == site || host.hasSuffix("." + site)
     }
 
     /// A duration written as text: "2:13:35", "14:32", "1h 20m", "1 hr 20 min", "45 min",

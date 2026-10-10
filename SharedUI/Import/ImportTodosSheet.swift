@@ -113,9 +113,11 @@ struct ImportTodosSheet: View {
                 TextField("instagram.com/reel/…", text: $linkText)
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
-                Text("Kept on each to-do, to open the video again.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    #if os(iOS)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    #endif
+                linkHint
             }
             .glassCard(padding: 16)
 
@@ -145,6 +147,28 @@ struct ImportTodosSheet: View {
         }
         // What's being read stays as it is until the search ends or is stopped.
         .disabled(finding != nil)
+    }
+
+    /// What becomes of the link: the one each to-do keeps, picked out of what was pasted and
+    /// cleaned, or a warning when there's no web link in it, rather than dropping it quietly.
+    @ViewBuilder
+    private var linkHint: some View {
+        let typed = linkText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if typed.isEmpty {
+            Text("Kept on each to-do, to open the video again.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else if let link = TodoText.link(from: typed) {
+            Text("Each to-do keeps \(link.absoluteString)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .truncationMode(.middle)
+        } else {
+            Label("There's no web link here, so the to-dos won't keep one.", systemImage: "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        }
     }
 
     private static let instagramHelp = """
@@ -299,6 +323,11 @@ struct ImportTodosSheet: View {
     /// Keeps a copy of each file, so it can still be read once the picker's access ends.
     private func add(_ urls: [URL]) {
         for url in urls {
+            // A link dragged in from a browser is the post's link, not a file to read.
+            guard url.isFileURL else {
+                if let link = TodoText.link(from: url.absoluteString) { linkText = link.absoluteString }
+                continue
+            }
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             if let copy = try? Self.copy(url, into: folder) { files.append(copy) }
