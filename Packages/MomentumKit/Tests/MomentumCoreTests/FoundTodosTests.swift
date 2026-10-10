@@ -109,6 +109,26 @@ struct FoundTodosTests {
         #expect(nothing == "Watch the video")
     }
 
+    @Test("Greetings, stacked openers, the phone's interface and made-up file names don't name a to-do")
+    func fallbackTitlesSkipNoise() {
+        let greeting = TodoText.fallbackTitle(transcript: "Hey guys! Welcome back to my channel. Today we're making a one-pan lemon pasta.",
+                                              screenText: "", fileName: "a.mov")
+        let stacked = TodoText.fallbackTitle(transcript: "So, in this video, we build a RAG system.", screenText: "", fileName: "a.mov")
+        let japanese = TodoText.fallbackTitle(transcript: "こんにちは。今日はレモンパスタを作ります。", screenText: "", fileName: "a.mov")
+        let screen = TodoText.fallbackTitle(transcript: "", screenText: "9:41\n@coach.anna\nFollow\nOriginal audio\nMorning stretch routine",
+                                            fileName: "a.mov")
+        let camera = TodoText.fallbackTitle(transcript: "", screenText: "", fileName: "IMG_1234.MOV")
+        let recording = TodoText.fallbackTitle(transcript: "", screenText: "", fileName: "RPReplay_Final1696.MP4")
+        let random = TodoText.fallbackTitle(transcript: "", screenText: "", fileName: "8F3A1C2E-0F4B-4D0E-9B1F-2C3D4E5F6A7B.mov")
+        #expect(greeting == "We're making a one-pan lemon pasta")
+        #expect(stacked == "We build a RAG system")
+        #expect(japanese == "今日はレモンパスタを作ります")
+        #expect(screen == "Morning stretch routine")
+        #expect(camera == "Watch the video")
+        #expect(recording == "Watch the video")
+        #expect(random == "Watch the video")
+    }
+
     @Test("Titles read as to-dos: shouted captions in sentence case, without quotes or a full stop")
     func tidyingTitles() {
         let shouted = TodoText.tidyTitle("10 MIN AB WORKOUT")
