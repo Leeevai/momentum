@@ -26,12 +26,21 @@ struct MilestonesSection: View {
 
     private var content: some View {
         let done = goal.milestones.filter(\.isDone).count
+        // Time left across what's still to do, for to-dos made from videos.
+        let remaining = goal.milestones.filter { !$0.isDone }.compactMap(\.duration).reduce(0, +)
         return VStack(alignment: .leading, spacing: 12) {
             SectionTitle("Milestones", systemImage: "flag.checkered", trailing: AnyView(
-                Text("\(done)/\(goal.milestones.count)")
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                HStack(spacing: 10) {
+                    if remaining > 0 {
+                        Label("\(Formatting.duration(remaining)) left", systemImage: "clock")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("\(done)/\(goal.milestones.count)")
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .monospacedDigit()
             ))
             if !goal.milestones.isEmpty {
                 ProgressBar(progress: Double(done) / Double(goal.milestones.count), color: goal.color)
@@ -65,6 +74,7 @@ struct MilestonesSection: View {
 
 private struct MilestoneRow: View {
     @Environment(GoalStore.self) private var store
+    @Environment(\.openURL) private var openURL
     let goal: Goal
     let milestone: Milestone
     @State private var isEditing = false
@@ -99,6 +109,21 @@ private struct MilestoneRow: View {
                     .onTapGesture(count: 2) { beginEditing() }
             }
             Spacer()
+            if let duration = milestone.duration {
+                Text(Formatting.clock(duration))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            if let link = milestone.link {
+                Button { openURL(link) } label: {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(goal.tint)
+                }
+                .buttonStyle(.plain)
+                .help("Open \(link.host ?? "the link")")
+                .accessibilityLabel("Open the video")
+            }
             if let completed = milestone.completedAt {
                 Text(completed, format: .dateTime.month(.abbreviated).day())
                     .font(.caption)
@@ -112,6 +137,9 @@ private struct MilestoneRow: View {
         .padding(.vertical, 6)
         .contextMenu {
             Button("Rename") { beginEditing() }
+            if let link = milestone.link {
+                Button("Open Link") { openURL(link) }
+            }
             Menu("Due Date") {
                 Button("Today") { setDue(.now) }
                 Button("Tomorrow") { setDue(Calendar.current.date(byAdding: .day, value: 1, to: .now)) }
