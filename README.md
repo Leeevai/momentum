@@ -254,7 +254,7 @@ Shipping to the App Store is described in [docs/APP_STORE.md](docs/APP_STORE.md)
 | `Config/` | Signing (`Shared.xcconfig`), entitlements and Info.plists. |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how data flows between the apps, the
-widgets and other devices, and [CONTRIBUTING.md](CONTRIBUTING.md) to get involved.
+widgets and other devices, and [CONTRIBUTING.md](.github/CONTRIBUTING.md) to get involved.
 
 ## Roadmap
 
