@@ -180,6 +180,16 @@ struct FoundTodosTests {
         #expect(long == "Morning mobility routine for runners who")
     }
 
+    @Test("A to-do's length is said in words, not as a time of day")
+    func spokenDurations() {
+        let english = Locale(identifier: "en_US")
+        let short = Formatting.spokenDuration(872, locale: english)
+        let long = Formatting.spokenDuration(3729, locale: english)
+        #expect(short.contains("14 minutes") && short.contains("32 seconds"))
+        #expect(long.contains("1 hour") && long.contains("2 minutes") && long.contains("9 seconds"))
+        #expect(!short.contains(":"))
+    }
+
     @Test("Titles read as to-dos: shouted captions in sentence case, without quotes or a full stop")
     func tidyingTitles() {
         let shouted = TodoText.tidyTitle("10 MIN AB WORKOUT")
