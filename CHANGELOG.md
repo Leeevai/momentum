@@ -16,6 +16,8 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- Goals made from imported videos were always purple, and new blank goals always blue. A new goal
+  now takes a color none of your other goals has, with purple and yellow last.
 - A Pomodoro block finished on two devices in different time zones, such as an iPhone on a trip
   and the Mac at home, was logged twice. A session is now split into the days of the time zone it
   started in, so every device logs it the same way.
