@@ -457,33 +457,42 @@ private struct QuickStepField: View {
     }
 }
 
+/// The palette's goal colors, wrapping onto a second line at phone width. Each is named for
+/// VoiceOver as it looks in the palette.
 struct ColorChooser: View {
     @Binding var selection: GoalColor
+    @Environment(\.palette) private var palette
 
     var body: some View {
-        HStack(spacing: 6) {
+        FlowLayout(spacing: 4) {
             ForEach(GoalColor.allCases) { option in
+                let isSelected = selection == option
+                let name = palette.light.swatch(option).name
                 Button {
                     withAnimation(.snappy) { selection = option }
                 } label: {
                     Circle()
-                        .fill(option.linear)
-                        .frame(width: 18, height: 18)
-                        .overlay(Circle().strokeBorder(Color.primary.opacity(selection == option ? 0.9 : 0), lineWidth: 2).padding(-3))
-                        .scaleEffect(selection == option ? 1.1 : 1)
+                        .fill(palette.linear(option))
+                        .frame(width: 20, height: 20)
+                        .overlay(Circle().strokeBorder(Color.primary.opacity(isSelected ? 0.9 : 0), lineWidth: 2).padding(-3))
+                        .scaleEffect(isSelected ? 1.1 : 1)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(option.rawValue.capitalized)
-                .accessibilityLabel(option.rawValue.capitalized)
+                .help(name)
+                .accessibilityLabel(name)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 2)
     }
 }
 
 struct WeekdayChooser: View {
     @Binding var selection: Set<Int>
     var tint: Color = .accent
+    @Environment(\.self) private var environment
 
     var body: some View {
         let calendar = Calendar.current
@@ -502,7 +511,7 @@ struct WeekdayChooser: View {
                             .font(.caption.weight(.semibold))
                             .frame(width: 44, height: 28)
                             .background(Capsule().fill(isOn ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(Color.primary.opacity(0.07))))
-                            .foregroundStyle(isOn ? Color.white : Color.primary)
+                            .foregroundStyle(isOn ? tint.foreground(in: environment) : Color.primary)
                     }
                     .buttonStyle(.plain)
                 }

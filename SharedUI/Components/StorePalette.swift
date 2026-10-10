@@ -5,7 +5,7 @@ private struct StorePalette: ViewModifier {
     @Environment(GoalStore.self) private var store
 
     func body(content: Content) -> some View {
-        content.palette(store.data.preferences.palette)
+        content.palette(store.palette)
     }
 }
 

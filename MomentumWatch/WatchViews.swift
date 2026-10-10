@@ -9,6 +9,7 @@ struct WatchRoot: View {
 
     var body: some View {
         let snapshot = store.snapshot
+        let palette = snapshot.palette ?? .standard
         NavigationStack(path: $path) {
             List {
                 if let session = snapshot.session, let item = snapshot.item(session.goalID) {
@@ -16,7 +17,7 @@ struct WatchRoot: View {
                         NavigationLink(value: item.id) {
                             SessionRow(session: session, item: item)
                         }
-                        .listItemTint(item.color.color.opacity(0.35))
+                        .listItemTint(palette.color(item.color).opacity(0.35))
                     }
                 } else if let rest = snapshot.rest, let item = snapshot.item(rest.goalID) {
                     Section {
@@ -48,6 +49,9 @@ struct WatchRoot: View {
                 GoalPage(goalID: id)
             }
         }
+        // Goals are drawn in the iPhone's palette, as it looks in dark mode.
+        .environment(\.watchPalette, palette)
+        .tint(palette.accentColor)
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { store.refresh() }
         }
@@ -69,6 +73,7 @@ struct WatchRoot: View {
 
 private struct GoalRow: View {
     let item: WatchSnapshot.Item
+    @Environment(\.watchPalette) private var palette
 
     var body: some View {
         // The name gets the row's full width (two lines if it needs them); the streak rides on
@@ -83,13 +88,13 @@ private struct GoalRow: View {
                     .minimumScaleFactor(0.85)
                 HStack(spacing: 6) {
                     Text(item.isComplete ? "Done" : item.progressText)
-                        .foregroundStyle(item.isComplete ? AnyShapeStyle(.green) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(item.isComplete ? AnyShapeStyle(palette.success) : AnyShapeStyle(.secondary))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                     if item.streak > 0 {
                         Label("\(item.streak)", systemImage: "flame.fill")
                             .labelStyle(.titleAndIcon)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(palette.streak)
                             .fixedSize()
                     }
                 }
@@ -104,12 +109,13 @@ private struct GoalRow: View {
 private struct SessionRow: View {
     let session: FocusSession
     let item: WatchSnapshot.Item
+    @Environment(\.watchPalette) private var palette
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Label(item.name, systemImage: session.isRunning ? "waveform" : "pause.fill")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(item.color.color)
+                .foregroundStyle(palette.color(item.color))
                 .lineLimit(1)
             SessionClock(session: session)
                 .font(.system(size: 30, weight: .semibold, design: .rounded))
@@ -119,6 +125,7 @@ private struct SessionRow: View {
 
 private struct RestRow: View {
     @Environment(WatchStore.self) private var store
+    @Environment(\.watchPalette) private var palette
     let rest: RestPeriod
     let item: WatchSnapshot.Item
 
@@ -126,7 +133,7 @@ private struct RestRow: View {
         VStack(alignment: .leading, spacing: 6) {
             Label(rest.isLong ? "Long break" : "Break", systemImage: rest.isLong ? "cup.and.saucer.fill" : "leaf.fill")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.mint)
+                .foregroundStyle(palette.rest)
             // One reading of the clock for the check and the range: the end can pass between two.
             let now = Date.now
             if rest.isOver(at: now) {
@@ -138,7 +145,7 @@ private struct RestRow: View {
                     .monospacedDigit()
             }
             Button("Start block \(rest.nextBlock)") { store.perform(.startNextBlock(restStart: rest.start)) }
-                .tint(item.color.color)
+                .tint(palette.color(item.color))
         }
     }
 }
@@ -166,6 +173,7 @@ struct SessionClock: View {
 /// One goal: its ring, and the action that moves it.
 struct GoalPage: View {
     @Environment(WatchStore.self) private var store
+    @Environment(\.watchPalette) private var palette
     let goalID: UUID
 
     var body: some View {
@@ -177,7 +185,7 @@ struct GoalPage: View {
                         VStack(spacing: 0) {
                             Image(systemName: item.symbol)
                                 .font(.title3)
-                                .foregroundStyle(item.color.color)
+                                .foregroundStyle(palette.color(item.color))
                             if let session = store.snapshot.session, session.goalID == item.id {
                                 SessionClock(session: session)
                                     .font(.system(.title3, design: .rounded, weight: .semibold))
@@ -193,11 +201,11 @@ struct GoalPage: View {
                     HStack(spacing: 10) {
                         if item.streak > 0 {
                             Label("\(item.streak) \(item.streak == 1 ? item.streakUnit : item.streakUnit + "s")", systemImage: "flame.fill")
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(palette.streak)
                         }
                         if let day = item.challengeDay, let length = item.challengeLength {
                             Label("Day \(day)/\(length)", systemImage: "flag.fill")
-                                .foregroundStyle(item.color.color)
+                                .foregroundStyle(palette.color(item.color))
                         }
                     }
                     .font(.caption2.weight(.semibold))
@@ -205,7 +213,7 @@ struct GoalPage: View {
                 .padding(.horizontal, 4)
             }
             .navigationTitle(item.name)
-            .containerBackground(item.color.backdrop, for: .navigation)
+            .containerBackground(palette.backdrop(item.color), for: .navigation)
             #if DEBUG
             .task { await DebugActions.runRequested(on: item, store: store) }
             #endif
@@ -234,7 +242,7 @@ struct GoalPage: View {
                     } label: {
                         Image(systemName: "stop.fill")
                     }
-                    .tint(item.color.color)
+                    .tint(palette.color(item.color))
                     .accessibilityLabel("Stop")
                 }
             } else {
@@ -243,7 +251,7 @@ struct GoalPage: View {
                 } label: {
                     Label("Start", systemImage: "play.fill")
                 }
-                .tint(item.color.color)
+                .tint(palette.color(item.color))
                 .primaryHandGesture()
             }
         } else if let title = item.actionTitle {
@@ -253,7 +261,7 @@ struct GoalPage: View {
                 Text(title)
                     .font(.headline)
             }
-            .tint(item.color.color)
+            .tint(palette.color(item.color))
             .primaryHandGesture()
         }
     }
