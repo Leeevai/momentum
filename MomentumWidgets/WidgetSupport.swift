@@ -33,8 +33,8 @@ struct MomentumEntry: TimelineEntry {
 
     var data: AppData { engine.data }
 
-    /// The palette chosen in the app.
-    var palette: ThemePalette { data.preferences.palette }
+    /// The palette chosen in the app, built-in or custom.
+    var palette: Palette { ActivePalette.current }
 
     /// `goals` narrowed by the Focus filter, keeping a running timer's goal.
     func filtered(_ goals: [Goal]) -> [Goal] {
@@ -52,7 +52,7 @@ enum WidgetTimeline {
     static func data(preview: Bool) -> AppData {
         let stored = SharedStore.load()
         let data = preview && stored.goals.isEmpty ? .demo() : stored
-        ActivePalette.current = data.preferences.palette
+        ActivePalette.current = data.preferences.activePalette
         return data
     }
 
@@ -63,7 +63,7 @@ enum WidgetTimeline {
     /// Entries at the moments rings need to move; see `WidgetSchedule`.
     static func timeline(goalID: UUID? = nil, now: Date = .now) -> Timeline<MomentumEntry> {
         let engine = ProgressEngine(data: SharedStore.load())
-        ActivePalette.current = engine.data.preferences.palette
+        ActivePalette.current = engine.data.preferences.activePalette
         let entries = WidgetSchedule.entryDates(for: engine.data, now: now).map {
             MomentumEntry(date: $0, engine: engine, goalID: goalID)
         }
@@ -89,11 +89,13 @@ struct WidgetEmptyView: View {
 }
 
 /// A running session's clock: a live countdown for planned sessions, a stopwatch otherwise.
+/// Drawn as of `now`, the entry's date: WidgetKit draws entries before they're shown, so an entry
+/// after the planned end, drawn before it, would otherwise keep a countdown stuck at 0:00.
 struct WidgetSessionClock: View {
     let session: FocusSession
+    let now: Date
 
     var body: some View {
-        let now = Date.now
         if let reference = session.counterReferenceDate {
             if let end = session.plannedEnd, end > now {
                 Text(timerInterval: now...end, countsDown: true)
@@ -101,7 +103,7 @@ struct WidgetSessionClock: View {
                 Text(reference, style: .timer)
             }
         } else {
-            Text(Formatting.clock(session.remaining(at: .now).map { max(0, $0) } ?? session.elapsed(at: .now)))
+            Text(Formatting.clock(session.remaining(at: now).map { max(0, $0) } ?? session.elapsed(at: now)))
         }
     }
 }
@@ -110,6 +112,8 @@ struct WidgetSessionClock: View {
 struct WidgetActionButton: View {
     let goal: Goal
     let engine: ProgressEngine
+    /// The entry's date, for the checkmark: the midnight entry is drawn the day before.
+    let now: Date
     var size: CGFloat = 26
 
     var body: some View {
@@ -135,12 +139,12 @@ struct WidgetActionButton: View {
         switch goal.kind {
         case .milestones: "checkmark"
         case .books: "book.pages"
-        default: engine.isComplete(goal, now: .now) ? "checkmark" : "plus"
+        default: engine.isComplete(goal, now: now) ? "checkmark" : "plus"
         }
     }
 
     private func icon(_ name: String) -> some View {
-        WidgetFilledLabel(fill: goal.color.linear, tint: goal.tint, shape: Circle()) {
+        WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Circle()) {
             Image(systemName: name)
                 .font(.system(size: size * 0.4, weight: .bold))
                 .frame(width: size, height: size)
@@ -183,7 +187,7 @@ struct WidgetWideButton: View {
     }
 
     private func label(_ title: String, _ systemImage: String) -> some View {
-        WidgetFilledLabel(fill: goal.color.linear, tint: goal.tint, shape: Capsule()) {
+        WidgetFilledLabel(fill: goal.color.fill, tint: goal.tint, shape: Capsule()) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
@@ -193,20 +197,22 @@ struct WidgetWideButton: View {
     }
 }
 
-/// A label on a filled shape, glasscn's filled button: white on the fill in full color. When the
-/// system draws widgets in one tint (the faded desktop, tinted Home Screens), the fill becomes a
-/// translucent wash with the label over it, rather than one shape the label disappears into.
+/// A label on a filled shape, glasscn's filled button: in full color, white or black on the fill,
+/// whichever contrasts more with `tint`, the fill's color. When the system draws widgets in one
+/// tint (the faded desktop, tinted Home Screens), the fill becomes a translucent wash with the
+/// label over it, rather than one shape the label disappears into.
 struct WidgetFilledLabel<S: InsettableShape, Fill: ShapeStyle, Content: View>: View {
     let fill: Fill
     let tint: Color
     let shape: S
     @ViewBuilder var content: Content
     @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.self) private var environment
 
     var body: some View {
         if renderingMode == .fullColor {
             content
-                .foregroundStyle(.white)
+                .foregroundStyle(tint.foreground(in: environment))
                 .background(shape.fill(fill).overlay(shape.strokeBorder(.white.opacity(0.3), lineWidth: 0.5)))
         } else {
             content
@@ -229,7 +235,7 @@ struct WidgetGoalRing: View {
                 GoalGlyph(goal: goal, size: lineWidth * 2.2)
                 Group {
                     if let session = engine.data.session, session.goalID == goal.id {
-                        WidgetSessionClock(session: session)
+                        WidgetSessionClock(session: session, now: now)
                     } else {
                         Text(goal.formatShort(engine.currentAmount(for: goal, now: now)))
                     }

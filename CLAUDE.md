@@ -6,11 +6,18 @@ Read `docs/ARCHITECTURE.md` before changing how data flows between the app and t
 
 ## Workflow
 
-- **Every change is a pull request into `develop`**, from a `<type>/<description>` branch; `main`
-  only receives release PRs from `develop`, and both are protected. The `ship` skill walks through
-  it; `.github/CONTRIBUTING.md` has the full conventions.
-- **Conventional Commits** for every commit and every PR title (`commit` skill): small commits that
-  each compile, staged by explicit path.
+- **Issue first.** Every change starts as a GitHub issue with one type label, its area labels and
+  the upcoming milestone (`ticket` skill); work across several areas gets one sub-issue per area.
+  Labels are defined in `.github/labels.yml`.
+- **Every change is a pull request into `develop`** that closes its issue, from a
+  `<type>/<NNNN>-<description>` branch (`feat/0007-next-video`); `main` only receives release PRs
+  from `develop`, and both are protected. The `ship` skill walks through it;
+  `.github/CONTRIBUTING.md` has the full conventions.
+- **PR titles carry the ticket**: `[NNNN]-[area] description`, such as
+  `[0007]-[ui] show the next video beside the ring`, with `Closes #7` first in the body. The
+  required **Ticket** check enforces both and copies the issue's labels onto the PR.
+- **Conventional Commits** for every commit (`commit` skill): small commits that each compile,
+  staged by explicit path.
 - **Merge commits only.** Squash and rebase merging are off, so every commit keeps its author and
   counts. The owner merges; don't merge PRs yourself.
 - Never credit an assistant: no co-author trailers or generated-with lines in commits, PRs or
@@ -86,7 +93,8 @@ local build or install in the conversation, prefix that command with `MOMENTUM_A
 
 Project skills in `.claude/skills/`:
 
-- `ship`: a change from branch to a green pull request into `develop`.
+- `ticket`: find or open the issue before any work, then name the branch and the PR from it.
+- `ship`: a change from its issue to a green pull request into `develop`.
 - `commit`: the Conventional Commits format, and splitting work into commits that each compile.
 - `fix-ci`: read and fix a failing check without building locally.
 - `release`: the version bump, changelog, release PR to `main`, tag and GitHub release.

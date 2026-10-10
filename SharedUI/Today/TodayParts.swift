@@ -46,10 +46,10 @@ struct TodayHeader: View {
         if !engine.activeGoals.isEmpty {
             let summary = engine.todaySummary(now: now)
             let focus = engine.data.goals.filter { $0.kind == .time }.reduce(0.0) { $0 + engine.amount(for: $1, on: now, now: now) }
-            HeaderChip(systemImage: "checkmark.circle.fill", text: "\(summary.done) of \(summary.total) done", tint: .green)
-            HeaderChip(systemImage: "flame.fill", text: "Best streak \(engine.longestCurrentStreak(now: now))", tint: .orange)
+            HeaderChip(systemImage: "checkmark.circle.fill", text: "\(summary.done) of \(summary.total) done", tint: .success)
+            HeaderChip(systemImage: "flame.fill", text: "Best streak \(engine.longestCurrentStreak(now: now))", tint: .streak)
             if focus > 0 {
-                HeaderChip(systemImage: "timer", text: "\(Formatting.duration(focus)) focused", tint: .indigo)
+                HeaderChip(systemImage: "timer", text: "\(Formatting.duration(focus)) focused", tint: .focus)
             }
         }
     }
@@ -266,14 +266,14 @@ struct FocusFilterBanner: View {
         HStack(spacing: 12) {
             Image(systemName: "moon.circle.fill")
                 .font(.title2)
-                .foregroundStyle(.indigo)
+                .foregroundStyle(.swatch(.indigo))
             Text("Focus filter: showing \(filter.categories.sorted().formatted(.list(type: .and))) goals.")
                 .font(.callout)
             Spacer()
             Button("Show all", action: onShowAll)
-                .secondaryActionStyle(.indigo, compact: true)
+                .secondaryActionStyle(.swatch(.indigo), compact: true)
         }
-        .glassCard(tint: .indigo, padding: 12)
+        .glassCard(tint: .swatch(.indigo), padding: 12)
     }
 }
 

@@ -50,7 +50,7 @@ watches your history and tells you what's worth doing next.
 
 Every goal can be **daily** (on the weekdays you choose), **weekly**, **monthly**, **yearly**, or an
 **overall** target with a deadline, and Momentum projects whether you're on pace. Each gets an
-SF Symbol icon from a searchable catalog and a color.
+SF Symbol icon from a searchable catalog and a color from your palette.
 
 ### A coach, not just a tracker
 Today opens with a few timely tips, built from your own history:
@@ -148,10 +148,14 @@ read too. It all happens **on your device**: speech and text recognition, and Ap
 model (macOS 26 and iOS 26 with Apple Intelligence) to name each to-do. No account, no cost,
 nothing uploaded.
 
-### Twelve palettes
-Pick a palette in Settings (Dusk, Ocean, Rose, Sage, Amber, Graphite, Lavender, Mint, Cherry,
-Lagoon, Sand or Midnight) and it sets the accent, the **aurora drifting behind every screen**
-and the widgets, on every device you sync. Goal rings **lap past 100%**, so a big day shows.
+### Calm palettes, or your own
+Pick a palette in Settings (Slate, Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso, Dusk or
+Rose) and it sets the accent, the **aurora drifting behind every screen**, **every goal's color**
+and the widgets, on every device you sync. Each goal keeps its color, drawn as the palette's own
+muted version of it. Or **make your own**: an accent, a background tint, goal colors spread
+around a base hue (spectrum, analogous, complementary, triadic or monochrome), and how light and
+crisp it is, previewed live in light and dark. Text on every color stays legible. Goal rings
+**lap past 100%**, so a big day shows.
 
 ### And the rest
 - **Shortcuts and Siri**: start focusing, log progress, ask how you're doing.
@@ -262,8 +266,9 @@ Shipping to the App Store is described in [docs/APP_STORE.md](docs/APP_STORE.md)
 | `Config/` | Signing (`Shared.xcconfig`), entitlements and Info.plists. |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how data flows between the apps, the
-widgets and other devices. Every change goes through a pull request into `develop`;
-[CONTRIBUTING.md](.github/CONTRIBUTING.md) covers branches, the commit format and releases.
+widgets and other devices. Every change starts as an issue and reaches `develop` through a pull
+request that closes it; [CONTRIBUTING.md](.github/CONTRIBUTING.md) covers issues and labels,
+branches, the commit format, pull requests and releases.
 
 ## Roadmap
 

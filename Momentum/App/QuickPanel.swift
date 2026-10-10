@@ -239,7 +239,7 @@ struct HotKeyRecorder: View {
                     .font(.system(.body, design: .rounded, weight: .semibold))
                     .frame(minWidth: 120)
             }
-            .secondaryActionStyle(isRecording ? .orange : .accent, compact: true)
+            .secondaryActionStyle(isRecording ? .attention : .accent, compact: true)
             if combo != nil && !isRecording {
                 Button {
                     combo = nil
