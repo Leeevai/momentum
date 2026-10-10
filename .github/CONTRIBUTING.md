@@ -346,38 +346,58 @@ swift test --package-path Packages/MomentumKit
 
 ## Releases
 
-1. On a branch from `develop`, such as `chore/release-2.3.0`, set `MARKETING_VERSION` to the new
-   version and raise `CURRENT_PROJECT_VERSION` by one, in every target of the Xcode project. Move
-   the *Unreleased* entries in `CHANGELOG.md` under a `## [2.3.0] - YYYY-MM-DD` heading and update
-   the links at the bottom. Merge it into `develop` with a pull request.
-2. Open a pull request from `develop` into `main` with the version's notes from the changelog as
-   its description, and merge it once CI is green.
+A release starts as an issue too: `Release 2.3.0`, with `type: release`, `area: release` and the
+`2.3.0` milestone, and a sub-issue for the preparation, `Prepare the 2.3.0 release`, labeled the
+same way.
+
+1. On a branch from `develop`, such as `chore/0020-release-2.3.0`, set `MARKETING_VERSION` to the
+   new version and raise `CURRENT_PROJECT_VERSION` by one, in every target of the Xcode project.
+   Move the *Unreleased* entries in `CHANGELOG.md` under a `## [2.3.0] - YYYY-MM-DD` heading and
+   update the links at the bottom. Merge it into `develop` with a pull request that closes the
+   sub-issue, such as `[0020]-[release] prepare 2.3.0`.
+2. Open a pull request from `develop` into `main` titled with the release issue's ticket, such as
+   `[0019]-[release] release 2.3.0`, with `Closes #19` and the version's notes from the changelog
+   as its description, and merge it once CI is green.
 3. Tag the merge commit on `main` and push the tag:
    ```bash
    git fetch origin
    git tag -a v2.3.0 origin/main -m "Momentum 2.3.0"
    git push origin v2.3.0
    ```
-4. Publish the release with the version's notes; GitHub attaches the source code:
+4. Publish the release with the version's notes, followed by the notes GitHub generates from the
+   pull requests, grouped by type label (`.github/release.yml`). GitHub attaches the source code:
    ```bash
-   gh release create v2.3.0 --verify-tag --title "Momentum 2.3.0" --notes-file notes.md
+   gh release create v2.3.0 --verify-tag --title "Momentum 2.3.0" --notes-file notes.md --generate-notes
+   ```
+5. Close the release issue and the milestone. GitHub only closes issues for pull requests into the
+   default branch, so the merge into `main` leaves the issue open. Move any issue still open in the
+   milestone to the next one first, and create that milestone if it doesn't exist yet:
+   ```bash
+   gh issue close 19 --comment "Released in v2.3.0."
+   gh api -X PATCH repos/Leeevai/momentum/milestones/<number> -f state=closed
+   gh api repos/Leeevai/momentum/milestones -f title=2.4.0
    ```
 
 ## Hotfixes
 
-A fix that can't wait for the next release goes to `main` directly:
+A fix that can't wait for the next release goes to `main` directly. Its issue goes in a milestone
+for the patch version, such as `2.3.1`.
 
-1. Branch from `main`: `git switch -c fix/<description> origin/main`.
+1. Branch from `main`: `git switch -c fix/<NNNN>-<description> origin/main`.
 2. Make the fix, with a test. Bump the patch version as a release does (`2.3.0` to `2.3.1`) and
    give it a section of its own in `CHANGELOG.md`.
-3. Open a pull request into `main` and merge it once CI is green.
-4. Tag and publish `v2.3.1` from `main`, as for a release.
-5. Bring the fix back with a pull request from `main` into `develop`. If the two conflict, open it
-   from a branch of `main` instead (`git switch -c chore/back-merge-v2.3.1 origin/main`), and merge
-   `origin/develop` into that branch to resolve the conflicts there.
+3. Open a pull request into `main` with the issue's ticket, such as
+   `[0031]-[sync] keep journal entries when merging` and `Closes #31`, and merge it once CI is
+   green. The issue stays open for now, since `main` isn't the default branch.
+4. Tag and publish `v2.3.1` from `main`, as for a release, and close the `2.3.1` milestone.
+5. Bring the fix back with a pull request from `main` into `develop` with the same ticket, such as
+   `[0031]-[sync] bring the 2.3.1 fix back to develop` and `Closes #31`. Merging it closes the
+   issue. If the two conflict, open it from a branch of `main` instead
+   (`git switch -c chore/0031-back-merge-v2.3.1 origin/main`), and merge `origin/develop` into that
+   branch to resolve the conflicts there.
 
 ## Reporting bugs
 
-Open an issue with the bug template: what you did, what you expected, what happened, and your
-macOS version. If your data looks wrong, a JSON export (Settings → Data) helps a lot; remove
-anything private first.
+Open an issue with the **Bug** form: what you did, what you expected, what happened, your device
+and its system version. If your data looks wrong, a JSON export (Settings → Data) helps a lot;
+remove anything private first.
