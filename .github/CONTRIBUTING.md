@@ -117,12 +117,12 @@ git revert --no-commit 1a2b3c4
 git commit -m "revert: feat(widgets): add a lock screen widget" -m "This reverts commit 1a2b3c4."
 ```
 
-Merge commits are exempt: GitHub writes them from the pull request's title.
+Merge commits are exempt: GitHub writes their message.
 
 ### Checking commits
 
-The **Conventional commits** check runs on every pull request and lists the title and each commit
-subject that breaks the format. The same script runs locally:
+The **Conventional commits** check runs on every pull request and lists each commit subject that
+breaks the format. The same script runs locally:
 
 ```bash
 ./scripts/install-hooks.sh                                # check each message as you commit
@@ -135,8 +135,6 @@ To fix a subject, amend the last commit (`git commit --amend`) or reword older o
 ## Pull requests
 
 - Open it against `develop`, the default branch. Only releases and hotfixes go to `main`.
-- Title it in the commit format, such as `feat(widgets): add a lock screen streak widget`. The
-  title becomes the subject of the merge commit, and the description its body.
 - Fill in the template.
 - If people will notice the change, add a line to `CHANGELOG.md` under *Unreleased*.
 - CI must be green before it's merged.
@@ -153,7 +151,7 @@ To fix a subject, amend the last commit (`git commit --amend`) or reword older o
 | Build Mac app and widgets | Builds the **Momentum** scheme |
 | Build iPhone and watch apps | Builds **MomentumMobile**, which embeds the watch app |
 | Merge gate | Passes when every job above passed or was skipped |
-| Conventional commits | Checks the title and every commit subject |
+| Conventional commits | Checks every commit subject, merges excepted |
 
 **Merge gate** and **Conventional commits** are the checks `develop` and `main` require. CI runs on
 pull requests into either branch, on pushes to them, and from the Actions tab.
@@ -193,10 +191,9 @@ swift test --package-path Packages/MomentumKit
 1. On a branch from `develop`, such as `chore/release-2.3.0`, set `MARKETING_VERSION` to the new
    version and raise `CURRENT_PROJECT_VERSION` by one, in every target of the Xcode project. Move
    the *Unreleased* entries in `CHANGELOG.md` under a `## [2.3.0] - YYYY-MM-DD` heading and update
-   the links at the bottom. Merge it into `develop` with a pull request titled
-   `chore(release): prepare v2.3.0`.
-2. Open a pull request from `develop` into `main` titled `chore(release): v2.3.0`, with the
-   version's notes from the changelog as its description, and merge it once CI is green.
+   the links at the bottom. Merge it into `develop` with a pull request.
+2. Open a pull request from `develop` into `main` with the version's notes from the changelog as
+   its description, and merge it once CI is green.
 3. Tag the merge commit on `main` and push the tag:
    ```bash
    git fetch origin
@@ -215,13 +212,11 @@ A fix that can't wait for the next release goes to `main` directly:
 1. Branch from `main`: `git switch -c fix/<description> origin/main`.
 2. Make the fix, with a test. Bump the patch version as a release does (`2.3.0` to `2.3.1`) and
    give it a section of its own in `CHANGELOG.md`.
-3. Open a pull request into `main` titled in the commit format, such as
-   `fix(sync): keep journal entries when merging`, and merge it once CI is green.
+3. Open a pull request into `main` and merge it once CI is green.
 4. Tag and publish `v2.3.1` from `main`, as for a release.
-5. Bring the fix back with a pull request from `main` into `develop` titled
-   `chore(release): bring v2.3.1 back to develop`. If the two conflict, open it from a branch of
-   `main` instead (`git switch -c chore/back-merge-v2.3.1 origin/main`), and merge `origin/develop`
-   into that branch to resolve the conflicts there.
+5. Bring the fix back with a pull request from `main` into `develop`. If the two conflict, open it
+   from a branch of `main` instead (`git switch -c chore/back-merge-v2.3.1 origin/main`), and merge
+   `origin/develop` into that branch to resolve the conflicts there.
 
 ## Reporting bugs
 
