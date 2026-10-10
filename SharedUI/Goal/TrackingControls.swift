@@ -154,6 +154,7 @@ private struct ManualLogRow: View {
 
 private struct MilestoneControls: View {
     @Environment(GoalStore.self) private var store
+    @Environment(\.openURL) private var openURL
     let goal: Goal
 
     var body: some View {
@@ -163,14 +164,24 @@ private struct MilestoneControls: View {
                 .font(.title3.weight(.semibold))
             if let next = goal.milestones.first(where: { !$0.isDone }) {
                 HStack(spacing: 10) {
-                    Image(systemName: "flag.fill")
+                    Image(systemName: next.link == nil ? "flag.fill" : "play.rectangle.fill")
                         .foregroundStyle(goal.tint)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Next up").font(.caption).foregroundStyle(.secondary)
+                        Text(next.duration.map { "Next up · \(Formatting.clock($0))" } ?? "Next up")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
                         Text(next.title).font(.body.weight(.medium))
                     }
                 }
-                GoalPrimaryButton(goal: goal)
+                HStack(spacing: 10) {
+                    GoalPrimaryButton(goal: goal)
+                    if let link = next.link {
+                        // A to-do made from a video: watch it, then tick it off.
+                        Button { openURL(link) } label: { Label("Watch", systemImage: "play.fill") }
+                            .secondaryActionStyle(goal.tint)
+                    }
+                }
             } else if !goal.milestones.isEmpty {
                 Label("Every milestone is done. Time to celebrate, or archive the goal.", systemImage: "party.popper")
                     .foregroundStyle(.secondary)
