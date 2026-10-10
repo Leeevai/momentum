@@ -24,6 +24,22 @@ struct FoundTodosTests {
         #expect(empty == nil)
     }
 
+    @Test("The first web link is picked out of a share sheet's message, without what wraps it")
+    func linksInText() {
+        let shared = TodoText.link(from: "Check out this reel by @coach https://www.instagram.com/reel/C9xYz/?igsh=MWQ1 so good")
+        let lines = TodoText.link(from: "https://youtu.be/zduSFxRajkE?si=abc\nhttps://www.tiktok.com/@a/video/1")
+        let wrapped = TodoText.link(from: "<https://www.youtube.com/watch?v=abc&feature=share>")
+        let sentence = TodoText.link(from: "Saved from vm.tiktok.com/ZMabc123/.")
+        let email = TodoText.link(from: "send it to me@example.com")
+        let script = TodoText.link(from: "shortcuts://run-shortcut?name=x")
+        #expect(shared?.absoluteString == "https://www.instagram.com/reel/C9xYz/")
+        #expect(lines?.absoluteString == "https://youtu.be/zduSFxRajkE")
+        #expect(wrapped?.absoluteString == "https://www.youtube.com/watch?v=abc")
+        #expect(sentence?.absoluteString == "https://vm.tiktok.com/ZMabc123/")
+        #expect(email == nil)
+        #expect(script == nil)
+    }
+
     @Test("Each site's tracking comes off its links; a look-alike site keeps its query")
     func cleaningSites() throws {
         let cases: [(String, String)] = [
