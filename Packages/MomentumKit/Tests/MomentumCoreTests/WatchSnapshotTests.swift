@@ -154,4 +154,64 @@ struct WatchSnapshotTests {
             #expect(try WatchCommand(encoded: command.encoded()) == command)
         }
     }
+
+    @Test("A snapshot from a newer iPhone app keeps what this version can read")
+    func newerSnapshot() throws {
+        let work = UUID()
+        let breathe = UUID()
+        // A color and a kind this version doesn't have, fields it has never heard of, a goal
+        // without an id and something that isn't a goal at all.
+        let json = #"""
+        {
+            "items": [
+                {"id": "\#(work.uuidString)", "name": "Deep work", "symbol": "timer", "color": "ultraviolet", "kind": "time",
+                 "progress": 0.5, "progressText": "30m / 1h", "streak": 3, "streakUnit": "day", "isComplete": false,
+                 "targetText": "1h", "doneText": "Done for today"},
+                {"id": "\#(breathe.uuidString)", "name": "Breathe", "symbol": "wind", "color": "green", "kind": "breathing",
+                 "progress": 1, "progressText": "3 / 3 sessions", "streak": 0, "streakUnit": "day", "isComplete": true,
+                 "actionTitle": "+1", "targetText": "3 sessions", "doneText": "Done for today", "aura": {"glow": 2}},
+                {"name": "No id"},
+                "not a goal"
+            ],
+            "done": 1, "total": 2, "generatedAt": 781000000, "day": "2025-10-01", "weather": "sunny"
+        }
+        """#
+        let snapshot = try WatchSnapshot(encoded: Data(json.utf8))
+        let ids = snapshot.items.map(\.id)
+        let colors = snapshot.items.map(\.color)
+        let kinds = snapshot.items.map(\.kind)
+        #expect(ids == [work, breathe])
+        #expect(colors == [.blue, .green])
+        // Shown as a count, with the action the iPhone named for it.
+        #expect(kinds == [.time, .count])
+        let action = snapshot.item(breathe)?.actionTitle
+        #expect(action == "+1")
+        let counts = [snapshot.done, snapshot.total]
+        #expect(counts == [1, 2])
+        let day = snapshot.day
+        #expect(day == DayID(year: 2025, month: 10, day: 1))
+    }
+
+    @Test("A timer or break this version can't read leaves the rest of the snapshot")
+    func unreadableTimer() throws {
+        let work = UUID()
+        let json = #"""
+        {
+            "items": [{"id": "\#(work.uuidString)", "name": "Deep work", "kind": "time"}],
+            "session": {"plannedDuration": 1500},
+            "rest": {"goalID": "\#(work.uuidString)", "start": 781000000},
+            "done": 0, "total": 1, "generatedAt": 781000000, "day": "2025-10-01"
+        }
+        """#
+        let snapshot = try WatchSnapshot(encoded: Data(json.utf8))
+        let ids = snapshot.items.map(\.id)
+        #expect(ids == [work])
+        #expect(snapshot.session == nil)
+        #expect(snapshot.rest == nil)
+        // What a goal leaves out gets a default.
+        let item = try #require(snapshot.item(work))
+        #expect(item.symbol == "timer")
+        #expect(item.progress == 0)
+        #expect(!item.isComplete)
+    }
 }

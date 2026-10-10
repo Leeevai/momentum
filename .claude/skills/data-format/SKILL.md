@@ -32,7 +32,9 @@ data quietly, so:
 
 5. **Watch and widgets.** The watch gets a `WatchSnapshot` (`Watch/WatchSnapshot.swift`) from the
    iPhone, not the file; widgets read the shared file. If they need the field, add it there with
-   the same default rules, and expect an older watch app to receive a newer snapshot.
+   the same default rules, and expect an older watch app to receive a newer snapshot. The snapshot
+   and its items decode by hand, so an unknown value never fails the whole snapshot: a new field
+   goes in their `CodingKeys` and `init(from:)` too, or it never reaches the watch.
 
 6. **Tests**, in `Packages/MomentumKit/Tests/MomentumCoreTests`: decode a JSON literal written before
    the change (field absent), and round-trip a value with the field set. Bind values to `let`s
