@@ -26,10 +26,13 @@ All notable changes to Momentum are recorded here. The format follows
 - Goal colors come from the palette: each goal keeps its color, drawn as the palette's own muted
   version of it, and moods, energy, streak flames, awards, charts and the rest of the app's
   accents follow the palette too. The goal editor shows the palette's colors.
+- Widgets, the Live Activity and the Apple Watch app draw in your palette too, custom ones
+  included, so a goal has the same color everywhere.
 
 ### Fixed
 - Labels on filled buttons could be hard to read in dark mode: they now switch to black wherever
   white wouldn't stand out, and symbols on goal icons and medals stay white on a deeper shade.
+  Widget and Live Activity buttons do the same.
 
 ## [2.2.0] - 2026-10-09
 
