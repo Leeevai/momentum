@@ -1,6 +1,6 @@
 ---
 name: fix-ci
-description: Diagnose and fix a failing check on a Momentum pull request from its logs, without building locally. Use when gh pr checks shows a failure or a stuck check, when Merge gate or Conventional commits is red, or when the type checker times out in CI.
+description: Diagnose and fix a failing check on a Momentum pull request from its logs, without building locally. Use when gh pr checks shows a failure or a stuck check, when Merge gate, Conventional commits or Ticket is red, or when the type checker times out in CI.
 ---
 
 # Fix a failing check
@@ -38,15 +38,27 @@ gh run view <run-id> --log-failed | tail -120
 
 ## Conventional commits
 
-The job prints every header it refused.
+The job prints every commit header it refused. A pushed commit subject only changes by rewriting
+the branch: ask the owner first, then reword and `git push --force-with-lease`. Never on `develop`
+or `main`.
 
-- The PR title: `gh pr edit <number> --title '<type>(<scope>): <subject>'`; editing reruns the check.
-- A pushed commit subject only changes by rewriting the branch: ask the owner first, then reword
-  and `git push --force-with-lease`. Never on `develop` or `main`.
+## Ticket
+
+The job says what's wrong with the title or the `Closes` line and prints a corrected title. Fix
+the pull request, not the code: editing it reruns the check.
+
+```bash
+./scripts/check-ticket.sh --pr <number>
+gh pr edit <number> --title '[NNNN]-[area] <description>'
+gh pr view <number> --json body --jq .body > body.md   # fix the Closes #N line
+gh pr edit <number> --body-file body.md
+```
+
+No issue behind the ticket, a closed one, or the number of a pull request: `ticket` skill.
 
 ## After the fix
 
 Commit it (`fix(<scope>): …`, `test(<scope>): …` or `ci: …`), push, and run
-`gh pr checks <number> --watch` until **Merge gate** and **Conventional commits** are both green.
-A job that failed for reasons outside the code (runner outage, cancelled run) gets a rerun:
+`gh pr checks <number> --watch` until **Merge gate**, **Conventional commits** and **Ticket** are
+green. A job that failed for reasons outside the code (runner outage, cancelled run) gets a rerun:
 `gh run rerun <run-id> --failed`.

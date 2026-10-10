@@ -34,7 +34,7 @@ struct MobileSettings: View {
                 } header: {
                     Text("Palette")
                 } footer: {
-                    Text("The accent color, the aurora behind every screen and the widgets follow the palette. The palettes are glasscn's.")
+                    Text("The accent, the aurora behind every screen, every goal's color and the widgets follow the palette. Tap New to make your own, or touch and hold a palette to customize it.")
                 }
                 Section("Focus") {
                     Picker("Default session length", selection: binding(\.defaultFocusMinutes, preferences)) {
@@ -257,6 +257,8 @@ private struct MobileDataSection: View {
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         do {
             pendingImport = try FileStore.decode(Data(contentsOf: url))
+        } catch let error as FileStore.FormatError {
+            message = error.localizedDescription
         } catch {
             message = "That file isn't a Momentum backup: \(error.localizedDescription)"
         }

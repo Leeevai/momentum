@@ -41,29 +41,6 @@ struct FocusControlProvider: ControlValueProvider {
     }
 }
 
-@available(macOS 26.0, iOS 18.0, *)
-struct SetFocusRunningIntent: SetValueIntent {
-    static let title: LocalizedStringResource = "Focus"
-    static let isDiscoverable = false
-
-    @Parameter(title: "Focusing")
-    var value: Bool
-
-    func perform() async throws -> some IntentResult {
-        LiveActivitySync.catchUp()
-        let data = SharedStore.update { data in
-            if value {
-                guard data.session == nil, let goal = data.suggestedFocusGoal else { return }
-                let minutes = goal.focusMinutes ?? data.preferences.defaultFocusMinutes
-                data.startFocus(on: goal.id, planned: Double(minutes) * 60)
-            } else {
-                data.stopFocus()
-            }
-        }
-        await LiveActivitySync.after(data)
-        ControlCenter.shared.reloadAllControls()
-        return .result()
-    }
-}
+// The toggle's intent, `SetFocusRunningIntent`, is in Shared/Intents: on iPhone it runs in the app.
 
 #endif

@@ -2,36 +2,63 @@ import MomentumCore
 import SwiftUI
 
 extension GoalColor {
-    var color: Color {
-        switch self {
-        case .blue: .blue
-        case .indigo: .indigo
-        case .purple: .purple
-        case .pink: .pink
-        case .red: .red
-        case .orange: .orange
-        case .yellow: .yellow
-        case .green: .green
-        case .mint: .mint
-        case .teal: .teal
-        case .cyan: .cyan
-        case .brown: .brown
-        case .gray: .gray
-        }
-    }
+    /// The active palette's swatch for this color.
+    var color: Color { ActivePalette.colors.swatch(self) }
 
     /// A lighter companion hue for gradients.
-    var highlight: Color {
-        color.blended(with: .white, by: 0.35)
-    }
+    var highlight: Color { ActivePalette.colors.highlight(self) }
 
     /// The ring's sweep: from the light companion into the full color.
-    var gradient: AngularGradient {
-        AngularGradient(colors: [highlight, color, color], center: .center, startAngle: .degrees(0), endAngle: .degrees(360))
+    var gradient: AngularGradient { ActivePalette.current.ringGradient(self) }
+
+    /// The color as a soft diagonal gradient, for symbols, bars and swatches drawn in it.
+    var linear: LinearGradient { ActivePalette.current.linear(self) }
+
+    /// A deep shade of the color that white symbols read on, in light and dark.
+    var tile: LinearGradient { ActivePalette.current.tile(self) }
+
+    /// The deep shade on its own, flat.
+    var deep: Color { ActivePalette.colors.deep(self) }
+
+    /// A fill for a label: from the swatch away from the label's color, so text in white or black
+    /// (`Color.foreground(in:)` of the swatch) holds 4.5:1 across it.
+    var fill: LinearGradient { ActivePalette.current.fill(self) }
+}
+
+extension Palette {
+    /// A goal color's swatch.
+    func color(_ goalColor: GoalColor) -> Color {
+        colors.swatch(goalColor)
     }
 
-    var linear: LinearGradient {
-        LinearGradient(colors: [highlight, color], startPoint: .topLeading, endPoint: .bottomTrailing)
+    /// A ring's sweep in a goal color: from its highlight into the full color.
+    func ringGradient(_ goalColor: GoalColor) -> AngularGradient {
+        let shades = colors
+        let swatch = shades.swatch(goalColor)
+        return AngularGradient(colors: [shades.highlight(goalColor), swatch, swatch], center: .center,
+                               startAngle: .degrees(0), endAngle: .degrees(360))
+    }
+
+    /// A goal color as a soft diagonal gradient, for symbols, bars and swatches drawn in it.
+    func linear(_ goalColor: GoalColor) -> LinearGradient {
+        let shades = colors
+        return LinearGradient(colors: [shades.highlight(goalColor), shades.swatch(goalColor)],
+                              startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    /// A goal color as a label's fill: from the swatch away from its label's color.
+    func fill(_ goalColor: GoalColor) -> LinearGradient {
+        let shades = colors
+        return LinearGradient(colors: [shades.swatch(goalColor), shades.fillEnd(goalColor)],
+                              startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    /// A goal color deep enough for white symbols on it: icon tiles, medals, kept days. In
+    /// light mode it's the swatch itself; in dark mode, where swatches are light, a deeper shade.
+    func tile(_ goalColor: GoalColor) -> LinearGradient {
+        let shades = colors
+        return LinearGradient(colors: [shades.deepHighlight(goalColor), shades.deep(goalColor)],
+                              startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 }
 
@@ -40,7 +67,10 @@ extension Goal {
 }
 
 extension Mood {
-    var tint: Color {
+    var tint: Color { goalColor.color }
+
+    /// The palette color a mood is drawn in: cool for a rough day, warm for a great one.
+    var goalColor: GoalColor {
         switch self {
         case .rough: .purple
         case .low: .blue
@@ -52,7 +82,10 @@ extension Mood {
 }
 
 extension Energy {
-    var tint: Color {
+    var tint: Color { goalColor.color }
+
+    /// The palette color an energy level is drawn in, from red when drained to mint when charged.
+    var goalColor: GoalColor {
         switch self {
         case .drained: .red
         case .low: .orange
@@ -63,6 +96,24 @@ extension Energy {
     }
 }
 
+/// The app's own accents, from the active palette, so nothing on screen falls back to a system
+/// color the palette doesn't have. Errors and warnings keep the system's red and orange.
+extension ShapeStyle where Self == Color {
+    /// A goal color's swatch, for an accent that isn't a goal's.
+    static func swatch(_ goalColor: GoalColor) -> Color { goalColor.color }
+    /// Streaks and their flames.
+    static var streak: Color { GoalColor.orange.color }
+    /// Done, on track, a gain.
+    static var success: Color { GoalColor.green.color }
+    /// Behind, overdue, urgent: a nudge rather than an error.
+    static var attention: Color { GoalColor.orange.color }
+    /// Focus time and the timer.
+    static var focus: Color { GoalColor.indigo.color }
+    /// Awards, bests and ratings.
+    static var award: Color { GoalColor.yellow.color }
+    /// Breaks between focus blocks.
+    static var rest: Color { GoalColor.mint.color }
+}
 
 extension Color {
     /// Blends two colors: perceptually on macOS 15 and iOS 18 and later, in sRGB before that.
