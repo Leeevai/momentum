@@ -30,8 +30,6 @@ All notable changes to Momentum are recorded here. The format follows
 ### Fixed
 - Labels on filled buttons could be hard to read in dark mode: they now switch to black wherever
   white wouldn't stand out, and symbols on goal icons and medals stay white on a deeper shade.
-
-### Fixed
 - After adding 5 or 15 minutes to a session on the iPhone, the watch face counted down to the old
   end and then counted up as if the time were over; it now follows the new end.
 - Watch complications could miss an update from the iPhone when the Watch app wasn't open: the
