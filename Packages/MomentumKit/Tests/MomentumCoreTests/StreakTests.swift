@@ -78,6 +78,17 @@ struct StreakTests {
         let rate = engine(data).completionRate(for: goal, now: referenceNow)
         #expect(rate == 0.75)
     }
+
+    @Test("A weekly streak counts back from now, however old the goal's first entry")
+    func oldEntryKeepsWeeklyStreak() {
+        let goal = checkInGoal(createdDaysAgo: 60, period: .weekly, target: 1)
+        var data = AppData(goals: [goal])
+        // An entry from twelve years back: a mistyped year, say.
+        data.log(1, for: goal.id, at: date(2014, 3, 4))
+        for weeksAgo in 1...3 { data.log(1, for: goal.id, at: dayOffset(-7 * weeksAgo)) }
+        let streak = engine(data).streak(for: goal, now: referenceNow)
+        #expect(streak.current == 3)
+    }
 }
 
 @Suite("Period sums")
