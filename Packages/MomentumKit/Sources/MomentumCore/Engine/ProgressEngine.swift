@@ -318,6 +318,8 @@ public struct ProgressEngine: Sendable {
     }
 
     private static let maxStreakDays = 3_650
+    /// How far back a weekly, monthly or yearly streak looks: over eleven years of weeks.
+    private static let maxStreakPeriods = 600
 
     // Each streak is a pass over history (cached for the engine's lifetime: past periods can't
     // change while the data doesn't) plus the current period, checked live. The current period
@@ -380,11 +382,14 @@ public struct ProgressEngine: Sendable {
         guard let component = period.calendarComponent else { return Streak(current: 0, best: 0, unit: period.noun) }
         let current = interval(of: period, containing: now)
         let history = streakCache.value(historyKey("p", goal, dayKey(current.start))) {
-            var start = interval(of: period, containing: firstDay(of: goal)).start
+            // The last `maxStreakPeriods` periods, counted back from now as the daily history is:
+            // counted on from the first period, one entry from long ago stopped short of today.
+            let earliest = calendar.date(byAdding: component, value: -Self.maxStreakPeriods, to: current.start) ?? current.start
+            var start = interval(of: period, containing: max(firstDay(of: goal), earliest)).start
             var run = 0
             var best = 0
             var guardCount = 0
-            while start < current.start && guardCount < 600 {
+            while start < current.start && guardCount <= Self.maxStreakPeriods {
                 guardCount += 1
                 let periodInterval = interval(of: period, containing: start)
                 if keepsStreak(goal, periodContaining: start, now: now) {
