@@ -21,6 +21,13 @@ All notable changes to Momentum are recorded here. The format follows
   used one, Momentum switches to the closest new palette.
 
 ### Fixed
+- A Pomodoro block finished on two devices in different time zones, such as an iPhone on a trip
+  and the Mac at home, was logged twice. A session is now split into the days of the time zone it
+  started in, so every device logs it the same way.
+- While the data file couldn't be read, it was still kept as each day's copy, so after two weeks
+  the good copies a restore needs had been deleted. A file that can't be read isn't copied now.
+- After a change of time zone, such as on a trip, Momentum went on starting and ending days at the
+  old zone's midnight until something was logged. It now follows the new time zone right away.
 - After adding 5 or 15 minutes to a session on the iPhone, the watch face counted down to the old
   end and then counted up as if the time were over; it now follows the new end.
 - Watch complications could miss an update from the iPhone when the Watch app wasn't open: the
