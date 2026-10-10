@@ -6,8 +6,9 @@ description: Cut a Momentum release - pick the version, open the release issue, 
 # Release
 
 A release is source plus notes on GitHub. The App Store is the owner's: never sign in, enroll,
-accept agreements, upload or submit (`docs/APP_STORE.md` lists their steps). Don't merge release
-PRs; the owner does. `.github/CONTRIBUTING.md` ("Releases" and "Hotfixes") has the full flow.
+accept agreements, upload or submit (`docs/APP_STORE.md` lists their steps). PRs into `main` are
+the main session's to merge; the preparation PR into `develop` merges like any other (`ship`
+skill). `.github/CONTRIBUTING.md` ("Releases" and "Hotfixes") has the full flow.
 
 1. **Pick the version with the owner**, by Semantic Versioning over what `[Unreleased]` holds:
    anything breaking → major, any `feat` → minor, only fixes → patch. Its milestone, named after
@@ -43,7 +44,7 @@ PRs; the owner does. `.github/CONTRIBUTING.md` ("Releases" and "Hotfixes") has t
      `[NNNN]-[release] prepare X.Y.Z` with `Closes #NNNN`.
 
 4. **Open the release PR** once that has merged, with the parent issue's ticket. CI must be green;
-   the owner merges it with a merge commit.
+   the main session merges it with a merge commit, never squash, rebase or `--admin`.
 
    ```bash
    { echo "Closes #<parent>"; echo; cat <the X.Y.Z changelog section>; } > release-body.md
@@ -79,8 +80,8 @@ For a fix that can't wait for the next release:
 1. **The issue first** (`ticket` skill), usually `type: bug`, in a milestone for the patch version.
 2. Branch `fix/<NNNN>-<description>` from `origin/main`, and PR it into `main` with the patch bump,
    its changelog entry, and the issue's ticket: `[NNNN]-[<area>] <description>`, `Closes #NNNN`.
-   The issue stays open, since `main` isn't the default branch.
+   The main session merges it. The issue stays open, since `main` isn't the default branch.
 3. Tag and publish as above, and close the patch milestone.
 4. Open a PR from `main` into `develop` with the same ticket, such as
    `[NNNN]-[<area>] bring the X.Y.Z fix back to develop` and `Closes #NNNN`, so `develop` has the
-   fix too. Merging it closes the issue.
+   fix too. Whoever opens it merges it once it's green (`ship` skill), which closes the issue.
