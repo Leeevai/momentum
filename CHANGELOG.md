@@ -16,6 +16,8 @@ All notable changes to Momentum are recorded here. The format follows
   be watched straight from its page.
 
 ### Fixed
+- The weekly recap counted focus and active days from the week before when Momentum was last
+  used before the week's last day. It now sums up only the week it's for.
 - One entry dated more than eleven years back, such as a mistyped year, made a weekly streak read
   0. Weekly, monthly and yearly streaks now count back from today.
 - Taking time off with − while a timer runs moves the goal's ring at once. When nothing else was
