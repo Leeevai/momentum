@@ -145,7 +145,7 @@ enum TodoFinder {
     private static func speech(in asset: AVURLAsset) async throws -> String {
         guard try await !asset.loadTracks(withMediaType: .audio).isEmpty else { return "" }
         // The analyzer reads audio files: the sound comes out of the video first.
-        let audio = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("m4a")
+        let audio = ImportScratch.newItem(named: "audio").appendingPathExtension("m4a")
         defer { try? FileManager.default.removeItem(at: audio) }
         guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else { return "" }
         try await export.export(to: audio, as: .m4a)

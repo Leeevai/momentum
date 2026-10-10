@@ -23,8 +23,10 @@ struct ImportTodosSheet: View {
     @State private var choosesFiles = false
     @State private var pickedMedia: [PhotosPickerItem] = []
     @State private var problem: String?
+    /// Items still being copied out of Photos.
+    @State private var addingMedia: Task<Void, Never>?
     /// Copies of what was added, readable for as long as the sheet is open; removed with it.
-    @State private var folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-import-\(UUID().uuidString)")
+    @State private var folder = ImportScratch.newItem(named: "files")
 
     private static let fileTypes: [UTType] = [.movie, .video, .audio, .image]
 
@@ -52,11 +54,15 @@ struct ImportTodosSheet: View {
         }
         .onAppear {
             if let initialLink, linkText.isEmpty { linkText = initialLink.absoluteString }
+            Task.detached(priority: .background) { ImportScratch.removeLeftovers() }
             #if DEBUG
             addRequestedFiles()
             #endif
         }
-        .onDisappear { try? FileManager.default.removeItem(at: folder) }
+        .onDisappear {
+            addingMedia?.cancel()
+            try? FileManager.default.removeItem(at: folder)
+        }
     }
 
     private var header: some View {
@@ -84,6 +90,7 @@ struct ImportTodosSheet: View {
                         Label("Photos", systemImage: "photo.on.rectangle")
                     }
                     .secondaryActionStyle(.accent, compact: true)
+                    .disabled(addingMedia != nil)
                 }
                 if files.isEmpty {
                     Text(Self.instagramHelp)
@@ -230,9 +237,9 @@ struct ImportTodosSheet: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            if let status {
+            if let progress = status ?? (addingMedia == nil ? nil : "Adding from Photos…") {
                 ProgressView().controlSize(.small)
-                Text(status)
+                Text(progress)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -259,7 +266,8 @@ struct ImportTodosSheet: View {
                     Label("Find To-dos", systemImage: "sparkles")
                 }
                 .primaryActionStyle(.accent)
-                .disabled(status != nil || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+                .disabled(status != nil || addingMedia != nil
+                          || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
                 .keyboardShortcut(.defaultAction)
             }
         }
@@ -280,16 +288,21 @@ struct ImportTodosSheet: View {
     private func loadPicked(_ items: [PhotosPickerItem]) {
         guard !items.isEmpty else { return }
         pickedMedia = []
-        Task {
+        addingMedia = Task {
             for item in items {
-                if let media = try? await item.loadTransferable(type: PickedMedia.self),
-                   let copy = try? Self.copy(media.url, into: folder) {
+                let media = try? await item.loadTransferable(type: PickedMedia.self)
+                // The sheet closed meanwhile, and its folder with it: the copy goes too.
+                guard !Task.isCancelled else {
+                    media?.discard()
+                    return
+                }
+                if let media, let copy = try? media.move(into: folder) {
                     files.append(copy)
-                    try? FileManager.default.removeItem(at: media.url)
                 } else {
                     problem = "One of the items couldn't be read from Photos."
                 }
             }
+            addingMedia = nil
         }
     }
 
@@ -340,7 +353,21 @@ struct ImportTodosSheet: View {
         store.select(target)
     }
 
-    static func copy(_ url: URL, into folder: URL) throws -> URL {
+    nonisolated static func copy(_ url: URL, into folder: URL) throws -> URL {
+        let destination = try freeName(for: url, in: folder)
+        try FileManager.default.copyItem(at: url, to: destination)
+        return destination
+    }
+
+    nonisolated static func move(_ url: URL, into folder: URL) throws -> URL {
+        let destination = try freeName(for: url, in: folder)
+        try FileManager.default.moveItem(at: url, to: destination)
+        return destination
+    }
+
+    /// Where `url`'s file goes in `folder`, which is made if need be: under its own name, or
+    /// "clip 2.mov" when there's a "clip.mov" already.
+    private nonisolated static func freeName(for url: URL, in folder: URL) throws -> URL {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         var destination = folder.appendingPathComponent(url.lastPathComponent)
         var counter = 2
@@ -349,12 +376,12 @@ struct ImportTodosSheet: View {
             destination = folder.appendingPathComponent("\(stem) \(counter)").appendingPathExtension(url.pathExtension)
             counter += 1
         }
-        try FileManager.default.copyItem(at: url, to: destination)
         return destination
     }
 }
 
-/// A video or image from the Photos picker, copied out of the picker's temporary file.
+/// A video or image from the Photos picker, copied out of the picker's temporary file into a folder
+/// of its own, which `move(into:)` and `discard()` remove.
 private struct PickedMedia: Transferable {
     let url: URL
 
@@ -364,7 +391,22 @@ private struct PickedMedia: Transferable {
     }
 
     init(copying file: URL) throws {
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("momentum-picked-\(UUID().uuidString)")
-        url = try ImportTodosSheet.copy(file, into: folder)
+        let folder = ImportScratch.newItem(named: "picked")
+        do {
+            url = try ImportTodosSheet.copy(file, into: folder)
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
+    }
+
+    /// Moves the copy into `folder`, where the sheet keeps what was added.
+    func move(into folder: URL) throws -> URL {
+        defer { discard() }
+        return try ImportTodosSheet.move(url, into: folder)
+    }
+
+    func discard() {
+        try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
     }
 }
