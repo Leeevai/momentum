@@ -8,7 +8,7 @@ Read `docs/ARCHITECTURE.md` before changing how data flows between the app and t
 
 - **Every change is a pull request into `develop`**, from a `<type>/<description>` branch; `main`
   only receives release PRs from `develop`, and both are protected. The `ship` skill walks through
-  it; `CONTRIBUTING.md` has the full conventions.
+  it; `.github/CONTRIBUTING.md` has the full conventions.
 - **Conventional Commits** for every commit and every PR title (`commit` skill): small commits that
   each compile, staged by explicit path.
 - **Merge commits only.** Squash and rebase merging are off, so every commit keeps its author and
@@ -23,7 +23,7 @@ parallel job. **Don't run builds, tests or simulators on the owner's Mac**: they
 and read the checks instead (`fix-ci` skill). What CI runs:
 
 ```bash
-swift test --package-path Packages/MomentumKit
+swift test --parallel --package-path Packages/MomentumKit
 xcodebuild -project Momentum.xcodeproj -scheme Momentum -destination 'platform=macOS' build
 xcodebuild -project Momentum.xcodeproj -scheme MomentumMobile -destination 'generic/platform=iOS Simulator' build
 ```

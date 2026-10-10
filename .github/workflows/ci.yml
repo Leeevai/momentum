@@ -1,19 +1,68 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
   workflow_dispatch:
 
+# A new push to a pull request cancels the run it replaces. Every other run has a group of its own,
+# so each merge into develop or main is checked to the end.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - name: Check out the history
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # Sparse, so the clone leaves out file contents: the diff needs only commits and trees,
+          # and the history of the screenshots is large.
+          sparse-checkout: .github
+      - name: Decide whether the macOS jobs run
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            echo "Not a pull request, so every job runs."
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA")
+          echo "Changed files:"
+          printf '%s\n' "$changed" | sed 's/^/  /'
+          # Documentation: top-level and .github Markdown, docs/, LICENSE and the issue templates.
+          docs='^([^/]+\.md|\.github/[^/]+\.md|\.github/ISSUE_TEMPLATE/.+|docs/.+|LICENSE)$'
+          code=$(printf '%s\n' "$changed" | grep -Ev "$docs" || true)
+          if [ -n "$code" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Only documentation changed, so the macOS jobs are skipped."
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   core-tests:
     name: Core tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Select the newest Xcode
@@ -21,11 +70,14 @@ jobs:
       - name: Toolchain
         run: xcodebuild -version && swift --version
       - name: Test MomentumCore
-        run: swift test --package-path Packages/MomentumKit
+        run: swift test --parallel --package-path Packages/MomentumKit
 
-  build:
+  build-mac:
     name: Build Mac app and widgets
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Select the newest Xcode
@@ -40,9 +92,14 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY=""
 
+  # The iPhone app embeds the watch app, which embeds its complications, so this builds all three
+  # and the iPhone widgets.
   build-ios:
-    name: Build iPhone app
+    name: Build iPhone and watch apps
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Select the newest Xcode
@@ -56,3 +113,24 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY=""
+
+  # The one check branch protection requires from this workflow, so jobs can come and go without
+  # touching the protection rules. Skipped jobs pass; failed or cancelled ones don't.
+  merge-gate:
+    name: Merge gate
+    needs: [changes, core-tests, build-mac, build-ios]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check every job's result
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          FAILED: >-
+            ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<< "$NEEDS"
+          if [ "$FAILED" = true ]; then
+            echo "::error title=Merge gate::A job failed or was cancelled."
+            exit 1
+          fi

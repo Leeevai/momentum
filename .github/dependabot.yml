@@ -2,7 +2,10 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule:
       interval: monthly
+    # Commits and titles read "ci(deps): bump …", which the Conventional commits check passes.
     commit-message:
-      prefix: CI
+      prefix: ci
+      include: scope
