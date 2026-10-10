@@ -68,9 +68,11 @@ public enum ReminderPlanner {
             }
             guard goal.kind != .books, goal.effectivePeriod != .total,
                   !engine.keepsStreak(goal, periodContaining: now, now: now) else { return nil }
-            // Only the period's last day puts the streak at risk tonight.
+            // Only the period's last day puts the streak at risk tonight, and only if no break
+            // excuses the period.
             let period = engine.interval(of: goal.effectivePeriod, containing: now)
-            guard period.end <= tomorrow, engine.isRequired(goal, on: today) || goal.effectivePeriod != .daily else { return nil }
+            guard period.end <= tomorrow, !engine.isExcused(goal, from: period),
+                  engine.isRequired(goal, on: today) || goal.effectivePeriod != .daily else { return nil }
             let streak = engine.streak(for: goal, now: now)
             guard streak.current >= 2 else { return nil }
             let done = engine.currentAmount(for: goal, now: now)

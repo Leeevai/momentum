@@ -162,6 +162,21 @@ struct StreakNudgeTests {
         #expect(ReminderPlanner.streakNudges(engine(data), now: date(2026, 10, 11, 15)).count == 1)
     }
 
+    @Test("A week with a break in it isn't nudged: its streak is safe")
+    func weekWithBreakNotNudged() throws {
+        let goal = checkInGoal(createdDaysAgo: 60, period: .weekly, target: 1)
+        var data = AppData(goals: [goal])
+        for weeksAgo in 1...3 { data.log(1, for: goal.id, at: dayOffset(-7 * weeksAgo)) }
+        // A day off on Tuesday 6 October.
+        data.startBreak(for: goal.id, until: dayOffset(-2), at: dayOffset(-2), calendar: testCalendar)
+        let stored = try #require(data.goal(goal.id))
+        let sunday = date(2026, 10, 11, 15)
+        let streak = engine(data).streak(for: stored, now: sunday)
+        let nudges = ReminderPlanner.streakNudges(engine(data), now: sunday)
+        #expect(streak.current == 3)
+        #expect(nudges.isEmpty)
+    }
+
     @Test("A one-tap focus picks the goal timed most recently")
     func suggestedFocusGoal() {
         let first = Goal(name: "First", kind: .time, target: 600)
