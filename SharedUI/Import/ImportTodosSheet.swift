@@ -1,3 +1,4 @@
+import Accessibility
 import MomentumCore
 import PhotosUI
 import SwiftUI
@@ -14,7 +15,10 @@ struct ImportTodosSheet: View {
     @State private var files: [URL] = []
     @State private var linkText = ""
     @State private var caption = ""
-    @State private var status: String?
+    /// How far the search has got, while it runs.
+    @State private var progress: TodoFinder.Progress?
+    /// What the last search couldn't read, file by file.
+    @State private var problems: [TodoFinder.Problem] = []
     @State private var todos: [FoundTodo] = []
     @State private var skipped: Set<UUID> = []
     @State private var listName = ""
@@ -146,6 +150,7 @@ struct ImportTodosSheet: View {
                     .font(.callout)
                     .foregroundStyle(.orange)
             }
+            if !problems.isEmpty { problemList }
         }
         // What's being read stays as it is until the search ends or is stopped.
         .disabled(finding != nil)
@@ -200,6 +205,22 @@ struct ImportTodosSheet: View {
         }
     }
 
+    /// What the search couldn't read, with the files it happened with.
+    private var problemList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(problems) { problem in
+                Label {
+                    Text("\(problem.files.formatted(.list(type: .and))): \(problem.reason)")
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                }
+                .font(.callout)
+            }
+        }
+    }
+
     // MARK: - Reviewing
 
     private var review: some View {
@@ -207,6 +228,9 @@ struct ImportTodosSheet: View {
         let chosen = todos.filter { !skipped.contains($0.id) }
         let total = chosen.compactMap(\.duration).reduce(0, +)
         return VStack(alignment: .leading, spacing: 16) {
+            if !problems.isEmpty {
+                problemList.glassCard(padding: 16)
+            }
             VStack(alignment: .leading, spacing: 10) {
                 Picker("Add to", selection: $destination) {
                     Text("A new goal").tag(UUID?.none)
@@ -269,10 +293,22 @@ struct ImportTodosSheet: View {
     // MARK: - Footer
 
     private var footer: some View {
+        VStack(spacing: 12) {
+            if let progress {
+                ProgressView(value: progress.fraction)
+                    .tint(Color.accent)
+                    .accessibilityLabel("Finding to-dos")
+            }
+            footerBar
+        }
+        .padding(16)
+    }
+
+    private var footerBar: some View {
         HStack(spacing: 12) {
-            if let progress = status ?? (adding == nil ? nil : addingNote) {
-                ProgressView().controlSize(.small)
-                Text(progress)
+            if let note = progress?.message ?? (adding == nil ? nil : addingNote) {
+                if progress == nil { ProgressView().controlSize(.small) }
+                Text(note)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -294,7 +330,6 @@ struct ImportTodosSheet: View {
                 collectActions
             }
         }
-        .padding(16)
     }
 
     @ViewBuilder
@@ -392,17 +427,22 @@ struct ImportTodosSheet: View {
         let link = TodoText.link(from: linkText)
         let files = files
         let caption = caption
-        status = "Getting started…"
+        problems = []
+        progress = TodoFinder.Progress(message: "Getting started…", fraction: 0)
         finding = Task {
-            let found = await TodoFinder.todos(in: files, caption: caption, link: link) { message in
+            let findings = await TodoFinder.todos(in: files, caption: caption, link: link) { update in
                 // A stopped search can still be finishing a step; it no longer reports.
-                if !Task.isCancelled { status = message }
+                if !Task.isCancelled { progress = update }
             }
             guard !Task.isCancelled else { return }
+            let found = findings.todos
             let name = await TodoFinder.listName(for: found, caption: caption)
             guard !Task.isCancelled else { return }
             finding = nil
-            status = nil
+            progress = nil
+            problems = findings.problems
+            let outcome = found.isEmpty ? "No to-dos found" : "Found \(found.count) to-do\(found.count == 1 ? "" : "s")"
+            AccessibilityNotification.Announcement(outcome).post()
             if found.isEmpty {
                 problem = "No to-dos found. Try adding the video itself, or paste the caption."
                 return
@@ -421,7 +461,7 @@ struct ImportTodosSheet: View {
     private func stopFinding() {
         finding?.cancel()
         finding = nil
-        status = nil
+        progress = nil
     }
 
     #if DEBUG
