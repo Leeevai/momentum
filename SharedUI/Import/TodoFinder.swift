@@ -58,16 +58,19 @@ enum TodoFinder {
     }
 
     /// The to-dos in `files` (videos, audio and screenshots) and in `caption`: one per video, as long
-    /// as the video; any number per screenshot or caption. Each carries `link`.
+    /// as the video; any number per screenshot or caption. Each carries `link`. Stops early, with
+    /// what it found so far, when its task is cancelled.
     static func todos(in files: [URL], caption: String, link: URL?,
                       progress: @escaping @MainActor (String) -> Void) async -> [FoundTodo] {
         var found: [FoundTodo] = []
         let note = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         for (index, file) in files.enumerated() {
+            if Task.isCancelled { return found }
             let counter = files.count > 1 ? " (\(index + 1) of \(files.count))" : ""
             let material = await self.material(of: file) { step in
                 await progress("\(step.verb) \(file.lastPathComponent)…\(counter)")
             }
+            if Task.isCancelled { return found }
             await progress("\(Step.thinking.verb) \(file.lastPathComponent)…\(counter)")
             if material.isVideo {
                 let title = await videoTitle(for: material, caption: note)
@@ -78,7 +81,7 @@ enum TodoFinder {
             }
         }
         // A caption on its own, or with screenshots, lists to-dos of its own (a post's numbered list).
-        if !note.isEmpty, !files.contains(where: isVideo) {
+        if !note.isEmpty, !files.contains(where: isVideo), !Task.isCancelled {
             await progress("Reading the caption…")
             let items = await listedTodos(in: note, caption: "")
             found += items.map { FoundTodo(title: $0.title, duration: $0.duration, link: link, source: "Caption") }
@@ -119,8 +122,10 @@ enum TodoFinder {
         let asset = AVURLAsset(url: url)
         let seconds = (try? await asset.load(.duration).seconds) ?? 0
         var material = Material(name: url.lastPathComponent, isVideo: true, duration: seconds.isFinite && seconds > 0 ? seconds : nil)
+        guard !Task.isCancelled else { return material }
         await step(.listening)
         material.transcript = await transcript(of: asset)
+        guard !Task.isCancelled else { return material }
         await step(.reading)
         material.screenText = await frameText(of: asset, duration: material.duration ?? 0)
         return material
@@ -149,6 +154,7 @@ enum TodoFinder {
         defer { try? FileManager.default.removeItem(at: audio) }
         guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else { return "" }
         try await export.export(to: audio, as: .m4a)
+        try Task.checkCancellation()
 
         var locale = await SpeechTranscriber.supportedLocale(equivalentTo: .current)
         if locale == nil {
@@ -160,9 +166,26 @@ enum TodoFinder {
         if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
             try await request.downloadAndInstall()
         }
+        try Task.checkCancellation()
         let file = try AVAudioFile(forReading: audio)
         async let text = transcriber.results.reduce(into: "") { $0 += String($1.text.characters) }
-        _ = try await SpeechAnalyzer(inputAudioFile: file, modules: [transcriber], finishAfterFile: true)
+        let analyzer = SpeechAnalyzer(modules: [transcriber])
+        // Finishing the analyzer ends the results, so the text above is always delivered, and
+        // closing the sheet stops the analysis rather than letting it run to the end of the file.
+        try await withTaskCancellationHandler {
+            do {
+                if let end = try await analyzer.analyzeSequence(from: file) {
+                    try await analyzer.finalizeAndFinish(through: end)
+                } else {
+                    await analyzer.cancelAndFinishNow()
+                }
+            } catch {
+                await analyzer.cancelAndFinishNow()
+                throw error
+            }
+        } onCancel: {
+            Task { await analyzer.cancelAndFinishNow() }
+        }
         return try await text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     #endif
@@ -175,7 +198,7 @@ enum TodoFinder {
         generator.maximumSize = CGSize(width: 1280, height: 1280)
         let moments = duration > 0 ? [0.1, 0.3, 0.5, 0.7, 0.9].map { $0 * duration } : [0]
         var lines: [String] = []
-        for moment in moments {
+        for moment in moments where !Task.isCancelled {
             guard let frame = try? await generator.image(at: CMTime(seconds: moment, preferredTimescale: 600)).image else { continue }
             for line in recognizedText(in: frame) where !lines.contains(line) {
                 lines.append(line)

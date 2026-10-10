@@ -23,6 +23,8 @@ struct ImportTodosSheet: View {
     @State private var choosesFiles = false
     @State private var pickedMedia: [PhotosPickerItem] = []
     @State private var problem: String?
+    /// The search under way, stopped by the Stop button or by closing the sheet.
+    @State private var finding: Task<Void, Never>?
     /// Items still being copied out of Photos.
     @State private var addingMedia: Task<Void, Never>?
     /// Copies of what was added, readable for as long as the sheet is open; removed with it.
@@ -49,6 +51,8 @@ struct ImportTodosSheet: View {
         }
         .onChange(of: pickedMedia) { _, items in loadPicked(items) }
         .dropDestination(for: URL.self) { urls, _ in
+            // Only while collecting: a file dropped on the review, or mid-search, would go unread.
+            guard !isReviewing, finding == nil else { return false }
             add(urls)
             return !urls.isEmpty
         }
@@ -60,6 +64,7 @@ struct ImportTodosSheet: View {
             #endif
         }
         .onDisappear {
+            finding?.cancel()
             addingMedia?.cancel()
             try? FileManager.default.removeItem(at: folder)
         }
@@ -138,6 +143,8 @@ struct ImportTodosSheet: View {
                     .foregroundStyle(.orange)
             }
         }
+        // What's being read stays as it is until the search ends or is stopped.
+        .disabled(finding != nil)
     }
 
     private static let instagramHelp = """
@@ -258,20 +265,33 @@ struct ImportTodosSheet: View {
                 .disabled(todos.count == skipped.count)
                 .keyboardShortcut(.defaultAction)
             } else {
-                Button("Cancel") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button {
-                    find()
-                } label: {
-                    Label("Find To-dos", systemImage: "sparkles")
-                }
-                .primaryActionStyle(.accent)
-                .disabled(status != nil || addingMedia != nil
-                          || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-                .keyboardShortcut(.defaultAction)
+                collectActions
             }
         }
         .padding(16)
+    }
+
+    @ViewBuilder
+    private var collectActions: some View {
+        Button("Cancel") { dismiss() }
+            .keyboardShortcut(.cancelAction)
+        if finding != nil {
+            Button {
+                stopFinding()
+            } label: {
+                Label("Stop", systemImage: "stop.fill")
+            }
+            .primaryActionStyle(.accent)
+        } else {
+            Button {
+                find()
+            } label: {
+                Label("Find To-dos", systemImage: "sparkles")
+            }
+            .primaryActionStyle(.accent)
+            .disabled(addingMedia != nil || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+            .keyboardShortcut(.defaultAction)
+        }
     }
 
     // MARK: - Actions
@@ -309,10 +329,18 @@ struct ImportTodosSheet: View {
     private func find() {
         problem = nil
         let link = TodoText.link(from: linkText)
+        let files = files
+        let caption = caption
         status = "Getting started…"
-        Task {
-            let found = await TodoFinder.todos(in: files, caption: caption, link: link) { status = $0 }
+        finding = Task {
+            let found = await TodoFinder.todos(in: files, caption: caption, link: link) { message in
+                // A stopped search can still be finishing a step; it no longer reports.
+                if !Task.isCancelled { status = message }
+            }
+            guard !Task.isCancelled else { return }
             let name = await TodoFinder.listName(for: found, caption: caption)
+            guard !Task.isCancelled else { return }
+            finding = nil
             status = nil
             if found.isEmpty {
                 problem = "No to-dos found. Try adding the video itself, or paste the caption."
@@ -326,6 +354,13 @@ struct ImportTodosSheet: View {
             if ProcessInfo.processInfo.environment["MOMENTUM_IMPORT_SAVE"] != nil { save() }
             #endif
         }
+    }
+
+    /// Stops looking, keeping what was added, to change it and look again.
+    private func stopFinding() {
+        finding?.cancel()
+        finding = nil
+        status = nil
     }
 
     #if DEBUG
