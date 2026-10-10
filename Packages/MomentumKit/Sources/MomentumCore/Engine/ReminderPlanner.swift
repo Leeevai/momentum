@@ -116,7 +116,10 @@ public enum ReminderPlanner {
         let minute = min(23 * 60, preferences.streakNudgeMinute + 60)
         guard let fire = wallClock(minute, on: lastDay, calendar: engine.calendar), fire > now else { return nil }
 
-        let report = engine.insights(days: 7, now: now)
+        // The week so far: planned before its last day (the last change was midweek), the 7 days
+        // up to now would count days of the week before.
+        let elapsed = engine.calendar.dateComponents([.day], from: week.start, to: engine.startOfDay(now)).day ?? 6
+        let report = engine.insights(days: min(7, max(1, elapsed + 1)), now: now)
         let scores = engine.activeGoals.compactMap { engine.isOnTargetThisWeek($0, now: now) }
         var parts: [String] = []
         if report.totalFocusSeconds > 0 { parts.append("\(Formatting.duration(report.totalFocusSeconds)) focused") }
