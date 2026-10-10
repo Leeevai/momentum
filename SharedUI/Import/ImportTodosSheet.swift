@@ -34,6 +34,8 @@ struct ImportTodosSheet: View {
     @State private var addingNote = ""
     /// Copies of what was added, readable for as long as the sheet is open; removed with it.
     @State private var folder = ImportScratch.newItem(named: "files")
+    /// The file list's icon column, which grows with the text.
+    @ScaledMetric private var iconWidth: CGFloat = 22
 
     private static let fileTypes: [UTType] = [.movie, .video, .audio, .image]
 
@@ -93,15 +95,10 @@ struct ImportTodosSheet: View {
     private var collect: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    Button { choosesFiles = true } label: { Label("Choose Files…", systemImage: "folder") }
-                        .secondaryActionStyle(.accent, compact: true)
-                        .disabled(adding != nil)
-                    PhotosPicker(selection: $pickedMedia, matching: .any(of: [.videos, .images])) {
-                        Label("Photos", systemImage: "photo.on.rectangle")
-                    }
-                    .secondaryActionStyle(.accent, compact: true)
-                    .disabled(adding != nil)
+                // Side by side where they fit; one above the other on a phone with large text.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { pickButtons }
+                    VStack(alignment: .leading, spacing: 10) { pickButtons }
                 }
                 if files.isEmpty {
                     Text(Self.instagramHelp)
@@ -116,7 +113,7 @@ struct ImportTodosSheet: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 Label("Link to the post", systemImage: "link").font(.headline)
-                TextField("instagram.com/reel/…", text: $linkText)
+                TextField("Link to the post", text: $linkText, prompt: Text("instagram.com/reel/…"))
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     #if os(iOS)
@@ -130,6 +127,7 @@ struct ImportTodosSheet: View {
             VStack(alignment: .leading, spacing: 10) {
                 Label("Caption", systemImage: "text.quote").font(.headline)
                 TextEditor(text: $caption)
+                    .accessibilityLabel("Caption")
                     .frame(minHeight: 80)
                     .scrollContentBackground(.hidden)
                     .padding(6)
@@ -178,6 +176,18 @@ struct ImportTodosSheet: View {
         }
     }
 
+    @ViewBuilder
+    private var pickButtons: some View {
+        Button { choosesFiles = true } label: { Label("Choose Files…", systemImage: "folder") }
+            .secondaryActionStyle(.accent, compact: true)
+            .disabled(adding != nil)
+        PhotosPicker(selection: $pickedMedia, matching: .any(of: [.videos, .images])) {
+            Label("Photos", systemImage: "photo.on.rectangle")
+        }
+        .secondaryActionStyle(.accent, compact: true)
+        .disabled(adding != nil)
+    }
+
     private static let instagramHelp = """
         From Instagram or TikTok, save the video first (Share, then Download or Save, or a screen \
         recording) and add it here, along with screenshots of a carousel. Apps can't open a post from \
@@ -185,11 +195,14 @@ struct ImportTodosSheet: View {
         """
 
     private func fileRow(_ file: URL) -> some View {
-        let isVideo = UTType(filenameExtension: file.pathExtension)?.conforms(to: .audiovisualContent) ?? false
+        let type = UTType(filenameExtension: file.pathExtension)
+        let symbol = type?.conforms(to: .audio) == true ? "waveform"
+            : type?.conforms(to: .audiovisualContent) == true ? "play.rectangle.fill" : "photo"
         return HStack(spacing: 10) {
-            Image(systemName: isVideo ? "play.rectangle.fill" : "photo")
+            Image(systemName: symbol)
                 .foregroundStyle(Color.accent)
-                .frame(width: 22)
+                .frame(width: iconWidth)
+                .accessibilityHidden(true)
             Text(file.lastPathComponent)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -232,11 +245,15 @@ struct ImportTodosSheet: View {
                 problemList.glassCard(padding: 16)
             }
             VStack(alignment: .leading, spacing: 10) {
-                Picker("Add to", selection: $destination) {
-                    Text("A new goal").tag(UUID?.none)
-                    ForEach(milestoneGoals) { goal in
-                        Text(goal.name).tag(UUID?.some(goal.id))
+                // A menu on iPhone shows only its value, so the label is set beside it.
+                LabeledContent("Add to") {
+                    Picker("Add to", selection: $destination) {
+                        Text("A new goal").tag(UUID?.none)
+                        ForEach(milestoneGoals) { goal in
+                            Text(goal.name).tag(UUID?.some(goal.id))
+                        }
                     }
+                    .labelsHidden()
                 }
                 if destination == nil {
                     TextField("Goal name", text: $listName)
@@ -255,6 +272,7 @@ struct ImportTodosSheet: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 6)
+                        .accessibilityLabel("\(Formatting.spokenDuration(total)) in all")
                 }
             }
             .glassCard(padding: 16)
@@ -267,24 +285,30 @@ struct ImportTodosSheet: View {
             if isOn { skipped.remove(id) } else { skipped.insert(id) }
         })
         return HStack(alignment: .firstTextBaseline, spacing: 10) {
-            // A checkbox on the Mac, a switch on iPhone and iPad.
-            Toggle("Include", isOn: included)
+            // A checkbox on the Mac, a switch on iPhone and iPad, named after its to-do for VoiceOver.
+            Toggle(isOn: included) { Text("Include \(todo.wrappedValue.title)") }
                 .labelsHidden()
             VStack(alignment: .leading, spacing: 2) {
                 TextField("To-do", text: todo.title)
                     .textFieldStyle(.plain)
                     .font(.body.weight(.medium))
-                Text(todo.wrappedValue.source)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                // The length goes under the name, which keeps the row's width at phone width.
+                HStack(spacing: 8) {
+                    if let duration = todo.wrappedValue.duration {
+                        Label(Formatting.clock(duration), systemImage: "clock")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel(Formatting.spokenDuration(duration))
+                            .fixedSize()
+                    }
+                    Text(todo.wrappedValue.source)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
-            Spacer(minLength: 8)
-            if let duration = todo.wrappedValue.duration {
-                Label(Formatting.clock(duration), systemImage: "clock")
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
+            Spacer(minLength: 0)
         }
         .padding(.vertical, 6)
         .opacity(included.wrappedValue ? 1 : 0.5)
@@ -304,9 +328,29 @@ struct ImportTodosSheet: View {
         .padding(16)
     }
 
+    /// What's going on and the buttons, on one row where they fit; at phone width or with large text,
+    /// the buttons go under it rather than squeezing their titles.
     private var footerBar: some View {
-        HStack(spacing: 12) {
-            if let note = progress?.message ?? (adding == nil ? nil : addingNote) {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                footerNote
+                Spacer(minLength: 12)
+                footerActions
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                footerNote
+                HStack(spacing: 12) {
+                    Spacer(minLength: 0)
+                    footerActions
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var footerNote: some View {
+        if let note = progress?.message ?? (adding == nil ? nil : addingNote) {
+            HStack(spacing: 8) {
                 if progress == nil { ProgressView().controlSize(.small) }
                 Text(note)
                     .font(.callout)
@@ -314,21 +358,24 @@ struct ImportTodosSheet: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            Spacer()
-            if isReviewing {
-                Button("Back") { withAnimation { isReviewing = false } }
-                Button {
-                    save()
-                } label: {
-                    let count = todos.count - skipped.count
-                    Label("Add \(count) To-do\(count == 1 ? "" : "s")", systemImage: "checklist")
-                }
-                .primaryActionStyle(.accent)
-                .disabled(todos.count == skipped.count)
-                .keyboardShortcut(.defaultAction)
-            } else {
-                collectActions
+        }
+    }
+
+    @ViewBuilder
+    private var footerActions: some View {
+        if isReviewing {
+            Button("Back") { withAnimation { isReviewing = false } }
+            Button {
+                save()
+            } label: {
+                let count = todos.count - skipped.count
+                Label("Add \(count) To-do\(count == 1 ? "" : "s")", systemImage: "checklist")
             }
+            .primaryActionStyle(.accent)
+            .disabled(todos.count == skipped.count)
+            .keyboardShortcut(.defaultAction)
+        } else {
+            collectActions
         }
     }
 
