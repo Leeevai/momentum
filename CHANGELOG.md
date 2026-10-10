@@ -14,6 +14,7 @@ All notable changes to Momentum are recorded here. The format follows
   From videos when making a new goal. Stop it at any point; closing the sheet stops it too.
   Paste the post's link on its own or with the message a share sheet copies around it.
   A long video is named from its first five minutes of speech, and photos are read upright.
+  A bar shows how far it has got, and the review says what it couldn't read, and why.
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
