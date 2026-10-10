@@ -31,6 +31,17 @@ struct GoodreadsImportTests {
         #expect(books[2].totalPages == nil)
     }
 
+    @Test("Dates read as Gregorian whatever calendar the device uses", arguments: [Calendar.Identifier.buddhist, .japanese])
+    func gregorianDates(identifier: Calendar.Identifier) throws {
+        var calendar = Calendar(identifier: identifier)
+        calendar.timeZone = testCalendar.timeZone
+        let books = try GoodreadsImporter.books(fromCSV: fixture(), now: referenceNow, calendar: calendar)
+        let finished = try #require(books.first?.finishedAt)
+        let started = try #require(books.dropFirst().first?.startedAt)
+        #expect(finished == date(2024, 5, 14))
+        #expect(started == date(2025, 1, 10))
+    }
+
     @Test("Books already on the list are skipped")
     func skipsExisting() throws {
         let existing = [Book(title: "dune", author: "Frank Herbert")]
