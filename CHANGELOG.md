@@ -58,6 +58,9 @@ All notable changes to Momentum are recorded here. The format follows
 - Data saved by a newer version of Momentum in a format this one doesn't know (the data file, a
   backup, another device's sync file) was read as this version's data, and could be saved back
   without what's new. It's now left as it is, and Momentum asks to be updated.
+- Siri and Shortcuts' Start and Stop Focus Session catch up with other devices before they change
+  the timer. On an iPhone that hadn't heard a session was stopped on the Mac, either one stopped it
+  again at that moment, counting the time in between.
 
 ## [2.2.0] - 2026-10-09
 
