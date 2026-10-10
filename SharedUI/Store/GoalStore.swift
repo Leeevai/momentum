@@ -79,6 +79,9 @@ struct Toast: Identifiable, Equatable {
 final class GoalStore {
     private(set) var data: AppData
     private(set) var engine: ProgressEngine
+    /// The palette everything is drawn in, built-in or custom. Worked out only when the palette
+    /// preferences change, since a custom palette is generated each time.
+    private(set) var palette: Palette
     /// Refreshed on every change and when the day rolls over; live counters use `TimelineView`.
     private(set) var now = Date()
     var route: Route? = .today
@@ -134,7 +137,9 @@ final class GoalStore {
         self.persistence = persistence
         self.knownModification = snapshot.modification
         self.data = initial
-        ActivePalette.current = initial.preferences.palette
+        let palette = initial.preferences.activePalette
+        self.palette = palette
+        ActivePalette.current = palette
         self.engine = ProgressEngine(data: initial)
         self.effects = effects ?? SideEffects()
         self.focusFilter = persistence.watchedDirectory == nil ? nil : SharedStore.loadFocusFilter()
@@ -274,8 +279,15 @@ final class GoalStore {
         now = .now
         guard newData != data else { return }
         let previousData = data
+        let before = previousData.preferences
+        let after = newData.preferences
+        if after.palette != before.palette || after.activeCustomPalette != before.activeCustomPalette {
+            // Before the data, so views redrawn for the change already find the new palette.
+            let palette = after.activePalette
+            ActivePalette.current = palette
+            self.palette = palette
+        }
         data = newData
-        ActivePalette.current = newData.preferences.palette
         engine = ProgressEngine(data: newData)
         tipsCache = nil
         effects.dataDidChange(from: previousData, to: newData, engine: engine, fromAnotherDevice: fromAnotherDevice)

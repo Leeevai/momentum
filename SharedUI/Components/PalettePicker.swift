@@ -34,7 +34,7 @@ private struct PaletteSwatch: View {
         let shape = RoundedRectangle(cornerRadius: GlassTokens.controlRadius, style: .continuous)
         VStack(spacing: 6) {
             Aurora(animates: false, scale: 0.12)
-                .environment(\.palette, palette)
+                .environment(\.palette, Palette(palette))
                 .overlay {
                     Circle()
                         .fill(accent)

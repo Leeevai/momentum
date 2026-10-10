@@ -17,9 +17,9 @@ let demoNow = Date()
 @MainActor
 func makeStore() -> GoalStore {
     var data = AppData.demo(now: demoNow)
-    // MOMENTUM_PALETTE=ocean renders in another palette.
-    if let name = ProcessInfo.processInfo.environment["MOMENTUM_PALETTE"], let palette = ThemePalette(rawValue: name) {
-        data.preferences.palette = palette
+    // MOMENTUM_PALETTE=fjord renders in another palette.
+    if let name = ProcessInfo.processInfo.environment["MOMENTUM_PALETTE"], let palette = ThemePalette(stored: name) {
+        data.preferences.choose(palette)
     }
     // A focus session in progress on Deep work, 32 minutes into 50.
     if let deepWork = data.goals.first(where: { $0.name == "Deep work" }) {
