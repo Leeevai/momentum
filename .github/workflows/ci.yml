@@ -47,8 +47,10 @@ jobs:
           changed=$(git diff --name-only --no-renames "$BASE_SHA...$HEAD_SHA")
           echo "Changed files:"
           printf '%s\n' "$changed" | sed 's/^/  /'
-          # Documentation: top-level and .github Markdown, docs/, LICENSE and the issue templates.
-          docs='^([^/]+\.md|\.github/[^/]+\.md|\.github/ISSUE_TEMPLATE/.+|docs/.+|LICENSE)$'
+          # Files no build or test reads: top-level and .github Markdown, the repository settings at
+          # the top of .github (dependabot, labels, release notes), the issue templates, docs/,
+          # LICENSE and the project tooling under .claude/. A workflow change still runs every job.
+          docs='^([^/]+\.md|\.github/[^/]+\.(md|ya?ml)|\.github/ISSUE_TEMPLATE/.+|\.claude/.+|docs/.+|LICENSE)$'
           code=$(printf '%s\n' "$changed" | grep -Ev "$docs" || true)
           if [ -n "$code" ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
