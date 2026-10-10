@@ -15,6 +15,8 @@ All notable changes to Momentum are recorded here. The format follows
   Paste the post's link on its own or with the message a share sheet copies around it.
   A long video is named from its first five minutes of speech, and photos are read upright.
   A bar shows how far it has got, and the review says what it couldn't read, and why.
+  Without Apple Intelligence, names skip greetings and the phone's own text, and lists numbered
+  with emoji, steps or bullets are read.
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
