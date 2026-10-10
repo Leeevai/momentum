@@ -25,6 +25,7 @@ struct NewGoalFlow: View {
 }
 
 private struct TemplateGallery: View {
+    @Environment(GoalStore.self) private var store
     var onPick: (Goal) -> Void
     var onImport: () -> Void
     var onCancel: () -> Void
@@ -45,7 +46,7 @@ private struct TemplateGallery: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Button {
-                        onPick(Goal(name: "", symbol: "target", color: .blue, kind: .time, period: .daily, target: 30 * 60))
+                        onPick(Goal(name: "", symbol: "target", color: .suggested(besides: store.data.goals), kind: .time, period: .daily, target: 30 * 60))
                     } label: {
                         HStack(spacing: 14) {
                             Image(systemName: "plus")
@@ -72,7 +73,7 @@ private struct TemplateGallery: View {
                                 .font(.title2.weight(.semibold))
                                 .frame(width: 44, height: 44)
                                 .background(Circle().fill(Color.purple.opacity(0.15)))
-                                .foregroundStyle(.purple)
+                                .foregroundStyle(.swatch(.purple))
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("From videos").font(.headline)
                                 Text("Saved reels, clips or screenshots become to-dos as long as each video.")
@@ -82,7 +83,7 @@ private struct TemplateGallery: View {
                             Spacer()
                             Image(systemName: "chevron.right").foregroundStyle(.tertiary)
                         }
-                        .glassCard(tint: .purple, padding: 14)
+                        .glassCard(tint: .swatch(.purple), padding: 14)
                     }
                     .buttonStyle(.plain)
 

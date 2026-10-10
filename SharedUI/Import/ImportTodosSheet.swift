@@ -332,7 +332,8 @@ struct ImportTodosSheet: View {
         let chosen = todos.filter { !skipped.contains($0.id) }
         guard !chosen.isEmpty else { return }
         let name = listName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let newGoal = Goal(name: name.isEmpty ? "Saved videos" : name, symbol: "play.rectangle.on.rectangle", color: .purple,
+        let newGoal = Goal(name: name.isEmpty ? "Saved videos" : name, symbol: "play.rectangle.on.rectangle",
+                           color: .suggested(besides: store.data.goals),
                            kind: .milestones, target: 0)
         let target = destination ?? newGoal.id
         store.perform("Add To-dos") { $0.addTodos(chosen, to: destination, orNew: newGoal) }

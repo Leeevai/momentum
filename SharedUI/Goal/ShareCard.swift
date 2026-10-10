@@ -74,7 +74,7 @@ struct ShareCard: View {
         .padding(32)
         .frame(width: 620)
         .background(
-            LinearGradient(colors: [goal.tint.blended(with: .white, by: 0.1), goal.tint.blended(with: .black, by: 0.35)],
+            LinearGradient(colors: [goal.color.deep.blended(with: .white, by: 0.08), goal.color.deep.blended(with: .black, by: 0.3)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
         )
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))

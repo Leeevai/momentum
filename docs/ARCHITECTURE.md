@@ -99,20 +99,41 @@ Timelines are computed from the same engine. Counters use `Text`'s timer styles 
 without new entries; rings only move when an entry renders, so a running session gets an entry
 every five minutes and one at its planned end, and otherwise the next entry is midnight. Buttons run
 App Intents (`Shared/Intents`) inside the widget process, which update the file and reload all
-timelines. Links in widgets use `momentum://` deep links that the app resolves.
+timelines. Links in widgets use `momentum://` deep links that the app resolves. The timeline sets
+the active palette, built-in or custom, from the file it loads, and a button's label is white or
+black, whichever reads on its goal's color (`WidgetFilledLabel`).
 
 ## The look
 
 The design follows [glasscn](https://glasscn.app): frosted panes with a lit rim over a drifting
 aurora, in one of its palettes.
 
-- **Palettes** live in the core (`ThemePalette`, in OKLCH as glasscn defines them) because the
-  choice is a synced preference (`Preferences.palette`) that the widgets read from the data file.
-  `Color(_: OKLCH)` in `Shared/GlassTheme.swift` converts them.
-- **Where the palette comes from.** Each window's root applies `.storePalette()`, which sets the
-  `palette` environment value and the tint. Colors that need a `Color` outside the view tree use
-  `Color.accent`, a dynamic color that reads `ActivePalette.current`; the store sets it on every
-  change, and the widget timeline sets it when it loads the file.
+- **Palettes** live in the core because the choice is a synced preference that the widgets read
+  from the data file. Every palette comes from a `PaletteRecipe`: an accent, a background tint,
+  goal colors in a harmony around a base hue (spectrum, analogous, complementary, triadic or
+  monochrome), and a lightness and contrast. `PaletteGenerator` turns it into light and dark
+  `PaletteTokens` in OKLCH, as glasscn defines its themes: the accent, the aurora, chart colors and
+  one swatch per `GoalColor`, so a goal's stored color picks the palette's matching swatch. Colors
+  are kept inside sRGB by lowering their chroma, and white or black text reaches 4.5:1 on every
+  swatch and accent. The built-in palettes (`ThemePalette`) are curated recipes, and a retired
+  one's name decodes as the closest that remains; custom ones are saved in
+  `Preferences.customPalettes`. `Preferences.activePalette` is the one in use. While a custom
+  palette is in use, `Preferences.palette` holds the closest built-in one, which versions without
+  custom palettes draw in. `Color(_: OKLCH)` in `Shared/GlassTheme.swift` converts the colors.
+- **Where the palette comes from.** The store works out the active palette (`GoalStore.palette`)
+  when the palette preferences change and sets `ActivePalette.current`; the widget timeline sets it
+  when it loads the file. Each window's root applies `.storePalette()`, which sets the `palette`
+  environment value and the tint. Components that draw goal colors (rings, bars, icons, glyphs,
+  challenge badges, highlighted glass) read the palette from the environment, so they redraw when
+  it changes and the palette editor's preview can draw another one. Elsewhere `goal.tint`,
+  `GoalColor.color`, `Color.accent` and the named roles (`.streak`, `.success`, `.attention`,
+  `.focus`, `.award`, `.rest`, `.swatch(_:)`) use the active palette's colors, made once per
+  palette (`PaletteColors`). Each is a dynamic color named after its palette, so a view redrawn in
+  a new palette gets a new color. Errors and warnings keep the system's red and orange.
+- **Labels on fills.** A prominent button's label is white or black, whichever contrasts more with
+  its fill (`Color.foreground(in:)`), so in dark mode, where swatches are light, labels are black.
+  Icon tiles, medals and kept days keep white symbols on a deep shade of their color
+  (`GoalColor.tile`), which holds white at 4.5:1.
 - **Glass.** `GlassTokens` holds glasscn's numbers (pane fills, rim, highlight, sheen, shadow,
   radii, press squash and easing) for light and dark. `GlassCard` uses Liquid Glass tinted with
   them on macOS 26 and iOS 26, and a frosted material with the fill, sheen, rim and shadow before.
@@ -186,6 +207,12 @@ resent safely, a Stop that arrives late doesn't count the hours in between, and 
 can't end a newer session. Out of the iPhone's reach, commands go by `transferUserInfo`, and new
 ones queue behind them so they arrive in the order tapped.
 
+The snapshot also carries the iPhone's palette as it looks in dark mode, the watch's only
+appearance (`WatchPalette`: the accent and a swatch per goal color), so a goal has the same color
+on the wrist. The watch app draws in it through the `watchPalette` environment value; a snapshot
+from an iPhone that doesn't send one, or a palette it can't read, draws in the default palette.
+The complications are drawn in the face's tint, as accessory complications are.
+
 The watch keeps the last snapshot, so it opens instantly; one from an earlier day shows daily
 goals starting over. A watch app can be older than the iPhone app, so it reads a snapshot
 leniently: a color it doesn't know draws blue, a kind it doesn't know shows as a count with the
@@ -202,6 +229,9 @@ Its buttons are App Intents that conform to `LiveActivityIntent`, so they run in
 process, change the data and update the activity in one go. So are the widgets' timer buttons,
 the Control Center focus toggle and Siri's start and stop: an app in the background may start a
 Live Activity only while it performs one, and a widget extension can't start or end the app's.
+The goal's color in the active palette, as it looks on a dark background, travels in the content
+state rather than the attributes, so a new palette reaches a running activity; the widget
+extension never has to read the data file to draw it.
 
 ## Performance
 

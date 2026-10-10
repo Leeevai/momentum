@@ -44,9 +44,12 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     public var generatedAt: Date
     /// The day the snapshot describes.
     public var day: DayID
+    /// The iPhone's palette; nil from an iPhone that doesn't send one, and the watch draws in the
+    /// default palette.
+    public var palette: WatchPalette?
 
     public init(items: [Item] = [], session: FocusSession? = nil, rest: RestPeriod? = nil, done: Int = 0, total: Int = 0,
-                generatedAt: Date = .distantPast, day: DayID = DayID(year: 2001, month: 1, day: 1)) {
+                generatedAt: Date = .distantPast, day: DayID = DayID(year: 2001, month: 1, day: 1), palette: WatchPalette? = nil) {
         self.items = items
         self.session = session
         self.rest = rest
@@ -54,6 +57,7 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         self.total = total
         self.generatedAt = generatedAt
         self.day = day
+        self.palette = palette
     }
 
     /// The snapshot as it stands at `date`: goals whose period has ended since (each day for a
@@ -135,6 +139,44 @@ extension WatchSnapshot.Item {
     }
 }
 
+/// The palette the watch draws in: the iPhone's active palette as it looks in dark mode, the
+/// watch's only appearance, so a goal has the same color on the wrist as on the phone.
+public struct WatchPalette: Codable, Equatable, Sendable {
+    public var accent: OKLCH
+    /// One per `GoalColor`, in `GoalColor.allCases` order.
+    public var swatches: [OKLCH]
+
+    public init(_ palette: Palette) {
+        accent = Self.rounded(palette.dark.accent)
+        swatches = palette.dark.swatches.map(Self.rounded)
+    }
+
+    /// The default palette, for a snapshot from an iPhone that doesn't send one.
+    public static var standard: WatchPalette { WatchPalette(.standard) }
+
+    public func swatch(_ color: GoalColor) -> OKLCH {
+        swatches.indices.contains(color.index) ? swatches[color.index] : Self.standard.swatches[color.index]
+    }
+
+    private enum CodingKeys: String, CodingKey { case accent, swatches }
+
+    /// Never fails the snapshot it comes in: whatever can't be read is the default palette's.
+    public init(from decoder: Decoder) throws {
+        let fallback = Self.standard
+        let c = try? decoder.container(keyedBy: CodingKeys.self)
+        accent = (try? c?.decode(OKLCH.self, forKey: .accent)) ?? fallback.accent
+        let sent = (try? c?.decode([OKLCH].self, forKey: .swatches)) ?? []
+        swatches = GoalColor.allCases.indices.map { $0 < sent.count ? sent[$0] : fallback.swatches[$0] }
+    }
+
+    /// What's worth sending: four decimals of lightness and chroma, two of hue. Rounded here
+    /// rather than when written, so a snapshot reads back exactly as it was made.
+    private static func rounded(_ color: OKLCH) -> OKLCH {
+        OKLCH((color.lightness * 10_000).rounded() / 10_000, (color.chroma * 10_000).rounded() / 10_000,
+              Hue.normalized((color.hue * 100).rounded() / 100))
+    }
+}
+
 /// The keys of the messages between the iPhone and the watch.
 public enum WatchMessageKey {
     /// An encoded `WatchSnapshot`, in the application context and in replies.
@@ -189,7 +231,7 @@ extension ProgressEngine {
         }
         let summary = todaySummary(now: now)
         return WatchSnapshot(items: items, session: data.session, rest: data.rest, done: summary.done, total: summary.total,
-                             generatedAt: now, day: DayID(now, calendar: calendar))
+                             generatedAt: now, day: DayID(now, calendar: calendar), palette: WatchPalette(data.preferences.activePalette))
     }
 
     private func item(for goal: Goal, now: Date) -> WatchSnapshot.Item {
