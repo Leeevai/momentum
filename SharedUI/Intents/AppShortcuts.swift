@@ -17,6 +17,9 @@ struct StartFocusIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
+        // Starting stops whatever runs here: if another device stopped it since this one last
+        // looked, stopping it again now would count the time in between.
+        FolderSync.catchUpFromFolder()
         let data = SharedStore.load()
         guard let stored = data.goal(goal.id) else { throw MomentumIntentError.goalNotFound }
         guard stored.kind == .time else { throw MomentumIntentError.notATimeGoal(stored.name) }
@@ -32,6 +35,9 @@ struct StopFocusIntent: AppIntent {
     static let description = IntentDescription("Stops the running focus timer and saves the time.")
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
+        // A session stopped on another device since this one last looked stays stopped there,
+        // rather than being stopped again here, later, with the time in between.
+        FolderSync.catchUpFromFolder()
         var logged: [LogEntry] = []
         var goalName = ""
         let updated = SharedStore.update { data in
