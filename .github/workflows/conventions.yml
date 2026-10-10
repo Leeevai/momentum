@@ -1,0 +1,31 @@
+name: Conventions
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+concurrency:
+  group: conventions-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  conventional-commits:
+    name: Conventional commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Every commit of the pull request, but only the files in scripts/: a sparse checkout
+          # leaves the rest of the contents out of the clone.
+          fetch-depth: 0
+          sparse-checkout: scripts
+      - name: Check the title and every commit subject
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: scripts/check-commits.sh --title "$TITLE" --range "$BASE_SHA..$HEAD_SHA"
