@@ -131,10 +131,11 @@ aurora, in one of its palettes.
   palette (`PaletteColors`). Each is a dynamic color named after its palette, so a view redrawn in
   a new palette gets a new color. Errors and warnings keep the system's red and orange.
 - **Text in palette colors.** The accent is generated to read as text on glass (4.5:1 against
-  `GlassSurface`, the pane over the aurora's strongest blob), since the system draws it as text
+  `TextSurface.glass`, a pane over the aurora's strongest blob), since the system draws it as text
   too. `goal.tint`, `GoalColor.color` and the named roles are a shade of the swatch that does the
-  same (`OKLCH.readable`): deeper in light mode, lighter in dark. Rings, bars, tiles and glyphs
-  draw the swatch itself (`palette.color(_:)`, `GoalColor.swatch`), so a palette's look holds.
+  same (`OKLCH.readable`): deeper in light mode, lighter in dark. Widgets have no panes, so their
+  timeline sets `ActivePalette.textSurface` to the bare aurora. Rings, bars, tiles and glyphs draw
+  the swatch itself (`palette.color(_:)`, `GoalColor.swatch`), so a palette's look holds.
 - **Labels on fills.** A prominent button's label is white or black, whichever contrasts more with
   its fill (`Color.foreground(in:)`), so in dark mode, where swatches are light, labels are black.
   Icon tiles, medals and kept days keep white symbols on a deep shade of their color
