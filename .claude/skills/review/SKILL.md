@@ -14,24 +14,28 @@ gh pr diff <number>            # or: git diff origin/develop...HEAD
 
 Go through, in order:
 
-1. **Saved data** (`data-format` skill): new fields decode when missing, nothing renamed, bad values
+1. **The ticket** (`.github/CONTRIBUTING.md`, "Pull requests"): the title is
+   `[NNNN]-[area] description` and the body opens with `Closes #N` for the same open issue. The
+   diff does what the issue's acceptance criteria ask and stays in its one area; anything beyond
+   that belongs in an issue of its own, or a sub-issue if the work spans areas.
+2. **Saved data** (`data-format` skill): new fields decode when missing, nothing renamed, bad values
    dropped rather than thrown, the version bumped only with a migration and a fixture test.
-2. **Sync**: two devices editing the same goal or session; one ending a session the other resumed;
+3. **Sync**: two devices editing the same goal or session; one ending a session the other resumed;
    a delete racing an edit; anything saved without its stamp, or stamped during a merge.
-3. **Watch**: commands carry ids and tap dates and apply once; complication pushes are gated on
+4. **Watch**: commands carry ids and tap dates and apply once; complication pushes are gated on
    `remainingComplicationUserInfoTransfers` alone (`isComplicationEnabled` stays false with a
    WidgetKit complication); a plain `transferUserInfo` doesn't wake a suspended watch app.
-4. **Widgets**: timelines come from `WidgetSchedule`; buttons are App Intents in `Shared/Intents`;
+5. **Widgets**: timelines come from `WidgetSchedule`; buttons are App Intents in `Shared/Intents`;
    white content on a fill uses `WidgetFilledLabel`; nothing updates every second.
-5. **UI**: works at phone width (`ViewThatFits`), and on both Mac and iPhone for anything in
+6. **UI**: works at phone width (`ViewThatFits`), and on both Mac and iPhone for anything in
    `SharedUI/`; `Color.accent`, never `accentColor`; the design system in `SharedUI/Components/`;
    Liquid Glass behind `#if compiler(>=6.2)` and `#available`; live time through `LiveClock` or
    `SessionClockText`; mutations through `GoalStore.perform`.
-6. **CI risk** (`fix-ci` skill): big view bodies, long expressions in `#expect`, APIs newer than
+7. **CI risk** (`fix-ci` skill): big view bodies, long expressions in `#expect`, APIs newer than
    the 26 SDK, Swift 6 concurrency in the package.
-7. **Privacy**: nothing leaves the device except Open Library book searches. A new network call,
+8. **Privacy**: nothing leaves the device except Open Library book searches. A new network call,
    permission or use of data belongs in `docs/PRIVACY.md` and in the Info.plist usage strings.
-8. **Docs**: `CHANGELOG.md` `[Unreleased]` for user-visible changes; the README and
+9. **Docs**: `CHANGELOG.md` `[Unreleased]` for user-visible changes; the README and
    `docs/ARCHITECTURE.md` when behaviour or data flow changed.
 
 Report each finding with `file:line`, the concrete failure (what the person does, what goes wrong)

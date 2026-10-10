@@ -119,6 +119,13 @@ public struct ProgressEngine: Sendable {
         isScheduled(goal, on: day) && !goal.isOnBreak(at: day)
     }
 
+    /// Whether a break excuses the goal from the target of its period `interval`. A day is judged
+    /// by its start, as streaks judge days; a week, month or year by any of its days, since its
+    /// target is set for all of them and most breaks start partway through.
+    func isExcused(_ goal: Goal, from interval: DateInterval) -> Bool {
+        goal.effectivePeriod == .daily ? goal.isOnBreak(at: interval.start) : goal.hasBreak(during: interval)
+    }
+
     /// The day `goal`'s history starts: its creation, or its earliest log if older.
     public func firstDay(of goal: Goal) -> Date {
         firstDay[goal.id] ?? startOfDay(goal.createdAt)
@@ -380,7 +387,7 @@ public struct ProgressEngine: Sendable {
                 if keepsStreak(goal, periodContaining: start, now: now) {
                     run += 1
                     best = max(best, run)
-                } else if !goal.isOnBreak(at: periodInterval.start) {
+                } else if !isExcused(goal, from: periodInterval) {
                     run = 0
                 }
                 guard let next = calendar.date(byAdding: component, value: 1, to: periodInterval.start) else { break }
@@ -440,7 +447,7 @@ public struct ProgressEngine: Sendable {
             let isCurrent = offset == 0
             let wasMet = isMet(goal, periodContaining: date, now: now)
             if period == .daily && !isRequired(goal, on: date) && !wasMet { continue }
-            if goal.isOnBreak(at: periodInterval.start) && !wasMet { continue }
+            if isExcused(goal, from: periodInterval) && !wasMet { continue }
             if isCurrent && !wasMet { continue }
             due += 1
             if wasMet { met += 1 }
