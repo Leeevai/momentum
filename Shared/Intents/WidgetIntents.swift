@@ -1,6 +1,7 @@
 import AppIntents
 import Foundation
 import MomentumCore
+import WidgetKit
 
 /// Starts a goal's focus timer at its default length, or stops it if it is the one running.
 struct ToggleFocusIntent: AppIntent {
@@ -152,6 +153,36 @@ struct EndBreakIntent: AppIntent {
     }
 }
 
+#if compiler(>=6.2)
+/// The Control Center focus toggle (`FocusControl`): starts a session on the goal timed most
+/// recently, or stops the one running. It's here rather than with the control so the apps have it
+/// too: on iPhone it's a Live Activity intent, which the system runs in the app's process.
+@available(macOS 26.0, iOS 18.0, *)
+struct SetFocusRunningIntent: SetValueIntent {
+    static let title: LocalizedStringResource = "Focus"
+    static let isDiscoverable = false
+
+    @Parameter(title: "Focusing")
+    var value: Bool
+
+    func perform() async throws -> some IntentResult {
+        LiveActivitySync.catchUp()
+        let data = SharedStore.update { data in
+            if value {
+                guard data.session == nil, let goal = data.suggestedFocusGoal else { return }
+                let minutes = goal.focusMinutes ?? data.preferences.defaultFocusMinutes
+                data.startFocus(on: goal.id, planned: Double(minutes) * 60)
+            } else {
+                data.stopFocus()
+            }
+        }
+        await LiveActivitySync.after(data)
+        ControlCenter.shared.reloadAllControls()
+        return .result()
+    }
+}
+#endif
+
 /// Keeps the Lock Screen timer in step after an intent changes the data. On iPhone the timer
 /// intents are Live Activity intents, so they run in the app, which may update the activity.
 enum LiveActivitySync {
@@ -179,6 +210,11 @@ extension StopSessionIntent: LiveActivityIntent {}
 extension StartSessionIntent: LiveActivityIntent {}
 extension SetPausedIntent: LiveActivityIntent {}
 extension EndBreakIntent: LiveActivityIntent {}
+#if compiler(>=6.2)
+// Run in the widget extension, it couldn't start the Live Activity or end it.
+@available(iOS 18.0, *)
+extension SetFocusRunningIntent: LiveActivityIntent {}
+#endif
 #endif
 
 /// The one-tap action: a check-in, the quick-add step, the next milestone, or pages read.

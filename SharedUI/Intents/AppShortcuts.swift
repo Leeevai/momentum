@@ -21,7 +21,8 @@ struct StartFocusIntent: AppIntent {
         guard let stored = data.goal(goal.id) else { throw MomentumIntentError.goalNotFound }
         guard stored.kind == .time else { throw MomentumIntentError.notATimeGoal(stored.name) }
         let length = minutes ?? stored.focusMinutes ?? data.preferences.defaultFocusMinutes
-        SharedStore.update { $0.startFocus(on: stored.id, planned: Double(length) * 60) }
+        let updated = SharedStore.update { $0.startFocus(on: stored.id, planned: Double(length) * 60) }
+        await LiveActivitySync.after(updated)
         return .result(dialog: "Focusing on \(stored.name) for \(length) minutes.")
     }
 }
@@ -33,15 +34,23 @@ struct StopFocusIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         var logged: [LogEntry] = []
         var goalName = ""
-        SharedStore.update { data in
+        let updated = SharedStore.update { data in
             goalName = data.session.flatMap { data.goal($0.goalID)?.name } ?? ""
             logged = data.stopFocus()
         }
+        await LiveActivitySync.after(updated)
         guard !logged.isEmpty else { return .result(dialog: "No focus session is running.") }
         let seconds = logged.reduce(0) { $0 + $1.amount }
         return .result(dialog: "Saved \(Formatting.duration(seconds)) of \(goalName).")
     }
 }
+
+#if os(iOS)
+// They start and end the Lock Screen timer, which an app in the background may start only while
+// it performs a Live Activity intent.
+extension StartFocusIntent: LiveActivityIntent {}
+extension StopFocusIntent: LiveActivityIntent {}
+#endif
 
 struct LogProgressIntent: AppIntent {
     static let title: LocalizedStringResource = "Log Progress"

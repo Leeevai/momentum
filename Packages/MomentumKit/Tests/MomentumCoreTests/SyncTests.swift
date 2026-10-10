@@ -248,4 +248,25 @@ struct SyncFolderTests {
         #expect(mac.readPeers().map(\.deviceID) == ["phone"])
         #expect(mac.peerFiles().count == 2)
     }
+
+    @Test("A file in a newer data format is left out, with the device it came from")
+    func newerFormatLeftOut() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = folder.appendingPathComponent("mac.momentum-sync")
+        let saved = referenceNow.timeIntervalSinceReferenceDate
+        let newer = #"{"deviceID":"mac","deviceName":"Studio","platform":"macOS","savedAt":\#(saved),"data":{"version":3,"goals":[],"entries":[]}}"#
+        try Data(newer.utf8).write(to: file)
+
+        let phone = SyncFolder(url: folder, deviceID: "phone")
+        let read = phone.read(file, now: referenceNow)
+        let device: String? = switch read {
+        case .newer(let name): name
+        default: nil
+        }
+        let peers = phone.readPeers(now: referenceNow, startingFresh: true)
+        #expect(device == "Studio")
+        #expect(peers.isEmpty)
+    }
 }
