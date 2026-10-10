@@ -148,10 +148,10 @@ read too. It all happens **on your device**: speech and text recognition, and Ap
 model (macOS 26 and iOS 26 with Apple Intelligence) to name each to-do. No account, no cost,
 nothing uploaded.
 
-### Twelve palettes
-Pick a palette in Settings (Dusk, Ocean, Rose, Sage, Amber, Graphite, Lavender, Mint, Cherry,
-Lagoon, Sand or Midnight) and it sets the accent, the **aurora drifting behind every screen**
-and the widgets, on every device you sync. Goal rings **lap past 100%**, so a big day shows.
+### Calm palettes
+Pick a palette in Settings (Slate, Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso, Dusk or
+Rose) and it sets the accent, the **aurora drifting behind every screen** and the widgets, on
+every device you sync. Goal rings **lap past 100%**, so a big day shows.
 
 ### And the rest
 - **Shortcuts and Siri**: start focusing, log progress, ask how you're doing.
