@@ -15,6 +15,10 @@ All notable changes to Momentum are recorded here. The format follows
 - Milestones can carry a duration and a link: the goal shows the time left, and the next one can
   be watched straight from its page.
 
+### Fixed
+- Taking time off with − while a timer runs moves the goal's ring at once. When nothing else was
+  logged that day, the correction showed only after the session was saved, when the ring dropped.
+
 ## [2.2.0] - 2026-10-09
 
 ### Added
