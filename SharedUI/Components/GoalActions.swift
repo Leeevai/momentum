@@ -50,46 +50,44 @@ struct GoalPrimaryButton: View {
     }
 }
 
-/// Start, or Pause and Stop: one glass pill that splits in two when a session starts and merges
-/// back when it stops (Liquid Glass morphing on macOS 26; a spring cross-fade before).
+/// Start, or Pause and Stop: the Pause pill slides out of the main pill when a session starts and
+/// back into it when it stops.
+///
+/// No glass container here: the main pill is solid, with no glass of its own to morph, and inside
+/// a `GlassEffectContainer` with a glass id macOS 27 draws its label upside down.
 struct FocusControlCluster: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
     var compact = false
     var iconOnly = false
-    @Namespace private var glass
 
     var body: some View {
         let session = store.data.session
         let running = session?.goalID == goal.id
         let ticking = running && session?.isRunning == true
-        GlassGroup(spacing: compact ? 6 : 10) {
-            HStack(spacing: compact ? 6 : 10) {
-                if running {
-                    Button {
-                        withAnimation(Self.morph) { store.togglePause() }
-                    } label: {
-                        label(ticking ? "Pause" : "Resume", ticking ? "pause.fill" : "play.fill")
-                    }
-                    .secondaryActionStyle(goal.tint, compact: compact)
-                    .glassMorphID("pause", in: glass)
-                    // Slides out of the main pill as the session starts, and back into it on stop.
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.3, anchor: .trailing).combined(with: .opacity).combined(with: .offset(x: 24)),
-                        removal: .scale(scale: 0.3, anchor: .trailing).combined(with: .opacity).combined(with: .offset(x: 24))
-                    ))
-                    .help(ticking ? "Pause" : "Resume")
-                }
+        HStack(spacing: compact ? 6 : 10) {
+            if running {
                 Button {
-                    withAnimation(Self.morph) { store.toggleFocus(goal) }
+                    withAnimation(Self.morph) { store.togglePause() }
                 } label: {
-                    label(running ? "Stop" : "Start", running ? "stop.fill" : "play.fill")
+                    label(ticking ? "Pause" : "Resume", ticking ? "pause.fill" : "play.fill")
                 }
-                .primaryActionStyle(goal.tint, compact: compact)
-                .glassMorphID("primary", in: glass)
-                .help(running ? "Stop and save" : "Start a focus session")
-                .contextMenu { FocusLengthMenu(goal: goal) }
+                .secondaryActionStyle(goal.tint, compact: compact)
+                // Slides out of the main pill as the session starts, and back into it on stop.
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.3, anchor: .trailing).combined(with: .opacity).combined(with: .offset(x: 24)),
+                    removal: .scale(scale: 0.3, anchor: .trailing).combined(with: .opacity).combined(with: .offset(x: 24))
+                ))
+                .help(ticking ? "Pause" : "Resume")
             }
+            Button {
+                withAnimation(Self.morph) { store.toggleFocus(goal) }
+            } label: {
+                label(running ? "Stop" : "Start", running ? "stop.fill" : "play.fill")
+            }
+            .primaryActionStyle(goal.tint, compact: compact)
+            .help(running ? "Stop and save" : "Start a focus session")
+            .contextMenu { FocusLengthMenu(goal: goal) }
         }
         .animation(Self.morph, value: running)
     }
