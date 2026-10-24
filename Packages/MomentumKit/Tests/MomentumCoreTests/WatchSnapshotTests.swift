@@ -144,11 +144,116 @@ struct WatchSnapshotTests {
         #expect(palette == WatchPalette.standard)
     }
 
+    @Test("Goals not due today go out too, with their period")
+    func others() throws {
+        let gym = checkInGoal()
+        // Weekends only, and the reference day is a Thursday.
+        let hike = checkInGoal(weekdays: [1, 7])
+        let data = AppData(goals: [gym, hike])
+        let snapshot = engine(data).watchSnapshot(now: referenceNow)
+        let todayIDs = snapshot.items.map(\.id)
+        let otherIDs = snapshot.others?.map(\.id)
+        let hikeItem = try #require(snapshot.item(hike.id))
+        #expect(todayIDs == [gym.id])
+        #expect(otherIDs == [hike.id])
+        #expect(hikeItem.period == .daily)
+    }
+
+    @Test("The week counts daily goals met, time focused and active days")
+    func week() throws {
+        let gym = checkInGoal()
+        let work = timeGoal()
+        var data = AppData(goals: [work, gym])
+        data.log(1, for: gym.id, at: dayOffset(-1))
+        data.log(1, for: gym.id, at: dayOffset(0))
+        data.log(1800, for: work.id, at: dayOffset(-2))
+        data.log(3600, for: work.id, at: dayOffset(0))
+        // The seven days before.
+        data.log(600, for: work.id, at: dayOffset(-8))
+        let week = try #require(engine(data).watchSnapshot(now: referenceNow).week)
+        let due = week.days.map(\.due)
+        let met = week.days.map(\.met)
+        let focus = week.days.map(\.focus)
+        let lastDay = week.days.last?.date
+        let top = week.topGoals.map(\.id)
+        #expect(due == [2, 2, 2, 2, 2, 2, 2])
+        #expect(met == [0, 0, 0, 0, 0, 1, 2])
+        #expect(focus == [0, 0, 0, 0, 1800, 0, 3600])
+        #expect(lastDay == testCalendar.startOfDay(for: referenceNow))
+        #expect(week.focus == 5400)
+        #expect(week.previousFocus == 600)
+        #expect(week.activeDays == 3)
+        #expect(week.longestStreak == 2)
+        #expect(top == [work.id])
+    }
+
+    @Test("A goal added on the watch is made once, in a color no other goal has")
+    func addGoal() throws {
+        let gym = checkInGoal()
+        var data = AppData(goals: [gym])
+        let new = WatchNewGoal(name: "  Stretch ", kind: .time, period: .daily, target: 600)
+        let command = WatchCommand(action: .addGoal(goal: new), date: referenceNow)
+        data.apply(command, now: time(60), calendar: testCalendar)
+        data.apply(command, now: time(120), calendar: testCalendar)
+        let added = try #require(data.goal(new.id))
+        let count = data.goals.count
+        #expect(count == 2)
+        #expect(added.name == "Stretch")
+        #expect(added.kind == .time)
+        #expect(added.period == .daily)
+        #expect(added.target == 600)
+        #expect(added.color != gym.color)
+        #expect(added.createdAt == referenceNow)
+    }
+
+    @Test("A template goal comes whole from the watch; a blank name or a goal deleted since makes nothing")
+    func addGoalFromTemplate() throws {
+        var data = AppData()
+        let template = try #require(GoalTemplate.all.first { $0.id == "exercise" })
+        let fromTemplate = WatchNewGoal(template: template)
+        data.apply(WatchCommand(action: .addGoal(goal: fromTemplate), date: referenceNow), now: referenceNow)
+        let made = try #require(data.goal(fromTemplate.id))
+        #expect(made.unit == "workouts")
+        #expect(made.period == .weekly)
+        #expect(made.target == 4)
+
+        let blank = WatchNewGoal(name: "  ", kind: .count, period: .daily, target: 3)
+        data.apply(WatchCommand(action: .addGoal(goal: blank), date: referenceNow), now: referenceNow)
+        #expect(data.goal(blank.id) == nil)
+
+        // Deleted on another device since: a late copy of the command doesn't bring it back.
+        data.goals.removeAll { $0.id == made.id }
+        data.sync.tombstones[SyncState.goal(made.id)] = time(30)
+        data.apply(WatchCommand(action: .addGoal(goal: fromTemplate), date: referenceNow), now: time(60))
+        #expect(data.goal(made.id) == nil)
+    }
+
+    @Test("A snapshot from an iPhone without the other goals or the week decodes")
+    func olderSnapshot() throws {
+        let snapshot = engine(AppData(goals: [checkInGoal(), checkInGoal(weekdays: [1, 7])])).watchSnapshot(now: referenceNow)
+        var object = try #require(try JSONSerialization.jsonObject(with: snapshot.encoded()) as? [String: Any])
+        object["others"] = nil
+        object["week"] = nil
+        let items = try #require(object["items"] as? [[String: Any]])
+        object["items"] = items.map { item in
+            var item = item
+            item["period"] = nil
+            return item
+        }
+        let older = try WatchSnapshot(encoded: JSONSerialization.data(withJSONObject: object))
+        let ids = older.items.map(\.id)
+        #expect(ids == snapshot.items.map(\.id))
+        #expect(older.others == nil)
+        #expect(older.week == nil)
+        #expect(older.items.first?.period == nil)
+    }
+
     @Test("Commands survive the trip as data, dates exact")
     func commandCoding() throws {
         let actions: [WatchAction] = [.start(goal: UUID()), .stop(goal: UUID(), sessionStart: referenceNow.addingTimeInterval(0.123)),
                                       .setPaused(goal: UUID(), sessionStart: referenceNow, paused: true), .quickAdd(goal: UUID()),
-                                      .startNextBlock(restStart: referenceNow), .endRest(restStart: referenceNow)]
+                                      .startNextBlock(restStart: referenceNow), .endRest(restStart: referenceNow),
+                                      .addGoal(goal: WatchNewGoal(name: "Stretch", kind: .count, period: .weekly, target: 3))]
         for action in actions {
             let command = WatchCommand(action: action, date: referenceNow.addingTimeInterval(0.456))
             #expect(try WatchCommand(encoded: command.encoded()) == command)
