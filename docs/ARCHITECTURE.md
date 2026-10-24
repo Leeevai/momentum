@@ -193,7 +193,11 @@ and no sync service has a conflict to resolve.
   started in, so two devices stopping the same session log it once, wherever they are.
 - **When.** A device writes its file a moment after each change, and merges others' files when
   the folder changes, every minute, when the app comes forward, and before a Lock Screen or
-  widget button acts.
+  widget button acts. On iPhone, a change made in the background (a tap on the watch, a Lock
+  Screen or notification button, Siri) is written at once (`FolderSync.publish`), since the app
+  may be suspended before the store's own write. Merging outside the store
+  (`FolderSync.catchUpFromFolder`) reads only the files saved since it last looked
+  (`SyncFolder.look`), so it costs a look at the folder when nothing changed.
 - **Known limit.** Deletions are remembered for 180 days, and files not saved for 150 days aren't
   merged (unless this device has no data yet). A device that comes back after more than 180 days
   away can still bring back records deleted elsewhere in the meantime.
