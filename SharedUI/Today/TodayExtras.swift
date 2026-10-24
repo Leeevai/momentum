@@ -308,21 +308,21 @@ struct RestBanner: View {
                     BlockDots(done: rest.isLong ? settings.blocksPerCycle : rest.completedBlocks, total: settings.blocksPerCycle)
                 }
                 Spacer()
-                GlassGroup(spacing: 10) {
-                    VStack(alignment: .trailing, spacing: 10) {
-                        Button {
-                            store.startNextBlock()
-                        } label: {
-                            Label("Start block \(rest.nextBlock)", systemImage: "play.fill")
-                        }
-                        .primaryActionStyle(goal.tint)
-                        Button {
-                            store.endRest()
-                        } label: {
-                            Label(over ? "Done for now" : "Skip break", systemImage: over ? "checkmark" : "forward.end.fill")
-                        }
-                        .secondaryActionStyle(.secondary, compact: true)
+                // Not in a glass container: the solid Start pill would draw upside down there on
+                // macOS 27 (see FocusControlCluster).
+                VStack(alignment: .trailing, spacing: 10) {
+                    Button {
+                        store.startNextBlock()
+                    } label: {
+                        Label("Start block \(rest.nextBlock)", systemImage: "play.fill")
                     }
+                    .primaryActionStyle(goal.tint)
+                    Button {
+                        store.endRest()
+                    } label: {
+                        Label(over ? "Done for now" : "Skip break", systemImage: over ? "checkmark" : "forward.end.fill")
+                    }
+                    .secondaryActionStyle(.secondary, compact: true)
                 }
             }
         }

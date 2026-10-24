@@ -83,21 +83,6 @@ extension View {
     func secondaryActionStyle(_ tint: Color, compact: Bool = false) -> some View {
         buttonStyle(GlassPillStyle(tint: tint, prominent: false, compact: compact))
     }
-
-    /// Joins this view's glass to others with the same id, so they morph into one another as
-    /// they appear and disappear (macOS 26). No effect earlier.
-    @ViewBuilder
-    func glassMorphID(_ id: String, in namespace: Namespace.ID) -> some View {
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, iOS 26.0, *) {
-            self.glassEffectID(id, in: namespace)
-        } else {
-            self
-        }
-        #else
-        self
-        #endif
-    }
 }
 
 extension View {
@@ -114,6 +99,7 @@ extension View {
 }
 
 /// Groups glass shapes so they blend and morph together (macOS 26); a plain stack before.
+/// For glass pills only: macOS 27 draws a solid pill's label upside down inside one.
 struct GlassGroup<Content: View>: View {
     var spacing: CGFloat = 12
     @ViewBuilder var content: Content
