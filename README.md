@@ -121,7 +121,8 @@ where time went by category, mood against progress, hit rates and streaks, from 
 Pick the same folder in iCloud Drive (or Dropbox, or any shared folder) on your Mac and your
 iPhone. Each device keeps its own file there and merges the others' record by record: the latest
 change to each goal wins, deletions stick, and progress logged anywhere adds up. No account, no
-server, and nothing to resolve by hand. Your Apple Watch follows your iPhone, so it's in sync too.
+server, and nothing to resolve by hand. Your Apple Watch follows your iPhone, so it's in sync too,
+and with Background App Refresh on, the iPhone catches up now and then in the background.
 
 ### On your wrist
 An Apple Watch app shows today's goals with their rings, starts, pauses and stops the timer, and

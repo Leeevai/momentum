@@ -19,9 +19,16 @@ struct MomentumMobileApp: App {
                 }
         }
         .commands { MobileCommands(store: store) }
+        .backgroundTask(.appRefresh(BackgroundSync.identifier)) {
+            await BackgroundSync.refresh()
+        }
         .onChange(of: scenePhase) { _, phase in
-            // The quick actions are refreshed on the way out, so they match the day when next shown.
-            if phase == .background { QuickActions.update(from: store.engine) }
+            // The quick actions are refreshed on the way out, so they match the day when next shown,
+            // and the next catch-up with other devices is asked for.
+            if phase == .background {
+                QuickActions.update(from: store.engine)
+                BackgroundSync.schedule()
+            }
             guard phase == .active else { return }
             store.reload()
             store.advancePomodoro()

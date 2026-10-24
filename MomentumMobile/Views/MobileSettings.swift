@@ -88,7 +88,7 @@ struct MobileSettings: View {
                     } header: {
                         Text("Sync")
                     } footer: {
-                        Text("Pick the same folder on your Mac and your iPhone. Each device keeps its own file there and merges the others'.")
+                        Text("Pick the same folder on your Mac and your iPhone. Each device keeps its own file there and merges the others'. Your Apple Watch follows this iPhone, and with Background App Refresh on, the iPhone catches up now and then in the background.")
                     }
                 }
                 Section("Coach and journal") {

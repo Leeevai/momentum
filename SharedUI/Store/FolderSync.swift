@@ -124,6 +124,9 @@ final class FolderSync {
     }
     #endif
 
+    /// Whether a sync folder is chosen on this device, for work done outside the store.
+    nonisolated static var hasFolder: Bool { UserDefaults.standard.data(forKey: bookmarkKey) != nil }
+
     /// The folder chosen on this device, for work done outside the store; nil when not syncing.
     private nonisolated static func savedFolder() -> URL? {
         guard let bookmark = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }

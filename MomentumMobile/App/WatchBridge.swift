@@ -49,6 +49,23 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
         queue.async { [self] in deliver(snapshot) }
     }
 
+    /// Like `send`, returning once the snapshot is handed over: for a background refresh, which
+    /// may be suspended as soon as it returns. Launched for one, the app has only just asked the
+    /// session to activate, so it waits for that, a few seconds at most.
+    func sendAndWait(_ snapshot: WatchSnapshot) async {
+        guard WCSession.isSupported() else { return }
+        for _ in 0..<20 {
+            if WCSession.default.activationState == .activated { break }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                deliver(snapshot)
+                continuation.resume()
+            }
+        }
+    }
+
     /// `pushesFace` is false when the watch asked (it gets the snapshot in the reply and reloads
     /// its own complications), so the day's few complication pushes go to changes made elsewhere.
     private func deliver(_ snapshot: WatchSnapshot, pushesFace: Bool = true) {

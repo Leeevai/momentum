@@ -199,7 +199,10 @@ and no sync service has a conflict to resolve.
   that run in the widget extension still wait for the app. Merging outside the store
   (`FolderSync.catchUpFromFolder`) reads only the files saved since it last looked
   (`SyncFolder.look`), so it costs a look at the folder when nothing changed. A file iCloud hasn't
-  downloaded yet is asked for and read on a later look, rather than waited for.
+  downloaded yet is asked for and read on a later look, rather than waited for. While a folder is
+  chosen, the iPhone also asks for background app refresh (`BackgroundSync`): each refresh merges
+  the folder and sends the watch a fresh snapshot, so the widgets and the watch face catch up
+  without the app being opened, as often as the system allows.
 - **Known limit.** Deletions are remembered for 180 days, and files not saved for 150 days aren't
   merged (unless this device has no data yet). A device that comes back after more than 180 days
   away can still bring back records deleted elsewhere in the meantime.
