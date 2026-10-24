@@ -11,6 +11,7 @@ All notable changes to Momentum are recorded here. The format follows
   reading on the goal's page, and every page you log (the + button, the Log sheet, a widget, Siri
   or the watch) moves its bookmark. The goal shows the page you reached, of how many, and the pages
   left; Set Page jumps to a page, and the book finishes on its last one.
+- The watch shows the page you reached in the book you're reading, on the goal's page.
 - The Apple Watch app has more to it: turn the Digital Crown from Today (now with how the day is
   going) to Week, with time focused each day, daily goals met, active days, your best streak and
   the goals you focused on most, and to Goals, with every goal you have, not just today's. Tap +
@@ -45,6 +46,8 @@ All notable changes to Momentum are recorded here. The format follows
   with the sync folder before it answers the watch, without the iPhone app being opened.
 
 ### Fixed
+- On macOS 27, the Start button on Today's cards, and Start block on a break, drew its label
+  upside down.
 - With sync on, a tap on the Apple Watch, a Lock Screen timer button, a notification's button or
   Siri on iPhone could take until the iPhone app was next opened to reach your Mac. The iPhone now
   writes the change to the sync folder straight away.
