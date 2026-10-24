@@ -22,6 +22,16 @@ struct ReadingSection: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                // Books set aside (or added for later) stay here to pick up again, at their page.
+                ForEach(goal.books.filter { $0.status == .abandoned || $0.status == .wantToRead }) { book in
+                    WaitingBookRow(goal: goal, book: book)
+                }
+                let finished = goal.books.filter { $0.status == .finished }.count
+                if finished > 0 {
+                    Label("\(finished) \(finished == 1 ? "book" : "books") finished", systemImage: "checkmark.seal")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .glassCard(tint: goal.tint)
@@ -54,6 +64,33 @@ struct ReadingSection: View {
     private func setPage(of book: Book) {
         guard let page = Int(pageText.trimmingCharacters(in: .whitespaces)), page >= 0 else { return }
         store.perform("Set Page") { $0.setPage(page, in: book.id, of: goal.id) }
+    }
+}
+
+/// A book set aside or waiting, with the page it stopped at and Resume.
+private struct WaitingBookRow: View {
+    @Environment(GoalStore.self) private var store
+    let goal: Goal
+    let book: Book
+
+    var body: some View {
+        HStack(spacing: 12) {
+            BookCover(book: book, tint: goal.tint, height: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(book.title)
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(1)
+                Text(book.currentPage > 0 ? "Stopped at page \(book.currentPage)" : book.status.title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            Spacer(minLength: 8)
+            Button("Resume") {
+                store.perform("Start Book") { $0.startReading(book.id, in: goal.id) }
+            }
+            .secondaryActionStyle(goal.tint, compact: true)
+        }
     }
 }
 
