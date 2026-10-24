@@ -31,6 +31,9 @@ All notable changes to Momentum are recorded here. The format follows
   included, so a goal has the same color everywhere.
 
 ### Fixed
+- With sync on, a tap on the Apple Watch, a Lock Screen timer button, a notification's button or
+  Siri on iPhone could take until the iPhone app was next opened to reach your Mac. The iPhone now
+  writes the change to the sync folder straight away.
 - Text in a goal's or the palette's colors could be hard to read in light mode, pale palettes
   most of all. The accent and every color used for text now reach 4.5:1 on glass, in light
   and dark, while rings, tiles and bars keep the palette's own colors.

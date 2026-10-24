@@ -74,11 +74,12 @@ public struct SyncFolder: Sendable {
     }
 
     /// The other devices' files with their modification dates, asking the sync service to
-    /// download any it has only as a placeholder.
+    /// download any it has only as a placeholder. Those are left out until they're here: reading
+    /// one would wait for the download, and the watch, or a background refresh, waits on the read.
     public func peerFiles() -> [(url: URL, modified: Date)] {
         let manager = FileManager.default
-        guard let names = try? manager.contentsOfDirectory(at: url, includingPropertiesForKeys: [.contentModificationDateKey],
-                                                           options: []) else { return [] }
+        let keys: [URLResourceKey] = [.contentModificationDateKey, .ubiquitousItemDownloadingStatusKey]
+        guard let names = try? manager.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: []) else { return [] }
         var files: [(URL, Date)] = []
         for file in names {
             let name = file.lastPathComponent
@@ -91,8 +92,13 @@ public struct SyncFolder: Sendable {
                 continue
             }
             guard file.pathExtension == Self.fileExtension, file.deletingPathExtension().lastPathComponent != deviceID else { continue }
-            let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-            files.append((file, modified))
+            let values = try? file.resourceValues(forKeys: Set(keys))
+            // Newer systems keep such a file under its own name, with no data until it's asked for.
+            if values?.ubiquitousItemDownloadingStatus == .notDownloaded {
+                try? manager.startDownloadingUbiquitousItem(at: file)
+                continue
+            }
+            files.append((file, values?.contentModificationDate ?? .distantPast))
         }
         return files.sorted { $0.0.lastPathComponent < $1.0.lastPathComponent }
     }
@@ -138,16 +144,54 @@ public struct SyncFolder: Sendable {
     /// `startingFresh` (this device has no data yet), a folder holding only stale files is read
     /// anyway: with no fresher copy anywhere, there's no deletion they could undo.
     public func readPeers(now: Date = .now, startingFresh: Bool = false) -> [SyncEnvelope] {
-        var fresh: [SyncEnvelope] = []
+        look(since: [:], now: now, startingFresh: startingFresh).envelopes
+    }
+
+    /// What one look at the folder found.
+    public struct Look: Sendable {
+        /// Every peer file's date as of this look, by file name: what the next look is given as
+        /// `known`. A file that couldn't be read (still downloading) has none, so the next look
+        /// tries it again.
+        public var dates: [String: Date] = [:]
+        /// Files read this time, rather than skipped as unchanged.
+        public var read: Set<String> = []
+        /// Devices whose files are in a newer data format, by file name.
+        public var newer: [String: String] = [:]
+        /// The copies to merge.
+        public var envelopes: [SyncEnvelope] = []
+    }
+
+    /// Reads the other devices' files that changed since an earlier look, whose `dates` are
+    /// `known`; unchanged ones were merged then and are skipped. With `startingFresh` and nothing
+    /// known, a folder holding only stale files is read anyway, as in `readPeers`.
+    public func look(since known: [String: Date], now: Date = .now, startingFresh: Bool = false) -> Look {
+        var look = Look()
         var stale: [SyncEnvelope] = []
         for file in peerFiles() {
+            let name = file.url.lastPathComponent
+            if known[name] == file.modified {
+                look.dates[name] = file.modified
+                continue
+            }
+            look.read.insert(name)
             switch read(file.url, now: now) {
-            case .read(let envelope): fresh.append(envelope)
-            case .stale(let envelope): stale.append(envelope)
-            case .newer, .unreadable: break
+            case .read(let envelope):
+                look.envelopes.append(envelope)
+                look.dates[name] = file.modified
+            case .stale(let envelope):
+                stale.append(envelope)
+                look.dates[name] = file.modified
+            case .newer(let deviceName):
+                // Not merged: this version would lose what it doesn't know. Not read again either
+                // until it changes.
+                look.newer[name] = deviceName
+                look.dates[name] = file.modified
+            case .unreadable:
+                break
             }
         }
-        return startingFresh && fresh.isEmpty ? stale : fresh
+        if startingFresh && look.envelopes.isEmpty && known.isEmpty { look.envelopes = stale }
+        return look
     }
 
     public static func encode(_ envelope: SyncEnvelope) throws -> Data {

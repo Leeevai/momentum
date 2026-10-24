@@ -156,6 +156,7 @@ final class GoalStore {
             sync = FolderSync(store: self)
             #if os(iOS)
             LiveActivitySync.catchUpHandler = { FolderSync.catchUpFromFolder() }
+            LiveActivitySync.publishHandler = { FolderSync.publish() }
             #endif
             // The widgets may still show a timeline from an earlier build, or placeholders after
             // reloads the system gave up on; opening the app redraws them.

@@ -392,6 +392,11 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
                 Self.activateApp()
             }
         }
+        #if os(iOS)
+        // A button tapped on the Lock Screen runs the app only briefly, often too briefly for the
+        // store's own write to the sync folder, which waits for changes to settle.
+        if Action.timer.contains(action) || action == Action.quickAdd { FolderSync.publish() }
+        #endif
     }
 }
 
