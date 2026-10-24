@@ -268,5 +268,46 @@ struct SyncFolderTests {
         let peers = phone.readPeers(now: referenceNow, startingFresh: true)
         #expect(device == "Studio")
         #expect(peers.isEmpty)
+
+        // Noted once, and not read again until it changes.
+        let first = phone.look(since: [:], now: referenceNow)
+        let again = phone.look(since: first.dates, now: referenceNow)
+        let noted = first.newer
+        let reread = again.read
+        #expect(noted == ["mac.momentum-sync": "Studio"])
+        #expect(reread.isEmpty)
+    }
+
+    @Test("A look reads only the files saved since the last one, and any it couldn't read")
+    func lookReadsChanges() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let mac = SyncFolder(url: folder, deviceID: "mac")
+        let pad = SyncFolder(url: folder, deviceID: "pad")
+        let phone = SyncFolder(url: folder, deviceID: "phone")
+        try mac.write(SyncEnvelope(deviceID: "mac", deviceName: "Studio", platform: "macOS", savedAt: referenceNow,
+                                   data: AppData(goals: [checkInGoal()])))
+        try pad.write(SyncEnvelope(deviceID: "pad", deviceName: "iPad", platform: "iOS", savedAt: referenceNow, data: AppData()))
+        try Data("not json".utf8).write(to: folder.appendingPathComponent("broken.momentum-sync"))
+
+        let first = phone.look(since: [:], now: referenceNow)
+        let firstDevices = first.envelopes.map(\.deviceID)
+        let firstDated = Set(first.dates.keys)
+        #expect(firstDevices == ["mac", "pad"])
+        #expect(firstDated == ["mac.momentum-sync", "pad.momentum-sync"])
+
+        // Nothing saved since: only the file that couldn't be read is read again.
+        let second = phone.look(since: first.dates, now: referenceNow)
+        let secondRead = second.read
+        #expect(second.envelopes.isEmpty)
+        #expect(secondRead == ["broken.momentum-sync"])
+
+        // The Mac saves again: only its file is read.
+        try mac.write(SyncEnvelope(deviceID: "mac", deviceName: "Studio", platform: "macOS", savedAt: referenceNow, data: AppData()))
+        try FileManager.default.setAttributes([.modificationDate: referenceNow], ofItemAtPath: mac.ownFileURL.path)
+        let third = phone.look(since: second.dates, now: referenceNow)
+        let thirdDevices = third.envelopes.map(\.deviceID)
+        #expect(thirdDevices == ["mac"])
     }
 }
