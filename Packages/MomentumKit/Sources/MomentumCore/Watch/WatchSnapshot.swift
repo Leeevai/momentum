@@ -30,6 +30,9 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         public var challengeLength: Int?
         /// The period the progress counts toward; nil from an iPhone that doesn't send it.
         public var period: GoalPeriod? = nil
+        /// Where the book being read is up to ("Page 134 of 420"), on a books goal or one counted
+        /// in pages; nil without one, or from an iPhone that doesn't send it.
+        public var bookmark: String? = nil
 
         /// The item as its next period starts, before the iPhone has sent one: nothing done yet.
         func startingOver() -> Item {
@@ -279,7 +282,13 @@ extension ProgressEngine {
             periodEnd: goal.effectivePeriod == .total ? nil : interval(of: goal.effectivePeriod, containing: now).end,
             doneText: Self.doneText(for: goal),
             challengeDay: challenge?.dayNumber, challengeLength: challenge?.challenge.days,
-            period: goal.effectivePeriod)
+            period: goal.effectivePeriod,
+            bookmark: goal.kind == .books || goal.tracksPages ? goal.currentBook.map(Self.bookmark) : nil)
+    }
+
+    /// "Page 134 of 420", or "Page 134" without a page count.
+    private static func bookmark(_ book: Book) -> String {
+        book.totalPages.map { "Page \(book.currentPage) of \($0)" } ?? "Page \(book.currentPage)"
     }
 
     private static func doneText(for goal: Goal) -> String {
