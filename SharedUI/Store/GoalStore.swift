@@ -673,7 +673,8 @@ extension GoalStore {
     func quickAdd(_ goal: Goal) { perform("Log Progress") { $0.quickAdd(to: goal.id) } }
 
     func log(_ amount: Double, for goal: Goal, at date: Date, note: String) {
-        perform("Log Progress") { $0.log(amount, for: goal.id, at: date, note: note) }
+        // On a goal counted in pages, the bookmark of the book being read moves too.
+        perform("Log Progress") { $0.logReading(amount, for: goal.id, at: date, note: note) }
     }
 
     func deleteEntry(_ entry: LogEntry) { perform("Delete Entry") { $0.deleteEntry(entry.id) } }

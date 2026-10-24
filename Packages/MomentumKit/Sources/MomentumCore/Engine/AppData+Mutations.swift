@@ -154,9 +154,32 @@ extension AppData {
             if let book = goal.currentBook {
                 logPages(Int(goal.quickAddStep.rounded()), in: book.id, of: goalID, at: now)
             }
+        case .amount where goal.tracksPages:
+            logReading(goal.quickAddStep, for: goalID, at: now)
         case .time, .count, .amount:
             log(goal.quickAddStep, for: goalID, at: now)
         }
+    }
+
+    /// Logs an amount on a goal; on a goal counted in pages with a book being read, it's pages
+    /// read in that book, and its bookmark moves with them. The whole amount counts toward the
+    /// goal, whatever's left of the book (the rest is read in the next one); the bookmark stops at
+    /// the last page, and the book is finished there.
+    @discardableResult
+    public mutating func logReading(_ amount: Double, for goalID: UUID, at date: Date = .now, note: String = "") -> LogEntry? {
+        guard let goal = goal(goalID), goal.tracksPages, let book = goal.currentBook else {
+            return log(amount, for: goalID, at: date, note: note)
+        }
+        guard let entry = log(amount, for: goalID, at: date, note: note, bookID: book.id) else { return nil }
+        let moved = max(0, book.currentPage + Int(min(max(amount, -1_000_000), 1_000_000).rounded()))
+        // A page count that isn't positive (a damaged import) is no page count.
+        let total = book.totalPages.flatMap { $0 > 0 ? $0 : nil }
+        let page = total.map { min($0, moved) } ?? moved
+        updateBook(book.id, in: goalID) { $0.currentPage = page }
+        if let total, page >= total {
+            finishBook(book.id, in: goalID, at: date)
+        }
+        return entry
     }
 
     public mutating func deleteEntry(_ id: UUID) {

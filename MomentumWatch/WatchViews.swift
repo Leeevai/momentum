@@ -286,6 +286,12 @@ struct GoalPage: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                    if let bookmark = item.bookmark {
+                        Label(bookmark, systemImage: "bookmark.fill")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(palette.color(item.color))
+                            .monospacedDigit()
+                    }
                     actions(for: item)
                     HStack(spacing: 10) {
                         if item.streak > 0 {

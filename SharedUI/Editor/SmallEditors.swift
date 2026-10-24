@@ -318,6 +318,10 @@ struct BookEditor: View {
         .sheetFrame(width: 480, height: 640)
         .background(Aurora(accent: goal?.tint))
         .task(id: query) { await search() }
+        .onAppear {
+            // A book added to a goal counted in pages is the one being read, from any page.
+            if book == nil, goal?.tracksPages == true { draft.status = .reading }
+        }
     }
 
     /// Searches after typing pauses, so each keystroke doesn't send a request.

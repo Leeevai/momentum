@@ -404,6 +404,12 @@ public struct Goal: Codable, Identifiable, Hashable, Sendable {
         books.filter { $0.status == .reading }.max { ($0.startedAt ?? $0.addedAt) < ($1.startedAt ?? $1.addedAt) }
     }
 
+    /// An amount goal counted in pages ("20 pages a day"), which can keep the place in the book
+    /// being read: its books' bookmarks move as pages are logged.
+    public var tracksPages: Bool {
+        kind == .amount && ["page", "pages", "pg", "pgs"].contains(unit.trimmingCharacters(in: .whitespaces).lowercased())
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id, name, icon, symbol, color, category, details, kind, unit, period, target, streakMinimum, weekdays, deadline
         case quickAddStep, focusMinutes, links, milestones, books, reminder, stackAfter, breaks, challenge, createdAt, archivedAt

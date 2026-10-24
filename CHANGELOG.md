@@ -7,6 +7,11 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- Keep your place in a book on a goal counted in pages, like 20 pages a day: add the book you're
+  reading on the goal's page, and every page you log (the + button, the Log sheet, a widget, Siri
+  or the watch) moves its bookmark. The goal shows the page you reached, of how many, and the pages
+  left; Set Page jumps to a page, and the book finishes on its last one.
+- The watch shows the page you reached in the book you're reading, on the goal's page.
 - Combine Into, in a goal's menu: when the same goal ended up twice (made on two devices before
   they synced), move one's logs, milestones, books and links into the other, which keeps its own
   target and schedule, and remove it on every device. It works between goals that count the same
@@ -45,6 +50,8 @@ All notable changes to Momentum are recorded here. The format follows
   with the sync folder before it answers the watch, without the iPhone app being opened.
 
 ### Fixed
+- On macOS 27, the Start button on Today's cards, and Start block on a break, drew its label
+  upside down.
 - With sync on, a tap on the Apple Watch, a Lock Screen timer button, a notification's button or
   Siri on iPhone could take until the iPhone app was next opened to reach your Mac. The iPhone now
   writes the change to the sync folder straight away.
