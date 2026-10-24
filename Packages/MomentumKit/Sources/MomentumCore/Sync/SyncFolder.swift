@@ -74,11 +74,12 @@ public struct SyncFolder: Sendable {
     }
 
     /// The other devices' files with their modification dates, asking the sync service to
-    /// download any it has only as a placeholder.
+    /// download any it has only as a placeholder. Those are left out until they're here: reading
+    /// one would wait for the download, and the watch, or a background refresh, waits on the read.
     public func peerFiles() -> [(url: URL, modified: Date)] {
         let manager = FileManager.default
-        guard let names = try? manager.contentsOfDirectory(at: url, includingPropertiesForKeys: [.contentModificationDateKey],
-                                                           options: []) else { return [] }
+        let keys: [URLResourceKey] = [.contentModificationDateKey, .ubiquitousItemDownloadingStatusKey]
+        guard let names = try? manager.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: []) else { return [] }
         var files: [(URL, Date)] = []
         for file in names {
             let name = file.lastPathComponent
@@ -91,8 +92,13 @@ public struct SyncFolder: Sendable {
                 continue
             }
             guard file.pathExtension == Self.fileExtension, file.deletingPathExtension().lastPathComponent != deviceID else { continue }
-            let modified = (try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-            files.append((file, modified))
+            let values = try? file.resourceValues(forKeys: Set(keys))
+            // Newer systems keep such a file under its own name, with no data until it's asked for.
+            if values?.ubiquitousItemDownloadingStatus == .notDownloaded {
+                try? manager.startDownloadingUbiquitousItem(at: file)
+                continue
+            }
+            files.append((file, values?.contentModificationDate ?? .distantPast))
         }
         return files.sorted { $0.0.lastPathComponent < $1.0.lastPathComponent }
     }
