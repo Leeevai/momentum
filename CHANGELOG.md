@@ -7,6 +7,11 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- The Apple Watch app has more to it: turn the Digital Crown from Today (now with how the day is
+  going) to Week, with time focused each day, daily goals met, active days, your best streak and
+  the goals you focused on most, and to Goals, with every goal you have, not just today's. Tap +
+  to make a goal on the watch, from a template or your own (a name, times or time, how much a day
+  or a week).
 - To-dos from videos: add saved reels, videos or screenshots of a post (or paste its caption), and
   each video becomes a to-do as long as the video, with the post's link on it. Durations written
   on a slide are read too. Speech and text recognition and Apple's on-device model do the work
