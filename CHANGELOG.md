@@ -19,6 +19,9 @@ All notable changes to Momentum are recorded here. The format follows
   hue (spectrum, analogous, complementary, triadic or monochrome) and how light and crisp it
   all is, with a live preview in light and dark. Make one from New in the palette settings, or
   customize a built-in palette; yours sync with your other settings.
+- With sync on, the iPhone catches up with your other devices in the background now and then
+  (when Background App Refresh is on), so its widgets and your watch face show what you did on
+  your Mac without the app being opened.
 
 ### Changed
 - Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
