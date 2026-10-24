@@ -126,7 +126,6 @@ final class FolderSync {
 
     init(store: GoalStore) {
         self.store = store
-        UserDefaults.standard.set(Self.deviceName, forKey: Self.nameKey)
         restore()
     }
 
@@ -275,6 +274,8 @@ final class FolderSync {
             guard data != self.lastWritten else { return }
             let envelope = SyncEnvelope(deviceID: Self.deviceID, deviceName: Self.deviceName,
                                         platform: Self.platform, savedAt: .now, data: data)
+            // For `publish`, which can't ask for it outside the main actor.
+            UserDefaults.standard.set(envelope.deviceName, forKey: Self.nameKey)
             let target = SyncFolder(url: folder, deviceID: Self.deviceID)
             do {
                 try await Task.detached(priority: .utility) { try target.write(envelope) }.value
