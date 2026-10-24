@@ -29,6 +29,8 @@ All notable changes to Momentum are recorded here. The format follows
   accents follow the palette too. The goal editor shows the palette's colors.
 - Widgets, the Live Activity and the Apple Watch app draw in your palette too, custom ones
   included, so a goal has the same color everywhere.
+- With sync on, opening the Apple Watch app shows what you did on your Mac: the iPhone catches up
+  with the sync folder before it answers the watch, without the iPhone app being opened.
 
 ### Fixed
 - With sync on, a tap on the Apple Watch, a Lock Screen timer button, a notification's button or

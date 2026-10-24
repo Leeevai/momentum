@@ -219,6 +219,12 @@ resent safely, a Stop that arrives late doesn't count the hours in between, and 
 can't end a newer session. Out of the iPhone's reach, commands go by `transferUserInfo`, and new
 ones queue behind them so they arrive in the order tapped.
 
+The watch takes part in sync through the iPhone. Before answering anything from the watch, a tap
+or a request for a fresh snapshot (sent whenever the watch app comes forward), the iPhone merges
+the sync folder (`FolderSync.catchUpFromFolder`), so the watch shows what was done on the Mac
+without the iPhone app being opened, and a tap acts on the latest data. The change a tap makes is
+written to the folder at once, for the Mac to pick up.
+
 The snapshot also carries the iPhone's palette as it looks in dark mode, the watch's only
 appearance (`WatchPalette`: the accent and a swatch per goal color), so a goal has the same color
 on the wrist. The watch app draws in it through the `watchPalette` environment value; a snapshot

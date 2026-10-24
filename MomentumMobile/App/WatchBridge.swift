@@ -120,14 +120,17 @@ final class WatchBridge: NSObject, WCSessionDelegate, @unchecked Sendable {
     }
 
     /// Carries out a command, once however often it arrives, and returns the snapshot after it.
-    /// A message without one asks for a fresh snapshot.
+    /// A message without one asks for a fresh snapshot. Either way, what the other devices did is
+    /// merged in first: a tap mustn't act on what this iPhone last saw, and the watch should show
+    /// what was done on the Mac without the iPhone app being opened. With nothing new in the sync
+    /// folder, that's a look at it.
     private func handle(_ message: [String: Any]) -> WatchSnapshot {
+        FolderSync.catchUpFromFolder()
         guard let raw = message[Key.action] as? Data, let command = try? WatchCommand(encoded: raw) else {
             return currentSnapshot()
         }
         var applied = UserDefaults.standard.stringArray(forKey: Self.appliedKey) ?? []
         guard !applied.contains(command.id.uuidString) else { return currentSnapshot() }
-        LiveActivitySync.catchUp()
         let data = SharedStore.update { $0.apply(command) }
         applied.append(command.id.uuidString)
         UserDefaults.standard.set(Array(applied.suffix(Self.appliedLimit)), forKey: Self.appliedKey)
