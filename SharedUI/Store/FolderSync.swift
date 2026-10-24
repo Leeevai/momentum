@@ -71,6 +71,9 @@ final class FolderSync {
             let merged = SharedStore.transform(stamping: false) { data in
                 for envelope in look.envelopes { data = SyncMerge.merge(data, envelope.data) }
             }
+            // Nothing is saved over a data file this version can't read: its peers stay unread, to
+            // be merged once it can.
+            guard !SharedStore.fileStore.isUnreadable else { return false }
             changed = merged.after != merged.before
             // What the app settles after its own merges, settled here too, as this device's change.
             var probe = merged.after
@@ -79,7 +82,11 @@ final class FolderSync {
                 changed = true
             }
         }
-        UserDefaults.standard.set(look.dates, forKey: caughtUpKey)
+        // A file in a newer format is read again next time, so it's merged once this device is
+        // updated rather than when its device next saves.
+        var dates = look.dates
+        for name in look.newer.keys { dates[name] = nil }
+        UserDefaults.standard.set(dates, forKey: caughtUpKey)
         return changed
     }
 
