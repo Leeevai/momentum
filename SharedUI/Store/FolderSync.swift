@@ -50,26 +50,70 @@ final class FolderSync {
 
     private nonisolated static let bookmarkKey = "syncFolderBookmark"
     private nonisolated static let deviceKey = "syncDeviceID"
+    /// This device's name as the others list it, kept for writes made outside the store.
+    private nonisolated static let nameKey = "syncDeviceName"
+    /// The other devices' files, with their dates as `catchUpFromFolder` last read them.
+    private nonisolated static let caughtUpKey = "syncCaughtUpFiles"
+    private nonisolated static let log = Logger(subsystem: "dev.momentum.app", category: "Sync")
 
     /// Merges the other devices' copies straight into the data file, without the app's store:
-    /// for intents (a Lock Screen button) that must not act on data older than the folder's.
-    nonisolated static func catchUpFromFolder() {
-        guard let bookmark = UserDefaults.standard.data(forKey: bookmarkKey) else { return }
-        var stale = false
-        guard let url = try? URL(resolvingBookmarkData: bookmark, options: bookmarkResolution, relativeTo: nil,
-                                 bookmarkDataIsStale: &stale) else { return }
+    /// for intents (a Lock Screen button) and the watch, which must not act on data older than
+    /// the folder's. Only files saved since it last looked are read, so when nothing changed it
+    /// costs a look at the folder. Returns whether the data changed.
+    @discardableResult
+    nonisolated static func catchUpFromFolder() -> Bool {
+        guard let url = savedFolder() else { return false }
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-        let envelopes = SyncFolder(url: url, deviceID: deviceID).readPeers()
-        guard !envelopes.isEmpty else { return }
-        let merged = SharedStore.transform(stamping: false) { data in
-            for envelope in envelopes { data = SyncMerge.merge(data, envelope.data) }
+        let known = UserDefaults.standard.dictionary(forKey: caughtUpKey) as? [String: Date] ?? [:]
+        let look = SyncFolder(url: url, deviceID: deviceID).look(since: known)
+        var changed = false
+        if !look.envelopes.isEmpty {
+            let merged = SharedStore.transform(stamping: false) { data in
+                for envelope in look.envelopes { data = SyncMerge.merge(data, envelope.data) }
+            }
+            changed = merged.after != merged.before
+            // What the app settles after its own merges, settled here too, as this device's change.
+            var probe = merged.after
+            if probe.settleAfterMerge(from: merged.before) {
+                SharedStore.transform { $0.settleAfterMerge(from: merged.before) }
+                changed = true
+            }
         }
-        // What the app settles after its own merges, settled here too, as this device's change.
-        var probe = merged.after
-        if probe.settleAfterMerge(from: merged.before) {
-            SharedStore.transform { $0.settleAfterMerge(from: merged.before) }
+        UserDefaults.standard.set(look.dates, forKey: caughtUpKey)
+        return changed
+    }
+
+    /// Writes this device's copy to the folder now, from the data on disk, without the app's
+    /// store: after a change the iPhone makes in the background (a tap on the watch, a Lock
+    /// Screen button, Siri). The store writes two seconds after a change, and an app woken in the
+    /// background is often suspended by then, leaving the other devices without the change until
+    /// the app next runs.
+    nonisolated static func publish() {
+        guard let url = savedFolder() else { return }
+        ProcessInfo.processInfo.performExpiringActivity(withReason: "Writing to the sync folder") { expired in
+            guard !expired else { return }
+            let data = SharedStore.load()
+            // A data file this version can't read loads as nothing, which mustn't go out as this
+            // device's copy.
+            guard !SharedStore.fileStore.isUnreadable else { return }
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            let name = UserDefaults.standard.string(forKey: nameKey) ?? genericName
+            let envelope = SyncEnvelope(deviceID: deviceID, deviceName: name, platform: platform, savedAt: .now, data: data)
+            do {
+                try SyncFolder(url: url, deviceID: deviceID).write(envelope)
+            } catch {
+                log.error("Sync write failed: \(error.localizedDescription, privacy: .public)")
+            }
         }
+    }
+
+    /// The folder chosen on this device, for work done outside the store; nil when not syncing.
+    private nonisolated static func savedFolder() -> URL? {
+        guard let bookmark = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
+        var stale = false
+        return try? URL(resolvingBookmarkData: bookmark, options: bookmarkResolution, relativeTo: nil, bookmarkDataIsStale: &stale)
     }
 
     /// A stable id for this device, made once.
@@ -82,6 +126,7 @@ final class FolderSync {
 
     init(store: GoalStore) {
         self.store = store
+        UserDefaults.standard.set(Self.deviceName, forKey: Self.nameKey)
         restore()
     }
 
@@ -97,6 +142,7 @@ final class FolderSync {
         do {
             let bookmark = try url.bookmarkData(options: Self.bookmarkCreation, includingResourceValuesForKeys: nil, relativeTo: nil)
             UserDefaults.standard.set(bookmark, forKey: Self.bookmarkKey)
+            UserDefaults.standard.removeObject(forKey: Self.caughtUpKey)
             open(url)
             syncNow()
         } catch {
@@ -107,12 +153,14 @@ final class FolderSync {
     #if os(macOS)
     private nonisolated static let bookmarkCreation: URL.BookmarkCreationOptions = .withSecurityScope
     private nonisolated static let bookmarkResolution: URL.BookmarkResolutionOptions = .withSecurityScope
-    private static let platform = "macOS"
-    private static var deviceName: String { Host.current().localizedName ?? "Mac" }
+    private nonisolated static let platform = "macOS"
+    private nonisolated static let genericName = "Mac"
+    private static var deviceName: String { Host.current().localizedName ?? genericName }
     #else
     private nonisolated static let bookmarkCreation: URL.BookmarkCreationOptions = []
     private nonisolated static let bookmarkResolution: URL.BookmarkResolutionOptions = []
-    private static let platform = "iOS"
+    private nonisolated static let platform = "iOS"
+    private nonisolated static let genericName = "iPhone"
     private static var deviceName: String { UIDevice.current.name }
     #endif
 
@@ -136,6 +184,7 @@ final class FolderSync {
     func stop() {
         close()
         UserDefaults.standard.removeObject(forKey: Self.bookmarkKey)
+        UserDefaults.standard.removeObject(forKey: Self.caughtUpKey)
         peers = []
         peersByID = [:]
         lastSync = nil
@@ -250,45 +299,19 @@ final class FolderSync {
         isSyncing = true
         Task { [weak self] in
             // Only files changed since they were last read are read; a file that couldn't be
-            // read (still downloading) keeps no date, so the next pass tries it again.
-            let pass = await Task.detached(priority: .utility) { () -> PullPass in
-                var pass = PullPass()
-                var stale: [SyncEnvelope] = []
-                for file in source.peerFiles() {
-                    let name = file.url.lastPathComponent
-                    if known[name] == file.modified {
-                        pass.dates[name] = file.modified
-                        continue
-                    }
-                    pass.read.insert(name)
-                    switch source.read(file.url) {
-                    case .read(let envelope):
-                        pass.envelopes.append(envelope)
-                        pass.dates[name] = file.modified
-                    case .stale(let envelope):
-                        stale.append(envelope)
-                        pass.dates[name] = file.modified
-                    case .newer(let deviceName):
-                        // Not merged: this version would lose what it doesn't know. Not read
-                        // again either until it changes.
-                        pass.newer[name] = deviceName
-                        pass.dates[name] = file.modified
-                    case .unreadable:
-                        break
-                    }
-                }
-                if startingFresh && pass.envelopes.isEmpty && known.isEmpty { pass.envelopes = stale }
-                return pass
+            // read (still downloading) keeps no date, so the next look tries it again.
+            let look = await Task.detached(priority: .utility) {
+                source.look(since: known, startingFresh: startingFresh)
             }.value
             guard let self else { return }
             self.isSyncing = false
-            self.peerDates = pass.dates
+            self.peerDates = look.dates
             // Files read this time say whether they're newer; unchanged ones still say what they did.
             let previousNotice = self.newerVersionNotice
-            self.newerPeers = self.newerPeers.filter { pass.dates[$0.key] != nil && !pass.read.contains($0.key) }
-                .merging(pass.newer) { $1 }
+            self.newerPeers = self.newerPeers.filter { look.dates[$0.key] != nil && !look.read.contains($0.key) }
+                .merging(look.newer) { $1 }
             if self.newerVersionNotice != nil || self.lastError == previousNotice { self.lastError = self.newerVersionNotice }
-            let envelopes = pass.envelopes
+            let envelopes = look.envelopes
             guard !envelopes.isEmpty else { return }
             for envelope in envelopes {
                 self.peersByID[envelope.deviceID] = Peer(id: envelope.deviceID, name: envelope.deviceName, platform: envelope.platform,
@@ -298,16 +321,5 @@ final class FolderSync {
             self.store?.merge(envelopes.map(\.data))
             self.lastSync = .now
         }
-    }
-
-    /// What one look at the folder found.
-    private struct PullPass: Sendable {
-        /// Every peer file's date as last read, by file name.
-        var dates: [String: Date] = [:]
-        /// Files read this time, rather than skipped as unchanged.
-        var read: Set<String> = []
-        /// Devices whose files are in a newer data format, by file name.
-        var newer: [String: String] = [:]
-        var envelopes: [SyncEnvelope] = []
     }
 }

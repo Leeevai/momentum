@@ -183,19 +183,25 @@ struct SetFocusRunningIntent: SetValueIntent {
 }
 #endif
 
-/// Keeps the Lock Screen timer in step after an intent changes the data. On iPhone the timer
-/// intents are Live Activity intents, so they run in the app, which may update the activity.
+/// Keeps the Lock Screen timer, and the other devices, in step after an intent changes the data.
+/// On iPhone the timer intents are Live Activity intents, so they run in the app, which may update
+/// the activity.
 enum LiveActivitySync {
     /// Merges in what other devices did, set by the app where it syncs. A Lock Screen button can
     /// be tapped long after the app last looked at the sync folder; acting on stale data would
     /// pause a session already stopped elsewhere, and bring it back.
     nonisolated(unsafe) static var catchUpHandler: (@Sendable () -> Void)?
+    /// Writes this device's copy to the sync folder, set by the app where it syncs. The app runs
+    /// only briefly for a button tapped in the background, often too briefly for the store's own
+    /// write, which waits for changes to settle.
+    nonisolated(unsafe) static var publishHandler: (@Sendable () -> Void)?
 
     static func catchUp() {
         catchUpHandler?()
     }
 
     static func after(_ data: AppData) async {
+        publishHandler?()
         #if os(iOS)
         await FocusActivityController.sync(with: data)
         #endif
