@@ -55,6 +55,7 @@ final class FolderSync {
     /// The other devices' files, with their dates as `catchUpFromFolder` last read them.
     private nonisolated static let caughtUpKey = "syncCaughtUpFiles"
     private nonisolated static let log = Logger(subsystem: "dev.momentum.app", category: "Sync")
+    private nonisolated static let publishing = NSLock()
 
     /// Merges the other devices' copies straight into the data file, without the app's store:
     /// for intents (a Lock Screen button) and the watch, which must not act on data older than
@@ -93,6 +94,10 @@ final class FolderSync {
         guard let url = savedFolder() else { return }
         ProcessInfo.processInfo.performExpiringActivity(withReason: "Writing to the sync folder") { expired in
             guard !expired else { return }
+            // One at a time, each reading the data once the one before has written: two taps in
+            // quick succession can't leave the earlier copy written last.
+            publishing.lock()
+            defer { publishing.unlock() }
             let data = SharedStore.load()
             // A data file this version can't read loads as nothing, which mustn't go out as this
             // device's copy.
