@@ -7,6 +7,10 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- Keep your place in a book on a goal counted in pages, like 20 pages a day: add the book you're
+  reading on the goal's page, and every page you log (the + button, the Log sheet, a widget, Siri
+  or the watch) moves its bookmark. The goal shows the page you reached, of how many, and the pages
+  left; Set Page jumps to a page, and the book finishes on its last one.
 - The Apple Watch app has more to it: turn the Digital Crown from Today (now with how the day is
   going) to Week, with time focused each day, daily goals met, active days, your best streak and
   the goals you focused on most, and to Goals, with every goal you have, not just today's. Tap +
