@@ -111,7 +111,8 @@ morphs open into its story.
 ### Reading, properly
 A books goal is a small library: reading, up next, finished and set aside. Find books in the Open
 Library catalog with covers and page counts, import your Goodreads library, log pages with one tap
-and finish books with a rating.
+and finish books with a rating. A goal counted in pages, like 20 pages a day, keeps your place too:
+add the book you're reading, and the page you reached and the pages left move as you log.
 
 ### Insights
 Focus per day by goal against the period before, your strongest weekday, the hour you focus best,
