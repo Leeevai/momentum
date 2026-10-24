@@ -121,13 +121,15 @@ where time went by category, mood against progress, hit rates and streaks, from 
 Pick the same folder in iCloud Drive (or Dropbox, or any shared folder) on your Mac and your
 iPhone. Each device keeps its own file there and merges the others' record by record: the latest
 change to each goal wins, deletions stick, and progress logged anywhere adds up. No account, no
-server, and nothing to resolve by hand.
+server, and nothing to resolve by hand. Your Apple Watch follows your iPhone, so it's in sync too.
 
 ### On your wrist
 An Apple Watch app shows today's goals with their rings, starts, pauses and stops the timer, and
 logs a check-in with one tap (or a double tap of your fingers). Complications put today's count,
 the next goal or the running timer on your watch face. The iPhone does the work and
-keeps the watch up to date; taps made out of its reach are delivered when it's back.
+keeps the watch up to date; taps made out of its reach are delivered when it's back. With sync
+on, the watch keeps up with your Mac too: each time you open it, the iPhone brings in what changed
+in the sync folder first, without the iPhone app being opened.
 
 ### Widgets everywhere
 Interactive widgets on the Mac desktop and the iPhone Home Screen: **start and stop timers, check
