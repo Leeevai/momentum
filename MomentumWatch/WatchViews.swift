@@ -1,53 +1,32 @@
 import MomentumCore
 import SwiftUI
 
-/// Today on the watch: the timer if one is running, then each goal with its ring.
+/// The watch app: pages to turn with the Digital Crown (Today, Week and Goals), each opening a
+/// goal's page, and New Goal from the + on Today and Goals.
 struct WatchRoot: View {
     @Environment(WatchStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
     @State private var path: [UUID] = []
+    @State private var makesGoal = false
 
     var body: some View {
         let snapshot = store.snapshot
         let palette = snapshot.palette ?? .standard
         NavigationStack(path: $path) {
-            List {
-                if let session = snapshot.session, let item = snapshot.item(session.goalID) {
-                    Section {
-                        NavigationLink(value: item.id) {
-                            SessionRow(session: session, item: item)
-                        }
-                        .listItemTint(palette.color(item.color).opacity(0.35))
-                    }
-                } else if let rest = snapshot.rest, let item = snapshot.item(rest.goalID) {
-                    Section {
-                        RestRow(rest: rest, item: item)
-                    }
-                }
-                Section {
-                    ForEach(snapshot.items) { item in
-                        NavigationLink(value: item.id) {
-                            GoalRow(item: item)
-                        }
-                    }
-                } header: {
-                    if snapshot.total > 0 {
-                        Text("\(snapshot.done) of \(snapshot.total) done")
-                    }
-                } footer: {
-                    if snapshot.items.isEmpty {
-                        Text(snapshot.generatedAt == .distantPast
-                             ? "Open Momentum on your iPhone to bring your goals here."
-                             : "Nothing due today. Enjoy it.")
-                    } else if store.queuedActions > 0 {
-                        Label("Waiting for your iPhone", systemImage: "iphone.slash")
-                    }
-                }
+            TabView {
+                TodayPage(makesGoal: $makesGoal)
+                WeekPage()
+                GoalsPage(makesGoal: $makesGoal)
             }
-            .navigationTitle("Today")
+            .tabViewStyle(.verticalPage)
             .navigationDestination(for: UUID.self) { id in
                 GoalPage(goalID: id)
             }
+        }
+        .sheet(isPresented: $makesGoal) {
+            NewGoalView()
+                .environment(\.watchPalette, palette)
+                .tint(palette.accentColor)
         }
         // Goals are drawn in the iPhone's palette, as it looks in dark mode.
         .environment(\.watchPalette, palette)
@@ -71,7 +50,117 @@ struct WatchRoot: View {
     #endif
 }
 
-private struct GoalRow: View {
+/// Today: the timer if one is running, how the day is going, then each goal due with its ring.
+private struct TodayPage: View {
+    @Environment(WatchStore.self) private var store
+    @Environment(\.watchPalette) private var palette
+    @Binding var makesGoal: Bool
+
+    var body: some View {
+        let snapshot = store.snapshot
+        List {
+            if let session = snapshot.session, let item = snapshot.item(session.goalID) {
+                Section {
+                    NavigationLink(value: item.id) {
+                        SessionRow(session: session, item: item)
+                    }
+                    .listItemTint(palette.color(item.color).opacity(0.35))
+                }
+            } else if let rest = snapshot.rest, let item = snapshot.item(rest.goalID) {
+                Section {
+                    RestRow(rest: rest, item: item)
+                }
+            }
+            if snapshot.total > 0 {
+                Section {
+                    DaySummary(snapshot: snapshot)
+                }
+            }
+            Section {
+                ForEach(snapshot.items) { item in
+                    NavigationLink(value: item.id) {
+                        GoalRow(item: item)
+                    }
+                }
+            } header: {
+                if !snapshot.items.isEmpty {
+                    Text("Goals of the day")
+                }
+            } footer: {
+                if snapshot.items.isEmpty {
+                    Text(snapshot.generatedAt == .distantPast
+                         ? "Open Momentum on your iPhone to bring your goals here."
+                         : "Nothing due today. Enjoy it, or add a goal with +.")
+                } else if store.queuedActions > 0 {
+                    Label("Waiting for your iPhone", systemImage: "iphone.slash")
+                }
+            }
+        }
+        .navigationTitle("Today")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NewGoalButton(makesGoal: $makesGoal)
+            }
+        }
+    }
+}
+
+/// How the day is going: goals done of those due, with today's focus and the longest streak.
+private struct DaySummary: View {
+    let snapshot: WatchSnapshot
+    @Environment(\.watchPalette) private var palette
+
+    var body: some View {
+        let fraction = snapshot.total > 0 ? Double(snapshot.done) / Double(snapshot.total) : 0
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .stroke(palette.accentColor.opacity(0.22), lineWidth: 7)
+                Circle()
+                    .trim(from: 0, to: max(0.001, min(fraction, 1)))
+                    .stroke(palette.accentColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text("\(snapshot.done)/\(snapshot.total)")
+                    .font(.system(.footnote, design: .rounded, weight: .bold))
+                    .monospacedDigit()
+            }
+            .frame(width: 52, height: 52)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(snapshot.done == snapshot.total ? "All done" : "\(snapshot.total - snapshot.done) to go")
+                    .font(.headline)
+                if let week = snapshot.week {
+                    if let today = week.days.last, today.focus > 0 {
+                        Label(Formatting.duration(today.focus), systemImage: "timer")
+                            .foregroundStyle(.secondary)
+                    }
+                    if week.longestStreak > 0 {
+                        Label("\(week.longestStreak)", systemImage: "flame.fill")
+                            .foregroundStyle(palette.streak)
+                    }
+                }
+            }
+            .font(.caption2)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+/// The + that opens New Goal.
+struct NewGoalButton: View {
+    @Binding var makesGoal: Bool
+
+    var body: some View {
+        Button {
+            makesGoal = true
+        } label: {
+            Image(systemName: "plus")
+        }
+        .accessibilityLabel("New Goal")
+    }
+}
+
+struct GoalRow: View {
     let item: WatchSnapshot.Item
     @Environment(\.watchPalette) private var palette
 
@@ -221,7 +310,7 @@ struct GoalPage: View {
                 if store.isSending { ProgressView().controlSize(.small) }
             }
         } else {
-            ContentUnavailableView("Not today", systemImage: "calendar", description: Text("This goal isn't on today's list any more."))
+            ContentUnavailableView("Not here", systemImage: "calendar", description: Text("This goal isn't on the watch any more."))
         }
     }
 
