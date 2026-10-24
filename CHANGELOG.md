@@ -41,6 +41,8 @@ All notable changes to Momentum are recorded here. The format follows
   with the sync folder before it answers the watch, without the iPhone app being opened.
 
 ### Fixed
+- On macOS 27, the Start button on Today's cards, and Start block on a break, drew its label
+  upside down.
 - With sync on, a tap on the Apple Watch, a Lock Screen timer button, a notification's button or
   Siri on iPhone could take until the iPhone app was next opened to reach your Mac. The iPhone now
   writes the change to the sync folder straight away.
