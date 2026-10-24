@@ -63,6 +63,17 @@ struct ReadingTests {
         #expect(page == 0)
     }
 
+    @Test("A page count that isn't positive counts as unknown")
+    func damagedPageCount() throws {
+        var goal = pagesGoal()
+        goal.books = [Book(title: "Imported", totalPages: -5, currentPage: 10, status: .reading, startedAt: referenceNow)]
+        var data = AppData(goals: [goal])
+        data.logReading(10, for: goal.id, at: referenceNow)
+        let book = try #require(data.goal(goal.id)?.books.first)
+        #expect(book.currentPage == 20)
+        #expect(book.status == .reading)
+    }
+
     @Test("Goals in other units log as they did")
     func otherUnits() {
         var distance = pagesGoal(unit: "km")

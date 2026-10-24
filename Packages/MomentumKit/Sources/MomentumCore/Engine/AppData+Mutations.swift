@@ -130,9 +130,11 @@ extension AppData {
         }
         guard let entry = log(amount, for: goalID, at: date, note: note, bookID: book.id) else { return nil }
         let moved = max(0, book.currentPage + Int(min(max(amount, -1_000_000), 1_000_000).rounded()))
-        let page = book.totalPages.map { min($0, moved) } ?? moved
+        // A page count that isn't positive (a damaged import) is no page count.
+        let total = book.totalPages.flatMap { $0 > 0 ? $0 : nil }
+        let page = total.map { min($0, moved) } ?? moved
         updateBook(book.id, in: goalID) { $0.currentPage = page }
-        if let total = book.totalPages, page >= total {
+        if let total, page >= total {
             finishBook(book.id, in: goalID, at: date)
         }
         return entry
