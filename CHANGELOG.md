@@ -7,6 +7,10 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- Combine Into, in a goal's menu: when the same goal ended up twice (made on two devices before
+  they synced), move one's logs, milestones, books and links into the other, which keeps its own
+  target and schedule, and remove it on every device. It works between goals that count the same
+  way, and can be undone.
 - The Apple Watch app has more to it: turn the Digital Crown from Today (now with how the day is
   going) to Week, with time focused each day, daily goals met, active days, your best streak and
   the goals you focused on most, and to Goals, with every goal you have, not just today's. Tap +
