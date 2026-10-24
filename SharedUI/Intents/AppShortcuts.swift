@@ -89,8 +89,11 @@ struct LogProgressIntent: AppIntent {
                 }
             case .milestones:
                 data.completeNextMilestone(in: stored.id)
-            case .count, .amount:
+            case .count:
                 data.log(bounded(amount ?? stored.quickAddStep, AppData.entryLimit), for: stored.id)
+            case .amount:
+                // Pages move the bookmark of the book being read, on a goal counted in pages.
+                data.logReading(bounded(amount ?? stored.quickAddStep, AppData.entryLimit), for: stored.id)
             }
         }
         let engine = ProgressEngine(data: updated)
