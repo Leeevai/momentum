@@ -28,9 +28,26 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         /// The day of a running challenge, and its length.
         public var challengeDay: Int?
         public var challengeLength: Int?
+        /// The period the progress counts toward; nil from an iPhone that doesn't send it.
+        public var period: GoalPeriod? = nil
+
+        /// The item as its next period starts, before the iPhone has sent one: nothing done yet.
+        func startingOver() -> Item {
+            var item = self
+            item.progress = 0
+            item.isComplete = false
+            item.progressText = kind == .time ? "0m / \(targetText)" : "0 / \(targetText)"
+            return item
+        }
     }
 
+    /// Today's goals, in Today's order.
     public var items: [Item]
+    /// The other active goals (not due today, on a break, or done for good), for the Goals page;
+    /// nil from an iPhone that doesn't send them.
+    public var others: [Item]?
+    /// The last seven days, for the Week page; nil from an iPhone that doesn't send it.
+    public var week: WatchWeek?
     public var session: FocusSession?
     public var rest: RestPeriod?
     /// Today's goals done, of all of them.
@@ -44,7 +61,8 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
     public var palette: WatchPalette?
 
     public init(items: [Item] = [], session: FocusSession? = nil, rest: RestPeriod? = nil, done: Int = 0, total: Int = 0,
-                generatedAt: Date = .distantPast, day: DayID = DayID(year: 2001, month: 1, day: 1), palette: WatchPalette? = nil) {
+                generatedAt: Date = .distantPast, day: DayID = DayID(year: 2001, month: 1, day: 1), palette: WatchPalette? = nil,
+                others: [Item]? = nil, week: WatchWeek? = nil) {
         self.items = items
         self.session = session
         self.rest = rest
@@ -53,25 +71,27 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
         self.generatedAt = generatedAt
         self.day = day
         self.palette = palette
+        self.others = others
+        self.week = week
     }
 
     /// The snapshot as it stands at `date`: goals whose period has ended since (each day for a
     /// daily goal, at the week's end for a weekly one) start over with nothing done, so the
     /// watch never shows a finished period's progress as the current one's. The rest (streaks,
-    /// the timer) carries over until the iPhone sends a new snapshot.
+    /// the timer, the week) carries over until the iPhone sends a new snapshot.
     public func current(at date: Date, calendar: Calendar = .current) -> WatchSnapshot {
-        guard items.contains(where: { ($0.periodEnd ?? .distantFuture) <= date }) || DayID(date, calendar: calendar) > day else { return self }
+        func lapsed(_ item: Item) -> Bool { (item.periodEnd ?? .distantFuture) <= date }
+        guard items.contains(where: lapsed) || (others ?? []).contains(where: lapsed) || DayID(date, calendar: calendar) > day else {
+            return self
+        }
         var fresh = self
         var reopened = 0
         fresh.items = items.map { item in
-            guard let end = item.periodEnd, end <= date else { return item }
-            var item = item
+            guard lapsed(item) else { return item }
             if item.isComplete { reopened += 1 }
-            item.progress = 0
-            item.isComplete = false
-            item.progressText = item.kind == .time ? "0m / \(item.targetText)" : "0 / \(item.targetText)"
-            return item
+            return item.startingOver()
         }
+        fresh.others = others?.map { lapsed($0) ? $0.startingOver() : $0 }
         fresh.done = max(0, done - reopened)
         fresh.day = max(day, DayID(date, calendar: calendar))
         return fresh
@@ -79,8 +99,11 @@ public struct WatchSnapshot: Codable, Equatable, Sendable {
 
     /// The most goals sent: a watch screen's worth, and then some.
     public static let itemLimit = 12
+    /// The most other goals sent, so a long list can't outgrow what the watch connection carries.
+    public static let otherLimit = 16
 
-    public func item(_ id: UUID) -> Item? { items.first { $0.id == id } }
+    /// A goal from today's list, or from the others.
+    public func item(_ id: UUID) -> Item? { items.first { $0.id == id } ?? others?.first { $0.id == id } }
 
     /// The snapshot as sent: dates exact, like the data file.
     public func encoded() throws -> Data { try DateCoding.encoder().encode(self) }
@@ -150,6 +173,57 @@ public enum WatchAction: Codable, Equatable, Sendable {
     /// Ends the break that started at `restStart` and starts the next block.
     case startNextBlock(restStart: Date)
     case endRest(restStart: Date)
+    /// Makes a goal. An iPhone that doesn't know this can't read the command, and leaves it.
+    case addGoal(goal: WatchNewGoal)
+}
+
+/// A goal made on the watch: one of the templates, or a name and a target. Its id is made on the
+/// watch, so a command delivered twice adds it once.
+public struct WatchNewGoal: Codable, Equatable, Sendable {
+    public var id: UUID
+    /// A `GoalTemplate` id. When it names one, the template is the goal; the rest describes it
+    /// for an iPhone that doesn't have that template.
+    public var template: String?
+    public var name: String
+    /// `.time` or `.count`; anything else makes a count.
+    public var kind: GoalKind
+    /// `.daily` or `.weekly`; anything else makes a daily goal.
+    public var period: GoalPeriod
+    /// Seconds for a time goal, times for a count.
+    public var target: Double
+
+    public init(id: UUID = UUID(), template: String? = nil, name: String, kind: GoalKind, period: GoalPeriod, target: Double) {
+        self.id = id
+        self.template = template
+        self.name = name
+        self.kind = kind
+        self.period = period
+        self.target = target
+    }
+
+    /// The template's goal as the watch offers it.
+    public init(template: GoalTemplate) {
+        self.init(template: template.id, name: template.prototype.name, kind: template.prototype.kind,
+                  period: template.prototype.period, target: template.prototype.target)
+    }
+
+    /// The goal to add, in a color none of `goals` has when it's not a template's; nil for a
+    /// blank name or a target that isn't a positive number.
+    func goal(besides goals: [Goal], at date: Date) -> Goal? {
+        var goal: Goal
+        if let template, let match = GoalTemplate.all.first(where: { $0.id == template }) {
+            goal = match.makeGoal(at: date)
+        } else {
+            let name = self.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let kind: GoalKind = self.kind == .time ? .time : .count
+            let target = kind == .count ? self.target.rounded() : self.target
+            guard !name.isEmpty, target.isFinite, target > 0 else { return nil }
+            goal = Goal(name: String(name.prefix(80)), color: GoalColor.suggested(besides: goals), kind: kind,
+                        period: period == .weekly ? .weekly : .daily, target: target, createdAt: date)
+        }
+        goal.id = id
+        return goal
+    }
 }
 
 /// An action with when it was tapped, and an id so it's carried out once however often it
@@ -181,8 +255,13 @@ extension ProgressEngine {
             items.insert(item(for: goal, now: now), at: 0)
         }
         let summary = todaySummary(now: now)
+        let shown = Set(items.map(\.id))
+        let others = stackOrdered(activeGoals.filter { !shown.contains($0.id) })
+            .prefix(WatchSnapshot.otherLimit)
+            .map { item(for: $0, now: now) }
         return WatchSnapshot(items: items, session: data.session, rest: data.rest, done: summary.done, total: summary.total,
-                             generatedAt: now, day: DayID(now, calendar: calendar), palette: WatchPalette(data.preferences.activePalette))
+                             generatedAt: now, day: DayID(now, calendar: calendar), palette: WatchPalette(data.preferences.activePalette),
+                             others: others, week: watchWeek(now: now))
     }
 
     private func item(for goal: Goal, now: Date) -> WatchSnapshot.Item {
@@ -199,7 +278,8 @@ extension ProgressEngine {
             targetText: goal.kind == .milestones ? "\(goal.milestones.count) milestones" : goal.format(target(for: goal)),
             periodEnd: goal.effectivePeriod == .total ? nil : interval(of: goal.effectivePeriod, containing: now).end,
             doneText: Self.doneText(for: goal),
-            challengeDay: challenge?.dayNumber, challengeLength: challenge?.challenge.days)
+            challengeDay: challenge?.dayNumber, challengeLength: challenge?.challenge.days,
+            period: goal.effectivePeriod)
     }
 
     private static func doneText(for goal: Goal) -> String {
@@ -261,6 +341,11 @@ extension AppData {
         case .endRest(let restStart):
             guard isShownRest(restStart) else { return }
             endRest()
+        case .addGoal(let new):
+            // Once, and not again once deleted: a late copy of the command mustn't bring it back.
+            guard goal(new.id) == nil, sync.tombstones[SyncState.goal(new.id)] == nil,
+                  let made = new.goal(besides: goals, at: tapped) else { return }
+            upsert(made)
         }
     }
 }
