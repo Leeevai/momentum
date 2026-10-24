@@ -54,8 +54,6 @@ final class FolderSync {
     private nonisolated static let nameKey = "syncDeviceName"
     /// The other devices' files, with their dates as `catchUpFromFolder` last read them.
     private nonisolated static let caughtUpKey = "syncCaughtUpFiles"
-    private nonisolated static let log = Logger(subsystem: "dev.momentum.app", category: "Sync")
-    private nonisolated static let publishing = NSLock()
 
     /// Merges the other devices' copies straight into the data file, without the app's store:
     /// for intents (a Lock Screen button) and the watch, which must not act on data older than
@@ -85,11 +83,15 @@ final class FolderSync {
         return changed
     }
 
+    #if os(iOS)
+    private nonisolated static let log = Logger(subsystem: "dev.momentum.app", category: "Sync")
+    private nonisolated static let publishing = NSLock()
+
     /// Writes this device's copy to the folder now, from the data on disk, without the app's
     /// store: after a change the iPhone makes in the background (a tap on the watch, a Lock
     /// Screen button, Siri). The store writes two seconds after a change, and an app woken in the
     /// background is often suspended by then, leaving the other devices without the change until
-    /// the app next runs.
+    /// the app next runs. The Mac app is running whenever its own buttons act, so it has no need.
     nonisolated static func publish() {
         guard let url = savedFolder() else { return }
         ProcessInfo.processInfo.performExpiringActivity(withReason: "Writing to the sync folder") { expired in
@@ -113,6 +115,7 @@ final class FolderSync {
             }
         }
     }
+    #endif
 
     /// The folder chosen on this device, for work done outside the store; nil when not syncing.
     private nonisolated static func savedFolder() -> URL? {
