@@ -29,6 +29,48 @@ extension AppData {
         if rest?.goalID == id { rest = nil }
     }
 
+    /// Whether `sourceID`'s history can move into `targetID`: two different goals that count the
+    /// same way (time with time, an amount with the same unit), with no timer or break running on
+    /// the one that would go.
+    public func canCombine(_ sourceID: UUID, into targetID: UUID) -> Bool {
+        guard sourceID != targetID, let source = goal(sourceID), let target = goal(targetID), source.kind == target.kind,
+              session?.goalID != sourceID, rest?.goalID != sourceID else { return false }
+        guard source.kind == .amount else { return true }
+        func normalized(_ unit: String) -> String { unit.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        return normalized(source.unit) == normalized(target.unit)
+    }
+
+    /// Moves everything recorded on `sourceID` into `targetID` and removes it, for two copies of
+    /// one goal (made on two devices before they synced). Its log entries move over unchanged but
+    /// for their goal, its milestones, books and links join the target's, goals stacked after it
+    /// and days that made it a priority follow the target. The target keeps its own name, target,
+    /// schedule, color, breaks, challenge and reminder.
+    public mutating func combineGoal(_ sourceID: UUID, into targetID: UUID) {
+        guard canCombine(sourceID, into: targetID), let source = goal(sourceID) else { return }
+        for index in entries.indices where entries[index].goalID == sourceID {
+            entries[index].goalID = targetID
+        }
+        updateGoal(targetID) { target in
+            let milestones = Set(target.milestones.map(\.id))
+            target.milestones += source.milestones.filter { !milestones.contains($0.id) }
+            let books = Set(target.books.map(\.id))
+            target.books += source.books.filter { !books.contains($0.id) }
+            let links = Set(target.links.map(\.url))
+            target.links += source.links.filter { !links.contains($0.url) }
+        }
+        for index in goals.indices where goals[index].stackAfter == sourceID {
+            goals[index].stackAfter = goals[index].id == targetID ? nil : targetID
+        }
+        for index in journal.indices where journal[index].priorities.contains(sourceID) {
+            var seen = Set<UUID>()
+            journal[index].priorities = journal[index].priorities
+                .map { $0 == sourceID ? targetID : $0 }
+                .filter { seen.insert($0).inserted }
+        }
+        // Not `deleteGoal`, which would take the entries just moved with it.
+        goals.removeAll { $0.id == sourceID }
+    }
+
     /// Copies a goal's settings, links, milestones and books (reset to unread), without history.
     @discardableResult
     public mutating func duplicateGoal(_ id: UUID, at now: Date = .now) -> Goal? {
