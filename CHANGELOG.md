@@ -12,6 +12,10 @@ All notable changes to Momentum are recorded here. The format follows
   or the watch) moves its bookmark. The goal shows the page you reached, of how many, and the pages
   left; Set Page jumps to a page, and the book finishes on its last one.
 - The watch shows the page you reached in the book you're reading, on the goal's page.
+- Combine Into, in a goal's menu: when the same goal ended up twice (made on two devices before
+  they synced), move one's logs, milestones, books and links into the other, which keeps its own
+  target and schedule, and remove it on every device. It works between goals that count the same
+  way, and can be undone.
 - The Apple Watch app has more to it: turn the Digital Crown from Today (now with how the day is
   going) to Week, with time focused each day, daily goals met, active days, your best streak and
   the goals you focused on most, and to Goals, with every goal you have, not just today's. Tap +

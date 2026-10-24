@@ -48,6 +48,12 @@ enum SheetRoute: Identifiable {
     }
 }
 
+/// One goal about to go into another, awaiting confirmation.
+struct GoalCombination: Equatable {
+    let source: Goal
+    let target: Goal
+}
+
 /// A goal that just reached its target, for the celebration overlay.
 struct Celebration: Identifiable, Equatable {
     let id = UUID()
@@ -98,6 +104,8 @@ final class GoalStore {
     private(set) var dismissedTips: Set<String> = []
     /// A goal awaiting delete confirmation.
     var confirmingDelete: Goal?
+    /// Two goals awaiting confirmation that the first goes into the second.
+    var confirmingCombine: GoalCombination?
     /// Text typed in the sidebar search field.
     var searchText = ""
     /// The categories the current macOS Focus asks for, if a Focus filter is on.
@@ -677,6 +685,19 @@ extension GoalStore {
 
     func delete(_ goal: Goal) {
         perform("Delete Goal") { $0.deleteGoal(goal.id) }
+    }
+
+    /// The active goals `goal` can go into: the same kind, and for amounts the same unit.
+    func combineTargets(for goal: Goal) -> [Goal] {
+        engine.activeGoals.filter { data.canCombine(goal.id, into: $0.id) }
+    }
+
+    /// Moves `source`'s history into `target` and removes it, as one undoable change. A page
+    /// showing `source` moves to `target`.
+    func combine(_ source: Goal, into target: Goal) {
+        let showsSource = route == .goal(source.id)
+        perform("Combine Goals") { $0.combineGoal(source.id, into: target.id) }
+        if showsSource, goal(target.id) != nil { route = .goal(target.id) }
     }
 
     func duplicate(_ goal: Goal) {

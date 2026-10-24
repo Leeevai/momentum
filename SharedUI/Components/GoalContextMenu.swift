@@ -16,6 +16,17 @@ struct GoalContextMenu: View {
         Button("Edit…") { store.sheet = .editGoal(goal) }
         Button("Share Progress…") { store.sheet = .share(goal) }
         Button("Duplicate") { store.duplicate(goal) }
+        let targets = store.combineTargets(for: goal)
+        if !targets.isEmpty {
+            // Two goals can share a name (the same goal made on two devices): the target tells them apart.
+            Menu("Combine Into") {
+                ForEach(targets) { target in
+                    Button("\(target.name) — \(target.targetDescription)") {
+                        store.confirmingCombine = GoalCombination(source: goal, target: target)
+                    }
+                }
+            }
+        }
         if goal.supportsChallenge || goal.challenge != nil {
             Menu(goal.challenge == nil ? "Start a Challenge" : "Challenge") {
                 ChallengeMenu(goal: goal)
