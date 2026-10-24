@@ -58,6 +58,9 @@ struct GoalDetailContent: View {
                 PaceCard(goal: goal, pace: pace)
             }
             StatsRow(goal: goal)
+            if goal.tracksPages {
+                ReadingSection(goal: goal)
+            }
             if goal.kind == .books {
                 BooksSection(goal: goal)
             }
