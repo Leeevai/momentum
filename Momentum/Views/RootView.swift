@@ -58,6 +58,7 @@ struct RootView: View {
         } message: { _ in
             Text("This removes the goal and all of its history. You can undo it with ⌘Z, or archive the goal to keep its history.")
         }
+        .combineGoalsConfirmation(store)
         .onAppear { store.undoManager = undoManager }
         .onChange(of: undoManager) { _, manager in store.undoManager = manager }
     }

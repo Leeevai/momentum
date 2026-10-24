@@ -55,6 +55,7 @@ struct MobileRoot: View {
             } message: { _ in
                 Text("This removes the goal and all of its history. Archive it instead to keep its history.")
             }
+            .combineGoalsConfirmation(store)
     }
 
     /// Keeps the selected tab, the Today path and the store's route in step both ways.
