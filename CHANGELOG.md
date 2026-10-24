@@ -7,6 +7,7 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- The watch shows the page you reached in the book you're reading, on the goal's page.
 - The Apple Watch app has more to it: turn the Digital Crown from Today (now with how the day is
   going) to Week, with time focused each day, daily goals met, active days, your best streak and
   the goals you focused on most, and to Goals, with every goal you have, not just today's. Tap +
