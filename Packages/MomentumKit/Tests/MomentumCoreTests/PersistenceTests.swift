@@ -58,6 +58,21 @@ struct PersistenceTests {
         #expect(goal.books.first?.status == .wantToRead)
     }
 
+    @Test("An entry with a source from a newer version reads as manual instead of failing the file")
+    func tolerantEntrySource() throws {
+        let goal = UUID()
+        let json = #"""
+        {"version": 2, "goals": [{"id": "\#(goal.uuidString)", "name": "Reading", "kind": "time", "target": 1800}],
+         "entries": [{"goalID": "\#(goal.uuidString)", "date": 813254400, "amount": 60, "source": "health"},
+                     {"goalID": "\#(goal.uuidString)", "date": 813254460, "amount": 600, "source": "timer"}]}
+        """#
+        let data = try FileStore.decode(Data(json.utf8))
+        let sources = data.entries.map(\.source)
+        let amounts = data.entries.map(\.amount)
+        #expect(sources == [.manual, .timer])
+        #expect(amounts == [60, 600])
+    }
+
     @Test("Focus sounds default to off, and unknown ones from newer versions don't break the file")
     func focusSoundDecoding() throws {
         let json = #"{"version": 2, "preferences": {"focusSound": "ocean", "focusSoundVolume": 3}}"#
