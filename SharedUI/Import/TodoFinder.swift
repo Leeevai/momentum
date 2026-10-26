@@ -16,27 +16,57 @@ import Speech
 /// to-do's name from Apple's on-device language model where the system has one. Without the model,
 /// a to-do is named from the text itself. Nothing is sent anywhere.
 enum TodoFinder {
-    /// What the finder is doing, for the progress line.
-    enum Step {
-        case measuring, listening, reading, thinking
+    /// How far the search has got: what it's doing, and how much of the whole is done, from 0 to 1.
+    struct Progress: Equatable {
+        var message: String
+        var fraction: Double
+    }
 
-        var verb: String {
-            switch self {
-            case .measuring: "Measuring"
-            case .listening: "Listening to"
-            case .reading: "Reading"
-            case .thinking: "Naming the to-dos in"
+    /// Something the search couldn't do, and the files it happened with.
+    struct Problem: Identifiable, Equatable {
+        var reason: String
+        var files: [String]
+
+        var id: String { reason }
+    }
+
+    /// What the search found, and what it couldn't do along the way.
+    struct Findings {
+        var todos: [FoundTodo] = []
+        var problems: [Problem] = []
+
+        /// Notes `reason` for `file`, under the same reason as other files it happened with.
+        mutating func note(_ reason: String, for file: String) {
+            if let index = problems.firstIndex(where: { $0.reason == reason }) {
+                problems[index].files.append(file)
+            } else {
+                problems.append(Problem(reason: reason, files: [file]))
             }
         }
     }
 
-    /// What a file holds, before it's turned into to-dos.
+    /// What a file holds, before it's turned into to-dos, and what couldn't be read of it.
     struct Material {
         var name: String
         var isVideo: Bool
         var duration: TimeInterval?
         var transcript = ""
         var screenText = ""
+        var problem: String?
+    }
+
+    /// Reports one file's progress as a share of the whole search.
+    private struct Reporter {
+        let index: Int
+        let count: Int
+        let progress: @MainActor (Progress) -> Void
+
+        /// `message`, with the file's place in the batch, and `done` of the file, from 0 to 1.
+        func callAsFunction(_ message: String, _ done: Double) async {
+            let counter = count > 1 ? " (\(index + 1) of \(count))" : ""
+            let fraction = (Double(index) + min(max(done, 0), 1)) / Double(count)
+            await progress(Progress(message: message + counter, fraction: fraction))
+        }
     }
 
     /// Whether the on-device model names the to-dos here, and if not, why.
@@ -61,32 +91,36 @@ enum TodoFinder {
     /// as the video; any number per screenshot or caption. Each carries `link`. Stops early, with
     /// what it found so far, when its task is cancelled.
     static func todos(in files: [URL], caption: String, link: URL?,
-                      progress: @escaping @MainActor (String) -> Void) async -> [FoundTodo] {
-        var found: [FoundTodo] = []
+                      progress: @escaping @MainActor (Progress) -> Void) async -> Findings {
+        var findings = Findings()
         let note = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A caption on its own, or with screenshots, lists to-dos of its own (a post's numbered list).
+        let readsCaption = !note.isEmpty && !files.contains(where: isVideo)
+        let steps = files.count + (readsCaption ? 1 : 0)
         for (index, file) in files.enumerated() {
-            if Task.isCancelled { return found }
-            let counter = files.count > 1 ? " (\(index + 1) of \(files.count))" : ""
-            let material = await self.material(of: file) { step in
-                await progress("\(step.verb) \(file.lastPathComponent)…\(counter)")
-            }
-            if Task.isCancelled { return found }
-            await progress("\(Step.thinking.verb) \(file.lastPathComponent)…\(counter)")
+            if Task.isCancelled { return findings }
+            let report = Reporter(index: index, count: steps, progress: progress)
+            let name = file.lastPathComponent
+            let material = await self.material(of: file, report: report)
+            if Task.isCancelled { return findings }
+            if let problem = material.problem { findings.note(problem, for: name) }
+            await report("Naming the to-dos in \(name)…", 0.9)
             if material.isVideo {
-                let title = await videoTitle(for: material, caption: note)
-                found.append(FoundTodo(title: title, duration: material.duration, link: link, source: material.name))
+                let (title, named) = await videoTitle(for: material, caption: note)
+                if !named { findings.note("Apple's on-device model couldn't name it; rename it if the name is off.", for: name) }
+                findings.todos.append(FoundTodo(title: title, duration: material.duration, link: link, source: name))
             } else {
                 let items = await listedTodos(in: material.screenText, caption: "")
-                found += items.map { FoundTodo(title: $0.title, duration: $0.duration, link: link, source: material.name) }
+                if items.isEmpty, material.problem == nil { findings.note("No list of to-dos was found in it.", for: name) }
+                findings.todos += items.map { FoundTodo(title: $0.title, duration: $0.duration, link: link, source: name) }
             }
         }
-        // A caption on its own, or with screenshots, lists to-dos of its own (a post's numbered list).
-        if !note.isEmpty, !files.contains(where: isVideo), !Task.isCancelled {
-            await progress("Reading the caption…")
+        if readsCaption, !Task.isCancelled {
+            await Reporter(index: files.count, count: steps, progress: progress)("Reading the caption…", 0)
             let items = await listedTodos(in: note, caption: "")
-            found += items.map { FoundTodo(title: $0.title, duration: $0.duration, link: link, source: "Caption") }
+            findings.todos += items.map { FoundTodo(title: $0.title, duration: $0.duration, link: link, source: "Caption") }
         }
-        return found
+        return findings
     }
 
     /// A name for the list the to-dos go in.
@@ -113,33 +147,69 @@ enum TodoFinder {
         UTType(filenameExtension: url.pathExtension)?.conforms(to: .audiovisualContent) ?? false
     }
 
-    private static func material(of url: URL, step: (Step) async -> Void) async -> Material {
+    /// Reads a file, reporting each step as a share of it: measuring a video, listening to it (most
+    /// of the time), reading its frames, then naming, from 0.9.
+    private static func material(of url: URL, report: Reporter) async -> Material {
+        let name = url.lastPathComponent
         guard isVideo(url) else {
-            await step(.reading)
-            return Material(name: url.lastPathComponent, isVideo: false, screenText: imageText(at: url))
+            await report("Reading \(name)…", 0)
+            guard let text = imageText(at: url) else {
+                return Material(name: name, isVideo: false, problem: "It couldn't be opened as an image.")
+            }
+            return Material(name: name, isVideo: false, screenText: text)
         }
-        await step(.measuring)
+        await report("Measuring \(name)…", 0)
         let asset = AVURLAsset(url: url)
-        let seconds = (try? await asset.load(.duration).seconds) ?? 0
-        var material = Material(name: url.lastPathComponent, isVideo: true, duration: seconds.isFinite && seconds > 0 ? seconds : nil)
+        let loaded = try? await asset.load(.duration, .isPlayable)
+        guard let loaded, loaded.1 else {
+            return Material(name: name, isVideo: true,
+                            problem: "Momentum can't play it, so it has no length.")
+        }
+        let seconds = loaded.0.seconds
+        var material = Material(name: name, isVideo: true, duration: seconds.isFinite && seconds > 0 ? seconds : nil)
         guard !Task.isCancelled else { return material }
-        await step(.listening)
-        material.transcript = await transcript(of: asset)
+        await report("Listening to \(name)…", 0.05)
+        do {
+            material.transcript = try await transcript(of: asset, duration: material.duration) { message, done in
+                await report(message ?? "Listening to \(name)…", 0.05 + 0.7 * done)
+            }
+        } catch let problem as ListeningProblem {
+            material.problem = problem.reason
+        } catch {
+            material.problem = ListeningProblem.failed.reason
+        }
         guard !Task.isCancelled else { return material }
-        await step(.reading)
+        await report("Reading \(name)…", 0.75)
         material.screenText = await frameText(of: asset, duration: material.duration ?? 0)
         return material
     }
 
-    /// What's said in the file, on-device; empty without speech, or before macOS 26 and iOS 26.
-    private static func transcript(of asset: AVURLAsset) async -> String {
+    /// How much of a video's sound is transcribed. Naming reads the first 3,000 characters of what's
+    /// said, a few minutes of speech, so a long talk isn't worth exporting and transcribing whole.
+    private static let listeningSpan: TimeInterval = 5 * 60
+
+    /// Why what's said in a video couldn't be used, as the review puts it.
+    private enum ListeningProblem: Error {
+        case unavailable, failed
+        case download(language: String)
+
+        var reason: String {
+            switch self {
+            case .unavailable: "This device can't recognize speech."
+            case .failed: "Its speech couldn't be recognized."
+            case .download(let language):
+                "Speech recognition for \(language) couldn't be downloaded. Check the connection, then look again."
+            }
+        }
+    }
+
+    /// What's said in the file, on-device: empty when it has no sound, and before macOS 26 and iOS 26.
+    /// `report` gets a message to show instead of the usual one, if any, and how much is done.
+    private static func transcript(of asset: AVURLAsset, duration: TimeInterval?,
+                                   report: @escaping (String?, Double) async -> Void) async throws -> String {
         #if canImport(Speech)
         if #available(macOS 26.0, iOS 26.0, *) {
-            do {
-                return try await speech(in: asset)
-            } catch {
-                return ""
-            }
+            return try await speech(in: asset, duration: duration, report: report)
         }
         #endif
         return ""
@@ -147,12 +217,19 @@ enum TodoFinder {
 
     #if canImport(Speech)
     @available(macOS 26.0, iOS 26.0, *)
-    private static func speech(in asset: AVURLAsset) async throws -> String {
+    private static func speech(in asset: AVURLAsset, duration: TimeInterval?,
+                               report: @escaping (String?, Double) async -> Void) async throws -> String {
         guard try await !asset.loadTracks(withMediaType: .audio).isEmpty else { return "" }
+        guard SpeechTranscriber.isAvailable else { throw ListeningProblem.unavailable }
         // The analyzer reads audio files: the sound comes out of the video first.
         let audio = ImportScratch.newItem(named: "audio").appendingPathExtension("m4a")
         defer { try? FileManager.default.removeItem(at: audio) }
-        guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else { return "" }
+        guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
+            throw ListeningProblem.failed
+        }
+        if let duration, duration > listeningSpan {
+            export.timeRange = CMTimeRange(start: .zero, duration: CMTime(seconds: listeningSpan, preferredTimescale: 600))
+        }
         try await export.export(to: audio, as: .m4a)
         try Task.checkCancellation()
 
@@ -160,15 +237,34 @@ enum TodoFinder {
         if locale == nil {
             locale = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: "en-US"))
         }
-        guard let locale else { return "" }
+        guard let locale else { throw ListeningProblem.unavailable }
         let transcriber = SpeechTranscriber(locale: locale, preset: .transcription)
         // The system downloads the language's speech model the first time.
         if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
-            try await request.downloadAndInstall()
+            let language = locale.language.languageCode.flatMap { Locale.current.localizedString(forLanguageCode: $0.identifier) }
+                ?? locale.identifier
+            do {
+                try await download(request) { done in
+                    await report("Downloading speech recognition for \(language)… \(Int(done * 100))%", 0)
+                }
+            } catch {
+                try Task.checkCancellation()
+                throw ListeningProblem.download(language: language)
+            }
         }
         try Task.checkCancellation()
         let file = try AVAudioFile(forReading: audio)
-        async let text = transcriber.results.reduce(into: "") { $0 += String($1.text.characters) }
+        // How much of the sound is heard so far moves the bar.
+        let seconds = Double(file.length) / file.fileFormat.sampleRate
+        func listen() async throws -> String {
+            var text = ""
+            for try await result in transcriber.results {
+                text += String(result.text.characters)
+                if seconds > 0 { await report(nil, min(result.range.end.seconds / seconds, 1)) }
+            }
+            return text
+        }
+        async let text = listen()
         let analyzer = SpeechAnalyzer(modules: [transcriber])
         // Finishing the analyzer ends the results, so the text above is always delivered, and
         // closing the sheet stops the analysis rather than letting it run to the end of the file.
@@ -187,6 +283,24 @@ enum TodoFinder {
             Task { await analyzer.cancelAndFinishNow() }
         }
         return try await text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Downloads a speech model, reporting how much of it is in twice a second.
+    @available(macOS 26.0, iOS 26.0, *)
+    private static func download(_ request: AssetInstallationRequest,
+                                 report: @escaping (Double) async -> Void) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { try await request.downloadAndInstall() }
+            group.addTask {
+                while true {
+                    await report(request.progress.fractionCompleted)
+                    try await Task.sleep(for: .milliseconds(500))
+                }
+            }
+            // The download finishes first: the watch on it only ends when cancelled.
+            _ = try await group.next()
+            group.cancelAll()
+        }
     }
     #endif
 
@@ -207,9 +321,18 @@ enum TodoFinder {
         return lines.prefix(60).joined(separator: "\n")
     }
 
-    private static func imageText(at url: URL) -> String {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return "" }
+    /// The text in an image, read from a copy at most 3,000 pixels long and turned the right way up:
+    /// a 48-megapixel photo is some 200 MB decoded, and text on its side isn't read. Nil when it
+    /// can't be opened as an image.
+    private static func imageText(at url: URL) -> String? {
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 3000,
+            kCGImageSourceShouldCacheImmediately: true,
+        ]
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
         return recognizedText(in: image).joined(separator: "\n")
     }
 
@@ -243,7 +366,9 @@ enum TodoFinder {
         written next to an item (like 14:32, 1:05:00 or 20 min), give it.
         """
 
-    private static func videoTitle(for material: Material, caption: String) async -> String {
+    /// A video's to-do, and whether Apple's model named it as meant: false when the model is there
+    /// but couldn't, and the name comes from the video's text instead.
+    private static func videoTitle(for material: Material, caption: String) async -> (title: String, named: Bool) {
         let fallback = TodoText.fallbackTitle(transcript: material.transcript, screenText: material.screenText,
                                               fileName: material.name)
         #if canImport(FoundationModels)
@@ -257,11 +382,12 @@ enum TodoFinder {
             if let answer = try? await LanguageModelSession(instructions: Self.videoInstructions)
                 .respond(to: prompt, generating: VideoTodo.self) {
                 let title = TodoText.tidyTitle(answer.content.title)
-                if !title.isEmpty { return title }
+                if !title.isEmpty { return (title, true) }
             }
+            return (fallback, false)
         }
         #endif
-        return fallback
+        return (fallback, true)
     }
 
     /// The to-dos a screenshot or caption lists, with any durations written beside them.
@@ -282,13 +408,7 @@ enum TodoFinder {
         }
         #endif
         // Without the model, a numbered or bulleted line is a to-do.
-        let listed = body.split(separator: "\n").map(String.init).compactMap { line -> (title: String, duration: TimeInterval?)? in
-            guard let match = line.firstMatch(of: #/^\s*(?:\d{1,2}[.)]|[-•*])\s*(.+)$/#) else { return nil }
-            let line = String(match.1)
-            let title = TodoText.tidyTitle(TodoText.removingTrailingDuration(from: line))
-            return title.isEmpty ? nil : (title, TodoText.duration(in: line))
-        }
-        return listed
+        return TodoText.listItems(in: body)
     }
 }
 
