@@ -1,3 +1,4 @@
+import Accessibility
 import MomentumCore
 import PhotosUI
 import SwiftUI
@@ -10,11 +11,18 @@ struct ImportTodosSheet: View {
     @Environment(GoalStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     var initialLink: URL?
+    /// The goal to add to, chosen already when the sheet opens from that goal's page.
+    var initialGoal: UUID?
 
     @State private var files: [URL] = []
     @State private var linkText = ""
     @State private var caption = ""
-    @State private var status: String?
+    /// How far the search has got, while it runs.
+    @State private var progress: TodoFinder.Progress?
+    /// What the last search couldn't read, file by file.
+    @State private var problems: [TodoFinder.Problem] = []
+    /// To-dos the goal chosen in "Add to" already has, unticked when it was chosen.
+    @State private var alreadyAdded: Set<UUID> = []
     @State private var todos: [FoundTodo] = []
     @State private var skipped: Set<UUID> = []
     @State private var listName = ""
@@ -25,10 +33,13 @@ struct ImportTodosSheet: View {
     @State private var problem: String?
     /// The search under way, stopped by the Stop button or by closing the sheet.
     @State private var finding: Task<Void, Never>?
-    /// Items still being copied out of Photos.
-    @State private var addingMedia: Task<Void, Never>?
+    /// Files being copied in, or items coming out of Photos, and what the footer says meanwhile.
+    @State private var adding: Task<Void, Never>?
+    @State private var addingNote = ""
     /// Copies of what was added, readable for as long as the sheet is open; removed with it.
     @State private var folder = ImportScratch.newItem(named: "files")
+    /// The file list's icon column, which grows with the text.
+    @ScaledMetric private var iconWidth: CGFloat = 22
 
     private static let fileTypes: [UTType] = [.movie, .video, .audio, .image]
 
@@ -52,12 +63,13 @@ struct ImportTodosSheet: View {
         .onChange(of: pickedMedia) { _, items in loadPicked(items) }
         .dropDestination(for: URL.self) { urls, _ in
             // Only while collecting: a file dropped on the review, or mid-search, would go unread.
-            guard !isReviewing, finding == nil else { return false }
+            guard !isReviewing, finding == nil, adding == nil else { return false }
             add(urls)
             return !urls.isEmpty
         }
         .onAppear {
             if let initialLink, linkText.isEmpty { linkText = initialLink.absoluteString }
+            if let initialGoal, destination == nil { destination = initialGoal }
             Task.detached(priority: .background) { ImportScratch.removeLeftovers() }
             #if DEBUG
             addRequestedFiles()
@@ -65,7 +77,7 @@ struct ImportTodosSheet: View {
         }
         .onDisappear {
             finding?.cancel()
-            addingMedia?.cancel()
+            adding?.cancel()
             try? FileManager.default.removeItem(at: folder)
         }
     }
@@ -88,14 +100,10 @@ struct ImportTodosSheet: View {
     private var collect: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    Button { choosesFiles = true } label: { Label("Choose Files…", systemImage: "folder") }
-                        .secondaryActionStyle(.accent, compact: true)
-                    PhotosPicker(selection: $pickedMedia, matching: .any(of: [.videos, .images])) {
-                        Label("Photos", systemImage: "photo.on.rectangle")
-                    }
-                    .secondaryActionStyle(.accent, compact: true)
-                    .disabled(addingMedia != nil)
+                // Side by side where they fit; one above the other on a phone with large text.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { pickButtons }
+                    VStack(alignment: .leading, spacing: 10) { pickButtons }
                 }
                 if files.isEmpty {
                     Text(Self.instagramHelp)
@@ -110,7 +118,7 @@ struct ImportTodosSheet: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 Label("Link to the post", systemImage: "link").font(.headline)
-                TextField("instagram.com/reel/…", text: $linkText)
+                TextField("Link to the post", text: $linkText, prompt: Text("instagram.com/reel/…"))
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     #if os(iOS)
@@ -124,6 +132,7 @@ struct ImportTodosSheet: View {
             VStack(alignment: .leading, spacing: 10) {
                 Label("Caption", systemImage: "text.quote").font(.headline)
                 TextEditor(text: $caption)
+                    .accessibilityLabel("Caption")
                     .frame(minHeight: 80)
                     .scrollContentBackground(.hidden)
                     .padding(6)
@@ -144,6 +153,7 @@ struct ImportTodosSheet: View {
                     .font(.callout)
                     .foregroundStyle(.orange)
             }
+            if !problems.isEmpty { problemList }
         }
         // What's being read stays as it is until the search ends or is stopped.
         .disabled(finding != nil)
@@ -171,6 +181,18 @@ struct ImportTodosSheet: View {
         }
     }
 
+    @ViewBuilder
+    private var pickButtons: some View {
+        Button { choosesFiles = true } label: { Label("Choose Files…", systemImage: "folder") }
+            .secondaryActionStyle(.accent, compact: true)
+            .disabled(adding != nil)
+        PhotosPicker(selection: $pickedMedia, matching: .any(of: [.videos, .images])) {
+            Label("Photos", systemImage: "photo.on.rectangle")
+        }
+        .secondaryActionStyle(.accent, compact: true)
+        .disabled(adding != nil)
+    }
+
     private static let instagramHelp = """
         From Instagram or TikTok, save the video first (Share, then Download or Save, or a screen \
         recording) and add it here, along with screenshots of a carousel. Apps can't open a post from \
@@ -178,11 +200,14 @@ struct ImportTodosSheet: View {
         """
 
     private func fileRow(_ file: URL) -> some View {
-        let isVideo = UTType(filenameExtension: file.pathExtension)?.conforms(to: .audiovisualContent) ?? false
+        let type = UTType(filenameExtension: file.pathExtension)
+        let symbol = type?.conforms(to: .audio) == true ? "waveform"
+            : type?.conforms(to: .audiovisualContent) == true ? "play.rectangle.fill" : "photo"
         return HStack(spacing: 10) {
-            Image(systemName: isVideo ? "play.rectangle.fill" : "photo")
+            Image(systemName: symbol)
                 .foregroundStyle(Color.accent)
-                .frame(width: 22)
+                .frame(width: iconWidth)
+                .accessibilityHidden(true)
             Text(file.lastPathComponent)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -198,6 +223,22 @@ struct ImportTodosSheet: View {
         }
     }
 
+    /// What the search couldn't read, with the files it happened with.
+    private var problemList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(problems) { problem in
+                Label {
+                    Text("\(problem.files.formatted(.list(type: .and))): \(problem.reason)")
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                }
+                .font(.callout)
+            }
+        }
+    }
+
     // MARK: - Reviewing
 
     private var review: some View {
@@ -205,12 +246,19 @@ struct ImportTodosSheet: View {
         let chosen = todos.filter { !skipped.contains($0.id) }
         let total = chosen.compactMap(\.duration).reduce(0, +)
         return VStack(alignment: .leading, spacing: 16) {
+            if !problems.isEmpty {
+                problemList.glassCard(padding: 16)
+            }
             VStack(alignment: .leading, spacing: 10) {
-                Picker("Add to", selection: $destination) {
-                    Text("A new goal").tag(UUID?.none)
-                    ForEach(milestoneGoals) { goal in
-                        Text(goal.name).tag(UUID?.some(goal.id))
+                // A menu on iPhone shows only its value, so the label is set beside it.
+                LabeledContent("Add to") {
+                    Picker("Add to", selection: $destination) {
+                        Text("A new goal").tag(UUID?.none)
+                        ForEach(milestoneGoals) { goal in
+                            Text(goal.name).tag(UUID?.some(goal.id))
+                        }
                     }
+                    .labelsHidden()
                 }
                 if destination == nil {
                     TextField("Goal name", text: $listName)
@@ -218,6 +266,7 @@ struct ImportTodosSheet: View {
                 }
             }
             .glassCard(padding: 16)
+            .onChange(of: destination) { _, goalID in markAlreadyAdded(in: goalID) }
 
             VStack(alignment: .leading, spacing: 4) {
                 ForEach($todos) { $todo in
@@ -229,6 +278,7 @@ struct ImportTodosSheet: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.top, 6)
+                        .accessibilityLabel("\(Formatting.spokenDuration(total)) in all")
                 }
             }
             .glassCard(padding: 16)
@@ -241,24 +291,30 @@ struct ImportTodosSheet: View {
             if isOn { skipped.remove(id) } else { skipped.insert(id) }
         })
         return HStack(alignment: .firstTextBaseline, spacing: 10) {
-            // A checkbox on the Mac, a switch on iPhone and iPad.
-            Toggle("Include", isOn: included)
+            // A checkbox on the Mac, a switch on iPhone and iPad, named after its to-do for VoiceOver.
+            Toggle(isOn: included) { Text("Include \(todo.wrappedValue.title)") }
                 .labelsHidden()
             VStack(alignment: .leading, spacing: 2) {
                 TextField("To-do", text: todo.title)
                     .textFieldStyle(.plain)
                     .font(.body.weight(.medium))
-                Text(todo.wrappedValue.source)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                // The length goes under the name, which keeps the row's width at phone width.
+                HStack(spacing: 8) {
+                    if let duration = todo.wrappedValue.duration {
+                        Label(Formatting.clock(duration), systemImage: "clock")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel(Formatting.spokenDuration(duration))
+                            .fixedSize()
+                    }
+                    Text(alreadyAdded.contains(id) ? "Already in this goal" : todo.wrappedValue.source)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
-            Spacer(minLength: 8)
-            if let duration = todo.wrappedValue.duration {
-                Label(Formatting.clock(duration), systemImage: "clock")
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
+            Spacer(minLength: 0)
         }
         .padding(.vertical, 6)
         .opacity(included.wrappedValue ? 1 : 0.5)
@@ -267,32 +323,68 @@ struct ImportTodosSheet: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack(spacing: 12) {
-            if let progress = status ?? (addingMedia == nil ? nil : "Adding from Photos…") {
-                ProgressView().controlSize(.small)
-                Text(progress)
+        VStack(spacing: 12) {
+            if let progress {
+                ProgressView(value: progress.fraction)
+                    .tint(Color.accent)
+                    .accessibilityLabel("Finding to-dos")
+            }
+            footerBar
+        }
+        .padding(16)
+    }
+
+    /// What's going on and the buttons, on one row where they fit; at phone width or with large text,
+    /// the buttons go under it rather than squeezing their titles.
+    private var footerBar: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                footerNote
+                Spacer(minLength: 12)
+                footerActions
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                footerNote
+                HStack(spacing: 12) {
+                    Spacer(minLength: 0)
+                    footerActions
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var footerNote: some View {
+        if let note = progress?.message ?? (adding == nil ? nil : addingNote) {
+            HStack(spacing: 8) {
+                if progress == nil { ProgressView().controlSize(.small) }
+                Text(note)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            Spacer()
-            if isReviewing {
-                Button("Back") { withAnimation { isReviewing = false } }
-                Button {
-                    save()
-                } label: {
-                    let count = todos.count - skipped.count
-                    Label("Add \(count) To-do\(count == 1 ? "" : "s")", systemImage: "checklist")
-                }
-                .primaryActionStyle(.accent)
-                .disabled(todos.count == skipped.count)
-                .keyboardShortcut(.defaultAction)
-            } else {
-                collectActions
-            }
         }
-        .padding(16)
+    }
+
+    @ViewBuilder
+    private var footerActions: some View {
+        if isReviewing {
+            // Escape goes back, as it cancels on the first screen: twice closes the sheet.
+            Button("Back") { withAnimation { isReviewing = false } }
+                .keyboardShortcut(.cancelAction)
+            Button {
+                save()
+            } label: {
+                let count = todos.count - skipped.count
+                Label("Add \(count) To-do\(count == 1 ? "" : "s")", systemImage: "checklist")
+            }
+            .primaryActionStyle(.accent)
+            .disabled(todos.count == skipped.count)
+            .keyboardShortcut(.defaultAction)
+        } else {
+            collectActions
+        }
     }
 
     @ViewBuilder
@@ -313,31 +405,78 @@ struct ImportTodosSheet: View {
                 Label("Find To-dos", systemImage: "sparkles")
             }
             .primaryActionStyle(.accent)
-            .disabled(addingMedia != nil || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+            .disabled(adding != nil || (files.isEmpty && caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
             .keyboardShortcut(.defaultAction)
         }
     }
 
     // MARK: - Actions
 
-    /// Keeps a copy of each file, so it can still be read once the picker's access ends.
-    private func add(_ urls: [URL]) {
+    /// Keeps a copy of each file, so it can still be read once the picker's access ends. The copies
+    /// are made off the main actor: a big video from another drive would freeze the sheet.
+    @discardableResult
+    private func add(_ urls: [URL]) -> Task<Void, Never>? {
+        var chosen: [URL] = []
         for url in urls {
             // A link dragged in from a browser is the post's link, not a file to read.
-            guard url.isFileURL else {
-                if let link = TodoText.link(from: url.absoluteString) { linkText = link.absoluteString }
-                continue
+            if url.isFileURL {
+                chosen.append(url)
+            } else if let link = TodoText.link(from: url.absoluteString) {
+                linkText = link.absoluteString
             }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            if let copy = try? Self.copy(url, into: folder) { files.append(copy) }
         }
+        guard !chosen.isEmpty, adding == nil else { return nil }
+        let folder = folder
+        let task = Task {
+            var repeated: [String] = []
+            for url in chosen {
+                addingNote = "Adding \(url.lastPathComponent)…"
+                let copy = await Self.copyWhileReadable(url, into: folder)
+                var original: URL?
+                if let copy { original = await Self.original(of: copy, among: files) }
+                // The sheet closed meanwhile: what was copied after its folder went goes too.
+                guard !Task.isCancelled else {
+                    try? FileManager.default.removeItem(at: folder)
+                    return
+                }
+                if let copy, original != nil {
+                    // The same file twice would be read twice and make the same to-do twice.
+                    try? FileManager.default.removeItem(at: copy)
+                    repeated.append(url.lastPathComponent)
+                } else if let copy {
+                    files.append(copy)
+                } else {
+                    problem = "\(url.lastPathComponent) couldn't be added."
+                }
+            }
+            if !repeated.isEmpty { problem = "Already added: \(repeated.formatted(.list(type: .and)))." }
+            adding = nil
+        }
+        adding = task
+        return task
+    }
+
+    /// The file already added that `copy` matches byte for byte, if any: the same video chosen twice.
+    /// Only a file of the same size is read through.
+    private nonisolated static func original(of copy: URL, among files: [URL]) async -> URL? {
+        let size = { (url: URL) in (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize }
+        guard let length = size(copy) else { return nil }
+        return files.first { size($0) == length && FileManager.default.contentsEqual(atPath: $0.path, andPath: copy.path) }
+    }
+
+    /// A copy of `url` in `folder`, made while the access the picker gave to it lasts.
+    private nonisolated static func copyWhileReadable(_ url: URL, into folder: URL) async -> URL? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        return try? copy(url, into: folder)
     }
 
     private func loadPicked(_ items: [PhotosPickerItem]) {
         guard !items.isEmpty else { return }
         pickedMedia = []
-        addingMedia = Task {
+        addingNote = "Adding from Photos…"
+        adding = Task {
+            var repeated = 0
             for item in items {
                 let media = try? await item.loadTransferable(type: PickedMedia.self)
                 // The sheet closed meanwhile, and its folder with it: the copy goes too.
@@ -345,13 +484,21 @@ struct ImportTodosSheet: View {
                     media?.discard()
                     return
                 }
-                if let media, let copy = try? media.move(into: folder) {
-                    files.append(copy)
-                } else {
+                guard let media, let copy = try? media.move(into: folder) else {
                     problem = "One of the items couldn't be read from Photos."
+                    continue
+                }
+                if await Self.original(of: copy, among: files) != nil {
+                    try? FileManager.default.removeItem(at: copy)
+                    repeated += 1
+                } else {
+                    files.append(copy)
                 }
             }
-            addingMedia = nil
+            if repeated > 0 {
+                problem = repeated == 1 ? "One of the items was already added." : "\(repeated) of the items were already added."
+            }
+            adding = nil
         }
     }
 
@@ -360,23 +507,30 @@ struct ImportTodosSheet: View {
         let link = TodoText.link(from: linkText)
         let files = files
         let caption = caption
-        status = "Getting started…"
+        problems = []
+        progress = TodoFinder.Progress(message: "Getting started…", fraction: 0)
         finding = Task {
-            let found = await TodoFinder.todos(in: files, caption: caption, link: link) { message in
+            let findings = await TodoFinder.todos(in: files, caption: caption, link: link) { update in
                 // A stopped search can still be finishing a step; it no longer reports.
-                if !Task.isCancelled { status = message }
+                if !Task.isCancelled { progress = update }
             }
             guard !Task.isCancelled else { return }
+            let found = findings.todos
             let name = await TodoFinder.listName(for: found, caption: caption)
             guard !Task.isCancelled else { return }
             finding = nil
-            status = nil
+            progress = nil
+            problems = findings.problems
+            let outcome = found.isEmpty ? "No to-dos found" : "Found \(found.count) to-do\(found.count == 1 ? "" : "s")"
+            AccessibilityNotification.Announcement(outcome).post()
             if found.isEmpty {
                 problem = "No to-dos found. Try adding the video itself, or paste the caption."
                 return
             }
             todos = found
             skipped = []
+            alreadyAdded = []
+            markAlreadyAdded(in: destination)
             listName = name
             withAnimation { isReviewing = true }
             #if DEBUG
@@ -385,11 +539,20 @@ struct ImportTodosSheet: View {
         }
     }
 
+    /// Unticks the to-dos the goal `goalID` already has, and ticks again those the goal chosen before
+    /// had: importing a post again adds only what's new.
+    private func markAlreadyAdded(in goalID: UUID?) {
+        skipped.subtract(alreadyAdded)
+        let goal = goalID.flatMap { store.goal($0) }
+        alreadyAdded = Set(todos.filter { goal?.hasMilestone(like: $0) == true }.map(\.id))
+        skipped.formUnion(alreadyAdded)
+    }
+
     /// Stops looking, keeping what was added, to change it and look again.
     private func stopFinding() {
         finding?.cancel()
         finding = nil
-        status = nil
+        progress = nil
     }
 
     #if DEBUG
@@ -399,9 +562,14 @@ struct ImportTodosSheet: View {
     private func addRequestedFiles() {
         let environment = ProcessInfo.processInfo.environment
         guard files.isEmpty, let names = environment["MOMENTUM_IMPORT_FILES"] else { return }
-        add(names.split(separator: ",").map { FileManager.default.temporaryDirectory.appendingPathComponent(String($0)) })
+        let copying = add(names.split(separator: ",").map { FileManager.default.temporaryDirectory.appendingPathComponent(String($0)) })
         caption = environment["MOMENTUM_IMPORT_CAPTION"] ?? caption
-        if environment["MOMENTUM_IMPORT_FIND"] != nil { find() }
+        if environment["MOMENTUM_IMPORT_FIND"] != nil {
+            Task {
+                await copying?.value
+                find()
+            }
+        }
     }
     #endif
 

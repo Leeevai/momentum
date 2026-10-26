@@ -37,7 +37,8 @@ point to, only when you open them.
 When you turn saved videos, screenshots or a caption into to-dos, Momentum reads them **on your
 device**: it measures each video, recognizes the speech and the text on screen, and names the to-dos
 with Apple's on-device language model. The videos, images and text never leave your device, and
-the copies made while reading them are deleted when you close the window. The first time, the
+the copies made while reading them are deleted when you close the window; any that a crash leaves
+behind are deleted the next time you add videos, once they're a day old. The first time, the
 system may download Apple's speech recognition model for your language; Momentum itself sends
 nothing.
 

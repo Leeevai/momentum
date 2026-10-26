@@ -29,6 +29,13 @@ public enum Formatting {
             : String(format: "%d:%02d", minutes, secs)
     }
 
+    /// A length of time as VoiceOver should say it, "14 minutes, 32 seconds": `clock` is read as a
+    /// time of day, and `duration` letter by letter.
+    public static func spokenDuration(_ seconds: Double, locale: Locale = .autoupdatingCurrent) -> String {
+        let style = Duration.UnitsFormatStyle(allowedUnits: [.hours, .minutes, .seconds], width: .wide).locale(locale)
+        return Duration.seconds(max(0, whole(seconds.rounded(.down)))).formatted(style)
+    }
+
     /// "1,250" or "12.5", trimming a trailing ".0". From 100 up, decimals are noise and are dropped.
     public static func number(_ value: Double) -> String {
         abs(value) >= 100
