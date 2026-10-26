@@ -35,6 +35,7 @@ struct MilestonesSection: View {
                         Label("\(Formatting.duration(remaining)) left", systemImage: "clock")
                             .font(.callout)
                             .foregroundStyle(.secondary)
+                            .accessibilityLabel("\(Formatting.spokenDuration(remaining)) left")
                     }
                     Text("\(done)/\(goal.milestones.count)")
                         .font(.callout.weight(.semibold))
@@ -113,6 +114,7 @@ private struct MilestoneRow: View {
                 Text(Formatting.clock(duration))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel(Formatting.spokenDuration(duration))
             }
             if let link = milestone.link {
                 Button { openURL(link) } label: {

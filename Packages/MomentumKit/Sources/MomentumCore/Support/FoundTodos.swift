@@ -48,6 +48,24 @@ extension AppData {
     }
 }
 
+extension Goal {
+    /// Whether one of the goal's milestones already stands for `todo`: one with the same name, case
+    /// and spacing aside, or with the same link and length, the same video under another name.
+    public func hasMilestone(like todo: FoundTodo) -> Bool {
+        let title = Self.comparable(todo.title)
+        return milestones.contains { milestone in
+            if !title.isEmpty, Self.comparable(milestone.title) == title { return true }
+            guard let link = todo.link, let length = todo.duration, milestone.link == link,
+                  let otherLength = milestone.duration else { return false }
+            return abs(otherLength - length) < 1
+        }
+    }
+
+    private static func comparable(_ title: String) -> String {
+        title.lowercased().split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+}
+
 /// The text handling behind found to-dos: cleaning links, reading durations, and naming a to-do
 /// when the on-device model can't.
 public enum TodoText {
@@ -157,28 +175,164 @@ public enum TodoText {
         return stripped.isEmpty ? title : stripped
     }
 
-    /// Openers that say nothing about the task.
-    private static let openers = ["in this video,", "in this video", "in today's video,", "hey guys,", "hey everyone,",
-                                  "hi everyone,", "so,", "okay,", "ok,", "today,"]
+    /// Openers that say nothing about the task, stripped from the start of a spoken sentence however
+    /// they're stacked: "So, in this video, we build…".
+    private static let openers = ["in this video", "in today's video", "in this reel", "hey guys", "hey everyone",
+                                  "hey there", "hi guys", "hi everyone", "hi there", "hello everyone", "hello", "hey",
+                                  "hi", "so", "okay", "ok", "alright", "all right", "today", "now", "well"]
 
-    /// A to-do's name when the on-device model isn't available: the first sentence of what's said,
-    /// else the first line on screen, else the file's name, shortened to `maxWords`.
+    /// Spoken sentences that greet or ask for something, and never say what to do.
+    private static let greetings = ["welcome back", "welcome to", "what's up", "whats up", "like and subscribe",
+                                    "subscribe", "don't forget to", "make sure to like", "make sure to subscribe",
+                                    "follow me", "follow for more", "comment below"]
+
+    /// List items that ask for something rather than say what to do.
+    private static let requests = ["follow for more", "follow me", "like and", "like this", "comment", "save this",
+                                   "save for later", "subscribe", "tag a", "tag someone", "tag your", "link in bio",
+                                   "dm me", "share this", "share with"]
+
+    /// A caption's first lines that hook rather than name the post.
+    private static let hooks = ["stop scrolling", "wait for it", "you need this", "you need to see", "read this",
+                                "don't skip", "watch till the end", "watch until the end"]
+
+    /// Text a screen recording picks up from the phone or the app rather than the video.
+    private static let interfaceText: Set<String> = ["follow", "following", "like", "likes", "share", "send", "reply",
+                                                     "comment", "comments", "more", "reels", "for you", "explore",
+                                                     "sponsored", "subscribe", "subscribed", "verified", "live",
+                                                     "home", "search", "save", "saved", "remix", "use template"]
+
+    /// Words a camera, a screen recording or an app names files with, which say nothing about them.
+    private static let fileNameWords: Set<String> = ["img", "vid", "mov", "pxl", "dsc", "dscn", "mvi", "gopr", "trim",
+                                                     "rpreplay", "final", "screenrecording", "screen", "recording",
+                                                     "at", "copy", "video", "image", "photo", "fullsizerender"]
+
+    /// A to-do's name when the on-device model isn't available: the first spoken sentence that says
+    /// something (not a greeting, at least three words), else the first line on screen that isn't the
+    /// phone's or the app's, else the file's name unless a camera or an app made it up, shortened to
+    /// `maxWords`; else "Watch the video".
     public static func fallbackTitle(transcript: String, screenText: String, fileName: String, maxWords: Int = 8) -> String {
-        let sentence = transcript.split(whereSeparator: { ".!?\n".contains($0) }).first.map(String.init) ?? ""
-        var title = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
-        for opener in openers where title.lowercased().hasPrefix(opener) {
-            title = String(title.dropFirst(opener.count)).trimmingCharacters(in: .whitespaces)
+        let sentences = transcript.split(whereSeparator: { ".!?\n。！？".contains($0) })
+        var title = sentences.lazy.map { withoutOpeners(String($0)) }.first(where: isTask) ?? ""
+        if title.isEmpty {
+            let lines = screenText.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
+            title = lines.first { !isInterface($0) } ?? ""
         }
         if title.isEmpty {
-            title = screenText.split(separator: "\n").first.map(String.init)?.trimmingCharacters(in: .whitespaces) ?? ""
-        }
-        if title.isEmpty {
-            title = (fileName as NSString).deletingPathExtension
-                .replacingOccurrences(of: "_", with: " ")
-                .replacingOccurrences(of: "-", with: " ")
+            let stem = (fileName as NSString).deletingPathExtension
+            if !isMadeUp(stem) {
+                title = stem.replacingOccurrences(of: "_", with: " ").replacingOccurrences(of: "-", with: " ")
+            }
         }
         let words = title.split(separator: " ")
-        title = tidyTitle(words.prefix(maxWords).joined(separator: " "))
+        title = tidyTitle(words.count > 1 ? words.prefix(maxWords).joined(separator: " ") : String(title.prefix(40)))
         return title.isEmpty ? "Watch the video" : title
+    }
+
+    /// The to-dos a screenshot or a caption lists, read without the on-device model: each line that
+    /// starts like a list item, numbered ("1.", "1)", "1 -", "1/", "#1", "Step 1:", "1️⃣") or bulleted
+    /// ("-", "•", "✅", "👉" and the like), with a duration written beside it. Items that only ask to
+    /// follow, like, comment or share are left out.
+    public static func listItems(in text: String) -> [(title: String, duration: TimeInterval?)] {
+        text.split(whereSeparator: \.isNewline).compactMap { line -> (title: String, duration: TimeInterval?)? in
+            guard let item = listItem(String(line)) else { return nil }
+            let title = tidyTitle(removingTrailingDuration(from: item))
+            guard !title.isEmpty, !requests.contains(where: { startsWithWord($0, title) }) else { return nil }
+            return (title, duration(in: item))
+        }
+    }
+
+    /// A name for the goal found to-dos go in when the on-device model doesn't name it: a single
+    /// to-do's own, else the post's title, the caption's first line that is one, else "Saved videos".
+    public static func listName(for todos: [FoundTodo], caption: String) -> String {
+        if todos.count == 1 { return todos[0].title }
+        return postTitle(in: caption) ?? "Saved videos"
+    }
+
+    /// The post's title in its caption: the first line of two words or more, once links, handles,
+    /// hashtags and emoji are taken out, that isn't a list item, a request or a hook. "5 AI projects
+    /// to build this weekend 🚀" is "5 AI projects to build this weekend".
+    public static func postTitle(in caption: String) -> String? {
+        for line in caption.split(whereSeparator: \.isNewline) where listItem(String(line)) == nil {
+            let words = line.split(separator: " ").filter { word in
+                !word.hasPrefix("#") && !word.hasPrefix("@") && !word.contains("://")
+            }
+            let text = words.joined(separator: " ").filter { !isEmoji($0) }
+                .trimmingCharacters(in: .whitespaces.union(CharacterSet(charactersIn: ":-–—|")))
+            guard text.split(separator: " ").count >= 2,
+                  !(requests + hooks).contains(where: { startsWithWord($0, text) }) else { continue }
+            return goalName(text, maxWords: 8)
+        }
+        return nil
+    }
+
+    /// A goal's name as it should read: tidied like a to-do's name and at most `maxWords` long.
+    public static func goalName(_ name: String, maxWords: Int = 6) -> String {
+        tidyTitle(name.split(separator: " ").prefix(maxWords).joined(separator: " "))
+    }
+
+    /// Whether a character is an emoji ("🚀", "❤️", "👍🏽"), rather than a digit or a sign that can be one.
+    private static func isEmoji(_ character: Character) -> Bool {
+        character.unicodeScalars.contains { $0.properties.isEmojiPresentation || ($0.properties.isEmoji && $0.value >= 0x203C) }
+    }
+
+    /// What follows a line's list marker; nil when the line doesn't start like a list item. A number
+    /// followed by more digits ("3.5 hours", "10:30") or by a hyphenated word ("10-minute") isn't one.
+    static func listItem(_ line: String) -> String? {
+        // Keycap numbers (1️⃣) read as "1)", and emoji bullets without their variation selector.
+        let plain = line.replacingOccurrences(of: "\u{FE0F}", with: "")
+            .replacingOccurrences(of: "\u{20E3}", with: ")")
+            .replacingOccurrences(of: "🔟", with: "10)")
+        let numbered = #/^\s*(?:step\s*)?\d{1,2}\s*(?:[.):](?!\d)|\s[-–—]\s|/(?!\d))\s*(.+)$/#.ignoresCase()
+        let hashed = #/^\s*#\d{1,2}[.):]?\s+(.+)$/#
+        let bulleted = #/^\s*[-–—•*▪◾▫●○◦‣⁃✓✔✅☑👉➡▶►→🔹🔸⭐📌]+\s*(.+)$/#
+        if let match = plain.firstMatch(of: numbered) { return String(match.1) }
+        if let match = plain.firstMatch(of: hashed) { return String(match.1) }
+        if let match = plain.firstMatch(of: bulleted) { return String(match.1) }
+        return nil
+    }
+
+    /// `sentence` without the openers it starts with, however many: "So, in this video, we build" is
+    /// "we build".
+    private static func withoutOpeners(_ sentence: String) -> String {
+        var text = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
+        while let opener = openers.first(where: { startsWithWord($0, text) }) {
+            text = String(text.dropFirst(opener.count))
+                .trimmingCharacters(in: .whitespaces.union(CharacterSet(charactersIn: ",:;!-–—")))
+        }
+        return text
+    }
+
+    /// Whether a spoken sentence says what to do: a few words that aren't a greeting or a request.
+    /// Chinese and Japanese, written without spaces, need a few more characters than a greeting has.
+    private static func isTask(_ sentence: String) -> Bool {
+        let words = sentence.split(separator: " ")
+        let spaceless = words.count == 1 && sentence.count >= 6
+            && sentence.unicodeScalars.contains { $0.properties.isIdeographic || (0x3040...0x30FF).contains($0.value) }
+        return (words.count >= 3 || spaceless) && !greetings.contains { startsWithWord($0, sentence) }
+    }
+
+    /// Whether `text` starts with `phrase` as whole words, ignoring case: "so" starts "So, we", not
+    /// "Some" or "So's".
+    private static func startsWithWord(_ phrase: String, _ text: String) -> Bool {
+        guard text.lowercased().hasPrefix(phrase) else { return false }
+        guard let next = text.dropFirst(phrase.count).first else { return true }
+        return next.isWhitespace || ",:;!-–—".contains(next)
+    }
+
+    /// Whether a line on screen is the phone's or the app's: the clock or a count ("9:41", "1.2K"),
+    /// a handle or a hashtag, or a button.
+    private static func isInterface(_ line: String) -> Bool {
+        let lowered = line.lowercased()
+        return line.filter(\.isLetter).count < 3 || line.hasPrefix("@") || line.hasPrefix("#")
+            || interfaceText.contains(lowered) || lowered.hasPrefix("liked by") || lowered.hasPrefix("original audio")
+            || lowered.hasPrefix("view all")
+    }
+
+    /// Whether a file's name was made up by a camera, a screen recording or an app ("IMG_1234",
+    /// "RPReplay_Final1696", a UUID) rather than given by someone.
+    private static func isMadeUp(_ stem: String) -> Bool {
+        if UUID(uuidString: stem) != nil { return true }
+        let words = stem.lowercased().split(whereSeparator: { !$0.isLetter })
+        return words.allSatisfy { fileNameWords.contains(String($0)) }
     }
 }
