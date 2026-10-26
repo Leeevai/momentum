@@ -139,7 +139,7 @@ private struct ChallengeSmall: View {
                     .foregroundStyle(.secondary)
                     .frame(maxHeight: .infinity)
             } else {
-                WidgetWideButton(goal: goal, engine: entry.engine)
+                GoalWidgetButton(goal: goal, engine: entry.engine)
             }
         }
     }
@@ -155,7 +155,7 @@ private struct ChallengeMedium: View {
             VStack(spacing: 8) {
                 ChallengeBadge(status: status, color: goal.color, size: 74)
                 if !status.isFinished {
-                    WidgetWideButton(goal: goal, engine: entry.engine)
+                    GoalWidgetButton(goal: goal, engine: entry.engine)
                 }
             }
             .frame(width: 100)
