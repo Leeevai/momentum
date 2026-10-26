@@ -170,8 +170,8 @@ struct SetFocusRunningIntent: SetValueIntent {
         let data = SharedStore.update { data in
             if value {
                 guard data.session == nil, let goal = data.suggestedFocusGoal else { return }
-                let minutes = goal.focusMinutes ?? data.preferences.defaultFocusMinutes
-                data.startFocus(on: goal.id, planned: Double(minutes) * 60)
+                // At the length a widget's Start uses: the goal's own, the Pomodoro block, or none.
+                data.startFocus(on: goal.id, planned: data.defaultFocusLength(for: goal.id))
             } else {
                 data.stopFocus()
             }
