@@ -109,6 +109,77 @@ struct FoundTodosTests {
         #expect(nothing == "Watch the video")
     }
 
+    @Test("Greetings, stacked openers, the phone's interface and made-up file names don't name a to-do")
+    func fallbackTitlesSkipNoise() {
+        let greeting = TodoText.fallbackTitle(transcript: "Hey guys! Welcome back to my channel. Today we're making a one-pan lemon pasta.",
+                                              screenText: "", fileName: "a.mov")
+        let stacked = TodoText.fallbackTitle(transcript: "So, in this video, we build a RAG system.", screenText: "", fileName: "a.mov")
+        let japanese = TodoText.fallbackTitle(transcript: "こんにちは。今日はレモンパスタを作ります。", screenText: "", fileName: "a.mov")
+        let screen = TodoText.fallbackTitle(transcript: "", screenText: "9:41\n@coach.anna\nFollow\nOriginal audio\nMorning stretch routine",
+                                            fileName: "a.mov")
+        let camera = TodoText.fallbackTitle(transcript: "", screenText: "", fileName: "IMG_1234.MOV")
+        let recording = TodoText.fallbackTitle(transcript: "", screenText: "", fileName: "RPReplay_Final1696.MP4")
+        let random = TodoText.fallbackTitle(transcript: "", screenText: "", fileName: "8F3A1C2E-0F4B-4D0E-9B1F-2C3D4E5F6A7B.mov")
+        #expect(greeting == "We're making a one-pan lemon pasta")
+        #expect(stacked == "We build a RAG system")
+        #expect(japanese == "今日はレモンパスタを作ります")
+        #expect(screen == "Morning stretch routine")
+        #expect(camera == "Watch the video")
+        #expect(recording == "Watch the video")
+        #expect(random == "Watch the video")
+    }
+
+    @Test("Lists are read from numbers, keycaps, steps and bullets; a decimal or a hyphenated number isn't an item")
+    func listsWithoutModel() {
+        let caption = """
+            5 projects to build this weekend 🚀
+            1️⃣ Build a tokenizer · 14:32
+            2️⃣ Train a tiny GPT
+            Step 3: Fine-tune it (20 min)
+            #4 Ship a RAG app
+            5 - Write it up
+            ✅ Share what you made
+            👉 Follow for more
+            3.5 hours of practice
+            10-minute ab workout
+            """
+        let items = TodoText.listItems(in: caption)
+        let titles = items.map { $0.title }
+        let durations = items.map { $0.duration }
+        let expectedTitles = ["Build a tokenizer", "Train a tiny GPT", "Fine-tune it", "Ship a RAG app", "Write it up",
+                              "Share what you made"]
+        let expectedDurations: [TimeInterval?] = [872, nil, 1200, nil, nil, nil]
+        #expect(titles == expectedTitles)
+        #expect(durations == expectedDurations)
+    }
+
+    @Test("Without the model, several to-dos go in a goal named after the post's title in its caption")
+    func goalNames() {
+        let caption = """
+            Save this for later 📌
+            5 AI projects to build this weekend 🚀🔥 #ai @coach
+            1. Build a tokenizer
+            2. Train a tiny GPT
+            """
+        let todos = [FoundTodo(title: "Build a tokenizer", source: "Caption"), FoundTodo(title: "Train a tiny GPT", source: "Caption")]
+        let fromCaption = TodoText.listName(for: todos, caption: caption)
+        let onlyList = TodoText.listName(for: todos, caption: "1. Build a tokenizer\n2. Train a tiny GPT")
+        let behindTags = TodoText.postTitle(in: "#fitness #workout\nhttps://instagram.com/p/x\nHow to learn SQL in 30 days:")
+        let single = TodoText.listName(for: [todos[0]], caption: caption)
+        #expect(fromCaption == "5 AI projects to build this weekend")
+        #expect(onlyList == "Saved videos")
+        #expect(behindTags == "How to learn SQL in 30 days")
+        #expect(single == "Build a tokenizer")
+    }
+
+    @Test("A suggested goal name is tidied and kept short")
+    func suggestedGoalNames() {
+        let quoted = TodoText.goalName("“Rebuild AI projects.”")
+        let long = TodoText.goalName("Morning mobility routine for runners who sit all day")
+        #expect(quoted == "Rebuild AI projects")
+        #expect(long == "Morning mobility routine for runners who")
+    }
+
     @Test("Titles read as to-dos: shouted captions in sentence case, without quotes or a full stop")
     func tidyingTitles() {
         let shouted = TodoText.tidyTitle("10 MIN AB WORKOUT")
