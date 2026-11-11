@@ -117,8 +117,57 @@ private struct TodayList: View {
                 let right = engine.isRunning(rhs) ? 0 : (engine.isComplete(rhs, now: entry.date) ? 2 : 1)
                 return left < right
             }
+        // As much as the widget's height takes: the system sizes widgets differently on each Mac
+        // and iPhone, and with larger text, and a layout taller than the widget is cut off at the
+        // top and bottom. ViewThatFits shows the first candidate that fits.
+        ViewThatFits(in: .vertical) {
+            ForEach(candidates(goalCount: goals.count), id: \.self) { candidate in
+                layout(goals, candidate)
+            }
+        }
+    }
+
+    /// One way to lay the widget out.
+    private struct Candidate: Hashable {
+        var rows: Int
+        var showsMore: Bool
+        var showsWeek: Bool
+    }
+
+    /// Every layout worth trying, most informative first: each row count with "+N more" and then
+    /// without (the header's "0 of 11 done" already says there are more), the large size giving
+    /// up two rows before its week grid, and last the header alone, which fits at any text size.
+    private func candidates(goalCount: Int) -> [Candidate] {
+        var list: [Candidate] = []
+        func add(_ rows: Int, week: Bool) {
+            for more in [true, false] where !(more && goalCount <= rows) {
+                let candidate = Candidate(rows: rows, showsMore: more, showsWeek: week)
+                if !list.contains(candidate) { list.append(candidate) }
+            }
+        }
+        if isLarge && goalCount <= 2 {
+            // None, one or two goals, which take a tile each: all of them or none.
+            add(goalCount, week: true)
+            add(goalCount, week: false)
+        } else {
+            let most = max(1, min(maxRows, goalCount))
+            if isLarge {
+                for rows in stride(from: most, through: max(1, most - 2), by: -1) { add(rows, week: true) }
+            }
+            for rows in stride(from: most, through: 1, by: -1) { add(rows, week: false) }
+        }
+        add(0, week: false)
+        return list
+    }
+
+    /// The header, up to `rows` goals, how many more there are, and on the large size the week.
+    private func layout(_ goals: [Goal], _ candidate: Candidate) -> some View {
+        let engine = entry.engine
         let summary = engine.todaySummary(now: entry.date)
-        VStack(alignment: .leading, spacing: 8) {
+        let shown = candidate.rows
+        let showsMore = candidate.showsMore
+        let showsWeek = candidate.showsWeek
+        return VStack(alignment: .leading, spacing: isLarge ? 8 : 6) {
             if isLarge {
                 TodayHero(entry: entry, goals: goals)
             } else {
@@ -135,22 +184,22 @@ private struct TodayList: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            if isLarge && goals.count <= 2 {
+            if isLarge && goals.count <= 2 && shown > 0 {
                 ForEach(goals) { goal in
                     TodayTile(goal: goal, entry: entry, showsDetail: goals.count == 1)
                 }
             } else {
-                ForEach(goals.prefix(maxRows)) { goal in
-                    TodayRow(goal: goal, entry: entry)
+                ForEach(goals.prefix(shown)) { goal in
+                    TodayRow(goal: goal, entry: entry, compact: !isLarge)
                 }
             }
-            if goals.count > maxRows {
-                Text("+\(goals.count - maxRows) more")
+            if showsMore && goals.count > shown {
+                Text("+\(goals.count - shown) more")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            if isLarge {
+            if showsWeek {
                 WeekGrid(engine: engine, goals: Array(goals.prefix(4)), now: entry.date)
             }
         }
@@ -160,6 +209,8 @@ private struct TodayList: View {
 private struct TodayRow: View {
     let goal: Goal
     let entry: MomentumEntry
+    /// The medium size's rows: a little smaller, so three goals fit its height.
+    var compact = false
 
     var body: some View {
         let engine = entry.engine
@@ -174,22 +225,22 @@ private struct TodayRow: View {
 
     private func row(engine: ProgressEngine, streak: ProgressEngine.Streak) -> some View {
         HStack(spacing: 10) {
-            ProgressRing(progress: engine.ringProgress(for: goal, now: entry.date), color: goal.color, lineWidth: 4) {
-                GoalGlyph(goal: goal, size: 11)
+            ProgressRing(progress: engine.ringProgress(for: goal, now: entry.date), color: goal.color, lineWidth: compact ? 3.5 : 4) {
+                GoalGlyph(goal: goal, size: compact ? 10 : 11)
             }
-            .frame(width: 32, height: 32)
-            VStack(alignment: .leading, spacing: 1) {
+            .frame(width: compact ? 28 : 32, height: compact ? 28 : 32)
+            VStack(alignment: .leading, spacing: compact ? 0 : 1) {
                 Text(goal.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font((compact ? Font.footnote : Font.subheadline).weight(.semibold))
                     .lineLimit(1)
                 if let session = entry.data.session, session.goalID == goal.id {
                     WidgetSessionClock(session: session, now: entry.date)
-                        .font(.caption.weight(.semibold))
+                        .font((compact ? Font.caption2 : Font.caption).weight(.semibold))
                         .monospacedDigit()
                         .foregroundStyle(goal.tint)
                 } else {
                     Text(goal.progressText(engine.currentAmount(for: goal, now: entry.date), target: engine.target(for: goal)))
-                        .font(.caption)
+                        .font(compact ? .caption2 : .caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
