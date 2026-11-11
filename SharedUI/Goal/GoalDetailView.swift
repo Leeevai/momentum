@@ -48,7 +48,7 @@ struct GoalDetailContent: View {
     var body: some View {
         let engine = store.engine
         let now = store.now
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 20) {
             GoalHeader(goal: goal, hero: hero)
             HeroPanel(goal: goal, hero: hero)
             if let challenge = engine.challengeStatus(for: goal, now: now) {
@@ -84,12 +84,12 @@ private struct GoalHeader: View {
     var hero: Namespace.ID?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            GoalIcon(goal: goal, size: Metrics.showsInlineTitles ? 64 : 54)
+        HStack(alignment: .top, spacing: 14) {
+            GoalIcon(goal: goal, size: Metrics.showsInlineTitles ? 44 : 40)
                 .heroMatch("icon-\(goal.id)", in: hero)
             VStack(alignment: .leading, spacing: 6) {
                 Text(goal.name)
-                    .font(.system(size: Metrics.showsInlineTitles ? 30 : 26, weight: .semibold))
+                    .font(Metrics.showsInlineTitles ? .largeTitle.weight(.semibold) : .title.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                     .heroMatch("title-\(goal.id)", in: hero)
                 FlowLayout(spacing: 8) { meta }
@@ -104,11 +104,7 @@ private struct GoalHeader: View {
                     Text(goal.details)
                         .font(.body)
                         .foregroundStyle(.secondary)
-                        .padding(.leading, 12)
-                        .overlay(alignment: .leading) {
-                            Capsule().fill(goal.tint.opacity(0.6)).frame(width: 3)
-                        }
-                        .padding(.top, 4)
+                        .padding(.top, 2)
                         .textSelection(.enabled)
                 }
             }
@@ -151,18 +147,18 @@ private struct HeroPanel: View {
     var body: some View {
         let running = store.engine.isRunning(goal)
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 28) {
+            HStack(alignment: .center, spacing: 24) {
                 ring
                 TrackingControls(goal: goal)
                     .frame(minWidth: 300, maxWidth: .infinity, alignment: .leading)
             }
-            VStack(alignment: .center, spacing: 20) {
+            VStack(alignment: .center, spacing: 18) {
                 ring
                 TrackingControls(goal: goal)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .glassCard(tint: goal.tint, cornerRadius: 24, padding: 22, highlighted: running)
+        .glassCard(tint: goal.tint, padding: 20, highlighted: running)
     }
 
     private var ring: some View {
@@ -170,10 +166,10 @@ private struct HeroPanel: View {
         let running = engine.isRunning(goal)
         return LiveClock(isLive: running && store.data.session?.isRunning == true, fallback: store.now) { now in
             let amount = engine.currentAmount(for: goal, now: now)
-            ProgressRing(progress: engine.ringProgress(for: goal, now: now), color: goal.color, lineWidth: 14) {
+            ProgressRing(progress: engine.ringProgress(for: goal, now: now), color: goal.color, lineWidth: 10) {
                 VStack(spacing: 2) {
                     Text(goal.formatShort(amount))
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.system(size: 26, weight: .semibold))
                         .monospacedDigit()
                         .contentTransition(.numericText(value: amount))
                         .minimumScaleFactor(0.6)
@@ -183,14 +179,13 @@ private struct HeroPanel: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     Text(goal.effectivePeriod.currentLabel)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(goal.tint)
-                        .textCase(.uppercase)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
-                .padding(18)
+                .padding(16)
             }
         }
-        .frame(width: 168, height: 168)
+        .frame(width: 144, height: 144)
         .heroMatch("ring-\(goal.id)", in: hero)
     }
 }
@@ -200,21 +195,21 @@ private struct PaceCard: View {
     let pace: ProgressEngine.Pace
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 26))
-                .foregroundStyle(tint.gradient)
-                .frame(width: 40)
-            VStack(alignment: .leading, spacing: 4) {
+                .foregroundStyle(tint)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.headline)
+                    .font(.callout.weight(.medium))
                 Text(message)
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .glassCard(tint: tint)
+        .glassCard(padding: 14)
     }
 
     private var tint: Color {
@@ -228,7 +223,7 @@ private struct PaceCard: View {
     private var icon: String {
         switch pace.status {
         case .onTrack, .done: "chart.line.uptrend.xyaxis"
-        case .behind: "exclamationmark.triangle.fill"
+        case .behind: "exclamationmark.triangle"
         case .noDeadline: "flag.checkered"
         }
     }

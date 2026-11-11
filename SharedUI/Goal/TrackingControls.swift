@@ -27,12 +27,10 @@ private struct TimeControls: View {
                 if let session {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(session.plannedDuration == nil ? "Elapsed" : "Time left")
-                            .font(.caption.weight(.semibold))
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
                         SessionClockText(session: session)
-                            .font(.system(size: 40, weight: .semibold))
-                            .foregroundStyle(goal.color.linear)
+                            .font(.system(size: 36, weight: .semibold))
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 4) {
@@ -82,7 +80,7 @@ private struct StreakSafeNote: View {
             Label(safe ? "Streak safe: you've done the minimum today" : "\(goal.format(minimum)) keeps your streak today",
                   systemImage: safe ? "shield.checkered" : "shield")
                 .font(.callout)
-                .foregroundStyle(safe ? Color.orange : Color.secondary)
+                .foregroundStyle(.secondary)
         }
     }
 }
