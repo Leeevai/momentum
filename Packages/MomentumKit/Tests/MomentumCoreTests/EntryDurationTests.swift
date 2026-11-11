@@ -50,3 +50,17 @@ struct EntryDurationTests {
         #expect(durations == [1800, nil, 1680, 1200, nil])
     }
 }
+
+@Suite("Durations and followed items elsewhere")
+struct DurationElsewhereTests {
+    @Test("A duration set straight on an entry that isn't a number doesn't stop the save")
+    func nonFiniteSaves() throws {
+        let gym = checkInGoal()
+        var entry = LogEntry(goalID: gym.id, date: referenceNow, amount: 1)
+        entry.duration = .nan
+        let data = AppData(goals: [gym], entries: [entry])
+        let reread = try FileStore.decode(FileStore.encode(data)).entries.first
+        #expect(reread != nil)
+        #expect(reread?.duration == nil)
+    }
+}

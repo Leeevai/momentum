@@ -56,7 +56,9 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
         if !note.isEmpty { try c.encode(note, forKey: .note) }
         try c.encodeIfPresent(bookID, forKey: .bookID)
         try c.encodeIfPresent(quality, forKey: .quality)
-        try c.encodeIfPresent(duration, forKey: .duration)
+        // Checked again here: a value set straight on the property that isn't a number would
+        // otherwise fail the whole save.
+        try c.encodeIfPresent(Self.validDuration(duration), forKey: .duration)
     }
 
     public init(from decoder: Decoder) throws {
