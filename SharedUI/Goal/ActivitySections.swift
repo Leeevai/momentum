@@ -252,8 +252,11 @@ private struct HistoryRow: View {
         return "\(sign)\(value)"
     }
 
+    /// What it was in, how long it took (with the pace, on a distance), and the note.
     private var detail: String {
         let book = entry.bookID.flatMap { id in goal.books.first { $0.id == id }?.title }
-        return [book, entry.note.isEmpty ? nil : entry.note].compactMap { $0 }.joined(separator: " · ")
+        let took = entry.duration.map(Formatting.duration)
+        let pace = entry.duration.flatMap { goal.paceText(amount: entry.amount, duration: $0) }
+        return [book, took, pace, entry.note.isEmpty ? nil : entry.note].compactMap { $0 }.joined(separator: " · ")
     }
 }
