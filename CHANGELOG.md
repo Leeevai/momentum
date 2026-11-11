@@ -38,6 +38,7 @@ All notable changes to Momentum are recorded here. The format follows
   your Mac without the app being opened.
 
 ### Changed
+- The watch matches the calmer look: flat rings and bars, and plainer page backgrounds.
 - Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
   Dusk and Rose. Ocean, Lagoon, Amber, Lavender, Mint, Cherry and Midnight are retired; if you
   used one, Momentum switches to the closest new palette.
