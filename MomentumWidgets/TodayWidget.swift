@@ -117,8 +117,37 @@ private struct TodayList: View {
                 let right = engine.isRunning(rhs) ? 0 : (engine.isComplete(rhs, now: entry.date) ? 2 : 1)
                 return left < right
             }
+        if isLarge && goals.count <= 2 {
+            layout(goals, rows: goals.count, showsMore: false, showsWeek: true)
+        } else if isLarge {
+            // As much as the widget's height takes: the system sizes widgets differently on each
+            // Mac and iPhone, and a list taller than the widget is cut off at the top and bottom.
+            ViewThatFits(in: .vertical) {
+                layout(goals, rows: maxRows, showsMore: true, showsWeek: true)
+                layout(goals, rows: maxRows - 1, showsMore: true, showsWeek: true)
+                layout(goals, rows: maxRows - 2, showsMore: true, showsWeek: true)
+                layout(goals, rows: maxRows, showsMore: true, showsWeek: false)
+                layout(goals, rows: maxRows - 1, showsMore: false, showsWeek: false)
+                layout(goals, rows: 1, showsMore: false, showsWeek: false)
+            }
+        } else {
+            ViewThatFits(in: .vertical) {
+                layout(goals, rows: maxRows, showsMore: true, showsWeek: false)
+                // The header's "0 of 11 done" already says there are more.
+                layout(goals, rows: maxRows, showsMore: false, showsWeek: false)
+                layout(goals, rows: maxRows - 1, showsMore: true, showsWeek: false)
+                layout(goals, rows: maxRows - 1, showsMore: false, showsWeek: false)
+                layout(goals, rows: 1, showsMore: false, showsWeek: false)
+            }
+        }
+    }
+
+    /// The header, up to `rows` goals, how many more there are, and on the large size the week.
+    private func layout(_ goals: [Goal], rows: Int, showsMore: Bool, showsWeek: Bool) -> some View {
+        let engine = entry.engine
         let summary = engine.todaySummary(now: entry.date)
-        VStack(alignment: .leading, spacing: 8) {
+        let shown = max(1, rows)
+        return VStack(alignment: .leading, spacing: isLarge ? 8 : 6) {
             if isLarge {
                 TodayHero(entry: entry, goals: goals)
             } else {
@@ -140,17 +169,17 @@ private struct TodayList: View {
                     TodayTile(goal: goal, entry: entry, showsDetail: goals.count == 1)
                 }
             } else {
-                ForEach(goals.prefix(maxRows)) { goal in
-                    TodayRow(goal: goal, entry: entry)
+                ForEach(goals.prefix(shown)) { goal in
+                    TodayRow(goal: goal, entry: entry, compact: !isLarge)
                 }
             }
-            if goals.count > maxRows {
-                Text("+\(goals.count - maxRows) more")
+            if showsMore && goals.count > shown {
+                Text("+\(goals.count - shown) more")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            if isLarge {
+            if showsWeek {
                 WeekGrid(engine: engine, goals: Array(goals.prefix(4)), now: entry.date)
             }
         }
@@ -160,6 +189,8 @@ private struct TodayList: View {
 private struct TodayRow: View {
     let goal: Goal
     let entry: MomentumEntry
+    /// The medium size's rows: a little smaller, so three goals fit its height.
+    var compact = false
 
     var body: some View {
         let engine = entry.engine
@@ -174,22 +205,22 @@ private struct TodayRow: View {
 
     private func row(engine: ProgressEngine, streak: ProgressEngine.Streak) -> some View {
         HStack(spacing: 10) {
-            ProgressRing(progress: engine.ringProgress(for: goal, now: entry.date), color: goal.color, lineWidth: 4) {
-                GoalGlyph(goal: goal, size: 11)
+            ProgressRing(progress: engine.ringProgress(for: goal, now: entry.date), color: goal.color, lineWidth: compact ? 3.5 : 4) {
+                GoalGlyph(goal: goal, size: compact ? 10 : 11)
             }
-            .frame(width: 32, height: 32)
-            VStack(alignment: .leading, spacing: 1) {
+            .frame(width: compact ? 28 : 32, height: compact ? 28 : 32)
+            VStack(alignment: .leading, spacing: compact ? 0 : 1) {
                 Text(goal.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font((compact ? Font.footnote : Font.subheadline).weight(.semibold))
                     .lineLimit(1)
                 if let session = entry.data.session, session.goalID == goal.id {
                     WidgetSessionClock(session: session, now: entry.date)
-                        .font(.caption.weight(.semibold))
+                        .font((compact ? Font.caption2 : Font.caption).weight(.semibold))
                         .monospacedDigit()
                         .foregroundStyle(goal.tint)
                 } else {
                     Text(goal.progressText(engine.currentAmount(for: goal, now: entry.date), target: engine.target(for: goal)))
-                        .font(.caption)
+                        .font(compact ? .caption2 : .caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
