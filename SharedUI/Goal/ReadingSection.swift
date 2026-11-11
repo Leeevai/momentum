@@ -1,24 +1,61 @@
 import MomentumCore
 import SwiftUI
 
-/// The book being read, on a goal counted in pages: the page reached, what's left, and a way to
-/// jump to a page. Pages logged on the goal move its bookmark (`AppData.logReading`).
+extension Goal {
+    /// Whether the goal screen shows the card for what the goal follows (`Goal.follows`): a books
+    /// goal has its reading list instead, and a time goal shows it once a video has been added.
+    var showsFollowingCard: Bool {
+        switch follows {
+        case .book: kind != .books
+        case .course, .series: true
+        case .video: !books.isEmpty
+        case nil: false
+        }
+    }
+
+    /// What follows the goal's item along, for the card and its alert: "Set Page", "Set Lesson",
+    /// "Watched Up To".
+    var setPositionTitle: String {
+        guard let part = followedParts?.one else { return "Watched Up To" }
+        return "Set \(part.capitalized)"
+    }
+}
+
+extension BookStatus {
+    /// The status in words for what it's on: a book's own, or for a course, a series or a video,
+    /// words that aren't about reading.
+    func title(for kind: FollowKind) -> String {
+        guard kind != .book else { return title }
+        switch self {
+        case .wantToRead: return "Up next"
+        case .reading: return "In progress"
+        case .finished: return "Finished"
+        case .abandoned: return "Set aside"
+        }
+    }
+}
+
+/// What a goal follows (`Goal.follows`): the book being read on a goal counted in pages, the
+/// course, the series, or the video on a time goal. It shows the position reached, what's left,
+/// and a way to jump to a position. Amounts logged on the goal move it (`AppData.logReading`).
 struct ReadingSection: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
     @State private var settingPage: Book?
     @State private var pageText = ""
 
+    private var kind: FollowKind { goal.follows ?? .book }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            SectionTitle("Reading", systemImage: "book", trailing: goal.currentBook == nil ? AnyView(addButton) : nil)
+            SectionTitle(kind.sectionTitle, systemImage: kind.symbolName, trailing: goal.currentBook == nil ? AnyView(addButton) : nil)
             if let book = goal.currentBook {
                 CurrentBookRow(goal: goal, book: book) {
-                    pageText = "\(book.currentPage)"
+                    pageText = kind == .video ? Formatting.clock(Double(book.currentPage)) : "\(book.currentPage)"
                     settingPage = book
                 }
             } else {
-                Text("Add the book you're reading, and the pages you log here move its bookmark: you'll always know the page you reached and how many are left.")
+                Text(emptyText)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -28,23 +65,53 @@ struct ReadingSection: View {
                 }
                 let finished = goal.books.filter { $0.status == .finished }.count
                 if finished > 0 {
-                    Label("\(finished) \(finished == 1 ? "book" : "books") finished", systemImage: "checkmark.seal")
+                    Label("\(finished) \(finished == 1 ? kind.noun : kind.pluralNoun) finished", systemImage: "checkmark.seal")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .glassCard(tint: goal.tint)
-        .alert("Set Page", isPresented: isSettingPage, presenting: settingPage) { book in
-            TextField("Page", text: $pageText)
+        .alert(goal.setPositionTitle, isPresented: isSettingPage, presenting: settingPage) { book in
+            TextField(kind == .video ? "1:23:40" : goal.setPositionTitle, text: $pageText)
                 #if os(iOS)
-                .keyboardType(.numberPad)
+                .keyboardType(kind == .video ? .numbersAndPunctuation : .numberPad)
                 #endif
             Button("Set") { setPage(of: book) }
             Button("Cancel", role: .cancel) {}
         } message: { book in
-            Text(book.totalPages.map { "The page you've reached, of \($0). The pages in between are logged as read." }
-                 ?? "The page you've reached. The pages in between are logged as read.")
+            Text(setMessage(book))
+        }
+    }
+
+    private var emptyText: String {
+        switch kind {
+        case .book:
+            "Add the book you're reading, and the pages you log here move its bookmark: you'll always know the page you reached and how many are left."
+        case .course:
+            "Add the course you're taking, and the lessons you log here move it along: you'll always know where you are and how many are left."
+        case .series:
+            "Add the series you're watching, and the episodes you log here move it along: you'll always know where you are and how many are left."
+        case .video:
+            "Add the video you're watching and its length, and log the time you watched up to: the time in between counts."
+        }
+    }
+
+    /// What the position alert asks for, and what setting it logs.
+    private func setMessage(_ book: Book) -> String {
+        let total = book.totalPages.flatMap { $0 > 0 ? $0 : nil }
+        switch kind {
+        case .book:
+            return total.map { "The page you've reached, of \($0). The pages in between are logged as read." }
+                ?? "The page you've reached. The pages in between are logged as read."
+        case .course, .series:
+            let parts = goal.followedParts ?? (one: "lesson", many: "lessons")
+            let verb = kind == .course ? "done" : "watched"
+            let of = total.map { ", of \($0)" } ?? ""
+            return "The last \(parts.one) you finished\(of). The \(parts.many) in between are logged as \(verb)."
+        case .video:
+            let of = total.map { ", of \(Formatting.clock(Double($0)))" } ?? ""
+            return "The time you watched up to, like 1:23:40\(of). The time in between is logged as watched."
         }
     }
 
@@ -52,7 +119,7 @@ struct ReadingSection: View {
         Button {
             store.sheet = .book(goalID: goal.id, book: nil)
         } label: {
-            Label("Add Book", systemImage: "plus")
+            Label("Add \(kind.title)", systemImage: "plus")
         }
         .secondaryActionStyle(goal.tint, compact: true)
     }
@@ -62,8 +129,10 @@ struct ReadingSection: View {
     }
 
     private func setPage(of book: Book) {
-        guard let page = Int(pageText.trimmingCharacters(in: .whitespaces)), page >= 0 else { return }
-        store.perform("Set Page") { $0.setPage(page, in: book.id, of: goal.id) }
+        let text = pageText.trimmingCharacters(in: .whitespaces)
+        let typed = kind == .video ? Formatting.seconds(fromClock: text) : Int(text)
+        guard let page = typed, page >= 0 else { return }
+        store.perform(goal.setPositionTitle) { $0.setPage(page, in: book.id, of: goal.id) }
     }
 }
 
@@ -80,7 +149,7 @@ private struct WaitingBookRow: View {
                 Text(book.title)
                     .font(.callout.weight(.semibold))
                     .lineLimit(1)
-                Text(book.currentPage > 0 ? "Stopped at page \(book.currentPage)" : book.status.title)
+                Text(book.currentPage > 0 ? "Stopped at \(stoppedAt)" : book.status.title(for: goal.follows ?? .book))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -91,6 +160,12 @@ private struct WaitingBookRow: View {
             }
             .secondaryActionStyle(goal.tint, compact: true)
         }
+    }
+
+    /// "page 12 of 300", "lesson 7 of 24", "1:23:40 of 2:10:00".
+    private var stoppedAt: String {
+        let text = goal.positionText(of: book)
+        return text.prefix(1).lowercased() + text.dropFirst()
     }
 }
 
@@ -137,16 +212,16 @@ private struct CurrentBookRow: View {
         }
     }
 
-    /// "Page 134 of 420 · 286 left", or "Page 134" without a page count.
+    /// "Page 134 of 420 · 286 pages left", "Lesson 7 of 24 · 17 lessons left", or "Page 134"
+    /// without a length.
     private var pageLine: String {
-        guard let total = book.totalPages, total > 0 else { return "Page \(book.currentPage)" }
-        return "Page \(book.currentPage) of \(total) · \(max(0, total - book.currentPage)) left"
+        [goal.positionText(of: book), goal.remainingText(of: book)].compactMap { $0 }.joined(separator: " · ")
     }
 
     @ViewBuilder
     private var actions: some View {
         Button(action: setPage) {
-            Label("Set Page…", systemImage: "bookmark")
+            Label("\(goal.setPositionTitle)…", systemImage: "bookmark")
         }
         .secondaryActionStyle(goal.tint, compact: true)
         Button {
@@ -155,7 +230,7 @@ private struct CurrentBookRow: View {
             Label("Finished", systemImage: "checkmark")
         }
         .secondaryActionStyle(goal.tint, compact: true)
-        .help("Mark it finished; the pages left are logged as read")
+        .help("Mark it finished; what's left of it is logged")
     }
 
     /// Edit, or set the book aside. No Remove: it would take the pages logged in it with it.

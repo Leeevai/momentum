@@ -139,7 +139,8 @@ private struct ManualLogRow: View {
                 Label("Log time…", systemImage: "square.and.pencil")
             }
             Button("+\(Formatting.duration(goal.quickAddStep))") {
-                store.perform("Log Progress") { $0.log(goal.quickAddStep, for: goal.id) }
+                // Through quick add, so a video being watched moves along too.
+                store.quickAdd(goal)
             }
             Button("−\(Formatting.duration(goal.quickAddStep))") {
                 store.perform("Undo Log") { $0.log(-goal.quickAddStep, for: goal.id, note: "Correction") }
