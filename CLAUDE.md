@@ -65,7 +65,8 @@ local build or install in the conversation, prefix that command with `MOMENTUM_A
 - Never break existing data files: every persisted field decodes with a default when missing.
   Format changes bump `AppData.currentVersion` and add a migration plus a fixture test.
 - Live time uses `LiveClock`/`SessionClockText` (app) or `Text` timer styles (widgets); never
-  a store-wide per-second tick.
+  a store-wide per-second tick. The menu bar label is the exception: it uses `MenuBarClock`,
+  because a `TimelineView` inside a `MenuBarExtra` label redraws without pause on macOS 27.
 - UI uses the design system in `SharedUI/Components/` (`DesignSystem.swift`, `Glass.swift`).
   Layouts must work at phone width: use `ViewThatFits` for rows that need to stack.
 - The look is minimal (see "The look" in `docs/ARCHITECTURE.md`): color only for goals' rings,
