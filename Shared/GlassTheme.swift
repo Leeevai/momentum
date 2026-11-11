@@ -85,16 +85,14 @@ enum ActivePalette {
 }
 
 /// A palette's colors as SwiftUI colors: the accent and, for every goal color, its swatch, a
-/// lighter highlight and a deep shade that white symbols read on.
+/// lighter highlight, a deep shade that white symbols read on, and a shade that reads as text.
 struct PaletteColors: Sendable {
     let accent: Color
     private let swatches: [GoalColor: Color]
     private let highlights: [GoalColor: Color]
     private let deepShades: [GoalColor: Color]
-    private let deepHighlights: [GoalColor: Color]
-    /// Each swatch as text: deeper in light mode and lighter in dark, until it reads on glass.
+    /// Each swatch as text: deeper in light mode and lighter in dark, until it reads on a pane.
     private let textShades: [GoalColor: Color]
-    private let fillEnds: [GoalColor: Color]
 
     init(_ palette: Palette, text surface: TextSurface = .glass) {
         // The palette's content in every name, so an edited custom palette doesn't pass for the
@@ -110,22 +108,17 @@ struct PaletteColors: Sendable {
         swatches = colors("swatch") { $0 }
         highlights = colors("highlight") { $0.highlight }
         deepShades = colors("deep") { $0.deepened }
-        deepHighlights = colors("deep-highlight") { OKLCH($0.deepened.lightness + 0.04, $0.deepened.chroma, $0.hue).inSRGB }
         textShades = Dictionary(uniqueKeysWithValues: GoalColor.allCases.map { goalColor in
             (goalColor, Color.dynamic(named: "\(key).text.\(goalColor.rawValue)",
                                       light: palette.light.swatch(goalColor).readable(onLuminance: surface.luminance(dark: false)),
                                       dark: palette.dark.swatch(goalColor).readable(onLuminance: surface.luminance(dark: true))))
         })
-        // A label's fill shades away from the label, so it keeps its contrast across the fill.
-        fillEnds = colors("fill-end") { OKLCH($0.lightness + ($0.prefersDarkLabel ? 0.05 : -0.05), $0.chroma, $0.hue).inSRGB }
     }
 
     func swatch(_ color: GoalColor) -> Color { swatches[color] ?? .gray }
     func highlight(_ color: GoalColor) -> Color { highlights[color] ?? .gray }
     func deep(_ color: GoalColor) -> Color { deepShades[color] ?? .gray }
-    func deepHighlight(_ color: GoalColor) -> Color { deepHighlights[color] ?? .gray }
     func text(_ color: GoalColor) -> Color { textShades[color] ?? .gray }
-    func fillEnd(_ color: GoalColor) -> Color { fillEnds[color] ?? .gray }
 }
 
 extension Palette {

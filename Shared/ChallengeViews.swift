@@ -123,7 +123,6 @@ private struct TodayDot: View {
 /// "Day 12/30" on a goal's Today card, or a trophy once the challenge is won.
 struct ChallengeChip: View {
     let status: ChallengeStatus
-    let tint: Color
 
     var body: some View {
         let won = status.isWon

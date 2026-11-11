@@ -60,7 +60,7 @@ struct GoalCard: View {
                     }
                     if let challenge = engine.challengeStatus(for: goal, now: now), challenge.dayNumber > 0,
                        !challenge.isFinished || challenge.isWon {
-                        ChallengeChip(status: challenge, tint: goal.tint)
+                        ChallengeChip(status: challenge)
                     }
                 }
             }

@@ -27,7 +27,6 @@ struct CoachStrip: View {
 private struct CoachRow: View {
     @Environment(GoalStore.self) private var store
     let tip: CoachTip
-    @State private var isHovered = false
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
