@@ -154,8 +154,13 @@ no glass, glow, gradient or drop shadow, and no decorative motion.
 - **Liquid Glass** is left to the system's own chrome (toolbars, the tab bar, the sidebar) and the
   Mac's floating quick panel; content panes and buttons are flat on every system.
 - **The ground** (`Aurora` in `Shared/Aurora.swift`, named for the drifting aurora it replaced) is
-  the palette's base color, flat; a goal's screen mixes in a breath of the goal's color. Widgets and
-  palette swatches draw it too.
+  the palette's base color, flat, in light mode; a goal's screen mixes in a breath of the goal's
+  color. In dark mode it is pure black, AMOLED style. Widgets and palette swatches draw it too.
+- **Dark mode is black throughout.** Roots that don't draw `Aurora` (the Mac sidebar, sheets,
+  Settings, the menu bar panel, iPhone sheets) take `darkGround()`, which lays black behind them
+  and drops lists' and forms' own grey, so rows and fields sit as subtle fills. On the Mac,
+  `darkWindowChrome()` makes the title bar and toolbar transparent over the black, with no line.
+  Light mode is untouched by both.
 - **Widgets drawn in one tint** (the faded desktop, tinted Home Screens) collapse each element to a
   single silhouette, so anything white on a fill (buttons, goal tiles) switches to a wash under its
   label there (`WidgetFilledLabel`), and photos are marked to stay photos.

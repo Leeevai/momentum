@@ -42,7 +42,10 @@ All notable changes to Momentum are recorded here. The format follows
   palette, with color kept for each goal's ring and the one main action. No more glass, glows,
   gradients or drifting aurora on content. Today shows your goals right after the timer and the
   plan, with the coach's tips as rows in one pane and a quiet action on each goal; goal pages show
-  their stats in one row, and the sidebar is simpler.
+  their stats in one row, and the sidebar is simpler. Dark mode is pure black throughout, title
+  bar and sidebar included.
+- Momentum no longer uses the processor while it sits open: nothing on screen animates forever,
+  and a running timer ticks once a second without redrawing in between.
 - Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
   Dusk and Rose. Ocean, Lagoon, Amber, Lavender, Mint, Cherry and Midnight are retired; if you
   used one, Momentum switches to the closest new palette.
