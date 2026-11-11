@@ -50,6 +50,8 @@ All notable changes to Momentum are recorded here. The format follows
   with the sync folder before it answers the watch, without the iPhone app being opened.
 
 ### Fixed
+- On the Mac, with a focus session or a break shown in the menu bar, the app could hang for
+  seconds at launch and keep a processor core busy. The menu bar timer now ticks once a second.
 - On macOS 27, the Start button on Today's cards, and Start block on a break, drew its label
   upside down.
 - With sync on, a tap on the Apple Watch, a Lock Screen timer button, a notification's button or
