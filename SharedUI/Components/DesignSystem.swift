@@ -3,88 +3,104 @@ import SwiftUI
 
 // MARK: - Surfaces
 
-/// A pane of glass, glasscn's surface. Liquid Glass on macOS 26 and iOS 26, tinted so it reads on
-/// the aurora; a frosted material before, under glasscn's fill, sheen, rim, highlight and shadow.
-/// Highlighted panes (a running timer) take a wash and a rim of their tint.
+/// A pane: a flat fill a step off the ground, under a hairline. No blur, shadow or sheen, so a
+/// screen of panes stays calm. A highlighted pane (a running timer) draws its hairline in its
+/// tint instead. Named for the frosted glass it replaced.
 struct GlassCard: ViewModifier {
     var tint: Color?
     var cornerRadius: CGFloat = GlassTokens.surfaceRadius
-    var padding: CGFloat = 18
+    var padding: CGFloat = 16
     var isHighlighted = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.palette) private var palette
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        // Liquid Glass needs the macOS 26 SDK (Swift 6.2) to compile, and macOS 26 to run.
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, iOS 26.0, *) {
-            glass(content)
-        } else {
-            frosted(content)
-        }
-        #else
-        frosted(content)
-        #endif
-    }
-
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-    }
-
-    /// What a highlighted pane is washed with: its tint, or the palette's accent.
-    private var wash: Color { tint ?? palette.colors.accent }
-
-    private var highlightRim: some View {
-        shape.strokeBorder(wash.opacity(isHighlighted ? 0.7 : 0), lineWidth: 1.5)
-    }
-
-    #if compiler(>=6.2)
-    @available(macOS 26.0, iOS 26.0, *)
-    private func glass(_ content: Content) -> some View {
         let tokens = GlassTokens(colorScheme)
-        return content
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        content
             .padding(padding)
-            .glassEffect(.regular.tint(isHighlighted ? wash.opacity(0.22) : tokens.liquidTint), in: shape)
-            .overlay(highlightRim)
-    }
-    #endif
-
-    private func frosted(_ content: Content) -> some View {
-        let tokens = GlassTokens(colorScheme)
-        return content
-            .padding(padding)
-            .background {
-                ZStack {
-                    shape.fill(.ultraThinMaterial)
-                    shape.fill(isHighlighted ? wash.opacity(0.16) : tokens.fill)
-                    // glasscn's sheen: a 160-degree wash of white, gone halfway down.
-                    shape.fill(LinearGradient(stops: [.init(color: .white.opacity(tokens.sheen), location: 0),
-                                                      .init(color: .white.opacity(0), location: 0.55)],
-                                              startPoint: UnitPoint(x: 0.33, y: 0.03), endPoint: UnitPoint(x: 0.67, y: 0.97)))
-                }
-                .compositingGroup()
-                .shadow(color: tokens.shadow, radius: GlassTokens.shadowRadius, y: GlassTokens.shadowY)
-            }
+            .background(shape.fill(tokens.fill))
             .overlay {
-                // The rim, brightest along the top edge where the light catches it.
-                shape.strokeBorder(LinearGradient(colors: [tokens.highlight, tokens.rim], startPoint: .top,
-                                                  endPoint: UnitPoint(x: 0.5, y: 0.15)), lineWidth: 1)
+                shape.strokeBorder(isHighlighted ? (tint ?? palette.colors.accent).opacity(0.55) : tokens.rim,
+                                   lineWidth: isHighlighted ? 1 : 0.5)
             }
-            .overlay(highlightRim)
     }
 }
 
 extension View {
-    func glassCard(tint: Color? = nil, cornerRadius: CGFloat = GlassTokens.surfaceRadius, padding: CGFloat = 18, highlighted: Bool = false) -> some View {
+    func glassCard(tint: Color? = nil, cornerRadius: CGFloat = GlassTokens.surfaceRadius, padding: CGFloat = 16, highlighted: Bool = false) -> some View {
         modifier(GlassCard(tint: tint, cornerRadius: cornerRadius, padding: padding, isHighlighted: highlighted))
+    }
+
+    /// A pane that floats over other content (a toast, a celebration): the system's material, so
+    /// it reads over anything, under a hairline, with a soft shadow that lifts it off the screen.
+    func floatingPane(padding: CGFloat = 14) -> some View {
+        modifier(FloatingPane(padding: padding))
+    }
+}
+
+private struct FloatingPane: ViewModifier {
+    var padding: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: GlassTokens.surfaceRadius, style: .continuous)
+        content
+            .padding(padding)
+            .background(shape.fill(.regularMaterial))
+            .overlay(shape.strokeBorder(GlassTokens(colorScheme).rim, lineWidth: 0.5))
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.12), radius: 16, y: 6)
+    }
+}
+
+// MARK: - Dark mode
+
+extension View {
+    /// Pure black behind this view in dark mode, with lists and forms on it drawn without their
+    /// own grey ground, so rows and fields sit as subtle fills on black. In light mode it changes
+    /// nothing. For the roots that don't draw `Aurora`: the sidebar, sheets, Settings, the menu
+    /// bar panel.
+    func darkGround() -> some View {
+        modifier(DarkGround())
+    }
+}
+
+private struct DarkGround: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let dark = colorScheme == .dark
+        content
+            .scrollContentBackground(dark ? .hidden : .automatic)
+            .background {
+                if dark {
+                    Color.black.ignoresSafeArea()
+                }
+            }
+    }
+}
+
+extension View {
+    /// Where content scrolls under the toolbar, fades it out rather than drawing the hard edge,
+    /// whose line shows on a black window (macOS 26 and iOS 26); unchanged elsewhere.
+    @ViewBuilder
+    func softScrollEdge(when condition: Bool) -> some View {
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, iOS 26.0, *), condition {
+            scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            self
+        }
+        #else
+        self
+        #endif
     }
 }
 
 // MARK: - Buttons
 
-/// A round icon button: glasscn's icon button. Prominent ones fill with the tint, under a lit top
-/// edge and a glow of the tint; others are a soft tinted well. Presses squash a touch.
+/// A round icon button. Prominent ones are a flat disc of the tint; others a neutral well with
+/// the symbol in the tint. Presses squash a touch.
 struct CircleButtonStyle: ButtonStyle {
     var tint: Color = .accent
     var size: CGFloat = 32
@@ -105,21 +121,15 @@ struct CircleButtonStyle: ButtonStyle {
         @State private var isHovered = false
 
         var body: some View {
+            let tokens = GlassTokens(colorScheme)
             configuration.label
-                .font(.system(size: size * 0.4, weight: .bold))
+                .font(.system(size: size * 0.38, weight: .semibold))
                 .foregroundStyle(prominent ? tint.foreground(in: environment) : tint)
                 .frame(width: size, height: size)
                 .background {
-                    if prominent {
-                        Circle().fill(tint)
-                            .overlay(Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0)], startPoint: .top, endPoint: .center), lineWidth: 1))
-                            .shadow(color: tint.opacity(isHovered ? 0.45 : 0.32), radius: size * 0.22, y: size * 0.12)
-                    } else {
-                        Circle().fill(tint.opacity(colorScheme == .dark ? 0.22 : 0.16))
-                            .overlay(Circle().fill(tint.opacity(isHovered ? 0.08 : 0)))
-                    }
+                    Circle().fill(prominent ? AnyShapeStyle(tint) : AnyShapeStyle(tokens.controlFill))
+                        .overlay(Circle().fill(Color.primary.opacity(isHovered ? 0.06 : 0)))
                 }
-                .brightness(isHovered && prominent ? 0.04 : 0)
                 .scaleEffect(configuration.isPressed ? GlassTokens.pressScale : 1)
                 .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
                 .contentShape(Circle())
@@ -133,7 +143,10 @@ struct CircleButtonStyle: ButtonStyle {
 // MARK: - Live values
 
 /// Renders `content` with the current time: every second while `isLive`, otherwise once.
-/// Keeps the per-second redraw confined to the views that show a running timer.
+/// Keeps the per-second redraw confined to the views that show a running timer, and each tick
+/// jumps to the new second without animating: a ring's spring or a rolling digit started every
+/// second never comes to rest, and kept the window redrawing at its full rate for as long as a
+/// timer ran. Changes that aren't ticks (a logged amount, a timer stopping) still animate.
 struct LiveClock<Content: View>: View {
     var isLive: Bool
     var fallback: Date
@@ -143,23 +156,15 @@ struct LiveClock<Content: View>: View {
         if isLive {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 content(context.date)
+                    .transaction { transaction in
+                        transaction.disablesAnimations = true
+                        transaction.animation = nil
+                    }
             }
         } else {
             content(fallback)
         }
     }
-}
-
-extension View {
-    /// Rolls a clock's digits as they change each second. Screenshot runs set `MOMENTUM_SCREENSHOT`
-    /// to draw them still, so a capture never lands between two digits.
-    func clockTick(_ date: Date) -> some View {
-        animation(ClockTick.rolls ? .default : nil, value: Int(date.timeIntervalSince1970))
-    }
-}
-
-enum ClockTick {
-    static let rolls = ProcessInfo.processInfo.environment["MOMENTUM_SCREENSHOT"] == nil
 }
 
 /// A running session's elapsed time, or time left for a planned session.
@@ -172,7 +177,6 @@ struct SessionClockText: View {
             Text(label(at: now))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: countsDown && session.plannedDuration != nil))
-                .clockTick(now)
         }
     }
 
@@ -186,46 +190,48 @@ struct SessionClockText: View {
 
 // MARK: - Small pieces
 
+extension View {
+    /// A section's or a pane's title: small, semibold and secondary, with no icon.
+    func paneTitleStyle() -> some View {
+        font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+    }
+}
+
+/// A section's heading: quiet text, with an optional control on the trailing side.
 struct SectionTitle: View {
     let title: String
-    var systemImage: String?
     var trailing: AnyView?
 
-    init(_ title: String, systemImage: String? = nil, trailing: AnyView? = nil) {
+    init(_ title: String, trailing: AnyView? = nil) {
         self.title = title
-        self.systemImage = systemImage
         self.trailing = trailing
     }
 
     var body: some View {
         HStack {
-            if let systemImage {
-                Label(title, systemImage: systemImage)
-            } else {
-                Text(title)
-            }
+            Text(title)
+                .paneTitleStyle()
             Spacer()
             trailing
         }
-        .font(.headline)
     }
 }
 
+/// A number with its label above and a caption below, for a row of stats in one pane.
 struct StatTile: View {
     let title: String
     let value: String
-    let systemImage: String
-    var tint: Color = .accent
     var caption: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: systemImage)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(tint)
-                .symbolRenderingMode(.hierarchical)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value)
-                .font(.system(.title2, design: .rounded, weight: .bold))
+                .font(.title3.weight(.semibold))
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .lineLimit(1)
@@ -236,21 +242,32 @@ struct StatTile: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(tint: tint, padding: 14)
+    }
+}
+
+/// Stats side by side in one pane, wrapping onto more rows at narrow widths.
+struct StatGrid<Content: View>: View {
+    var minimum: CGFloat = 130
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: minimum), spacing: 16, alignment: .topLeading)], alignment: .leading, spacing: 14) {
+            content
+        }
+        .glassCard()
     }
 }
 
 struct CategoryPill: View {
     let text: String
-    var tint: Color = .secondary
 
     var body: some View {
         Text(text)
-            .font(.caption.weight(.semibold))
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .foregroundStyle(tint)
-            .background(Capsule().fill(tint.opacity(0.13)))
+            .background(Capsule().fill(Color.primary.opacity(0.06)))
     }
 }
 
@@ -261,23 +278,21 @@ struct EmptyStateView<Actions: View>: View {
     @ViewBuilder var actions: Actions
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 46, weight: .light))
-                .foregroundStyle(.tint)
-                .symbolRenderingMode(.hierarchical)
-                .symbolEffect(.pulse, options: .repeating.speed(0.4))
+                .font(.system(size: 34, weight: .light))
+                .foregroundStyle(.tertiary)
             Text(title)
-                .font(.title2.weight(.semibold))
+                .font(.title3.weight(.semibold))
             Text(message)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: 440)
+                .frame(maxWidth: 420)
             actions
                 .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .padding(.vertical, 44)
     }
 }
 

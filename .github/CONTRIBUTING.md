@@ -344,8 +344,10 @@ swift test --package-path Packages/MomentumKit
 - Swift API Design Guidelines; four-space indentation (see `.editorconfig`).
 - Prefer small views and small functions. Comment the *why*, not the *what*.
 - New UI uses the design system in `SharedUI/Components/` (`DesignSystem.swift`, `Glass.swift`):
-  `glassCard` for panes, `Aurora()` behind a screen, `GlassTokens` for numbers and `Color.accent`
-  for the palette's accent. "The look" in `docs/ARCHITECTURE.md` explains it.
+  `glassCard` for panes, `paneTitleStyle()` for their titles, `Aurora()` behind a screen,
+  `GlassTokens` for numbers and `Color.accent` for the palette's accent. Keep it minimal: color for
+  goals and the one main action, no gradients, glows or shadows on content. "The look" in
+  `docs/ARCHITECTURE.md` explains it.
 - Live time goes through `LiveClock` or `SessionClockText`, so only the views showing a running
   timer redraw every second.
 

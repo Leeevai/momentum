@@ -112,7 +112,7 @@ private struct PriorityTile: View {
                 Spacer(minLength: 0)
                 if let rank {
                     Text("\(rank)")
-                        .font(.system(.callout, design: .rounded, weight: .bold))
+                        .font(.callout.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(width: 24, height: 24)
                         .background(Circle().fill(goal.color.tile))
@@ -314,7 +314,7 @@ struct SheetHeader: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(tint.foreground(in: environment))
                 .frame(width: 46, height: 46)
-                .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(tint.gradient))
+                .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(tint))
                 .shadow(color: tint.opacity(0.35), radius: 6, y: 3)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)

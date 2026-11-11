@@ -31,7 +31,7 @@ MainActor.assumeIsolated {
         view
             .padding(16)
             .frame(width: size.width, height: size.height)
-            .background(Aurora(accent: accent, animates: false, scale: 0.3))
+            .background(Aurora(accent: accent))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
             .palette(data.preferences.activePalette)

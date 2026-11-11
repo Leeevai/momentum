@@ -21,13 +21,13 @@ struct ActivityChartCard: View {
 
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label(goal.kind == .books ? "Pages read" : (isTime ? "Time per day" : "Per day"), systemImage: "chart.bar.fill")
-                    .font(.headline)
+                Text(goal.kind == .books ? "Pages read" : (isTime ? "Time per day" : "Per day"))
+                    .paneTitleStyle()
                 if let dailyTarget {
                     HStack(spacing: 4) {
                         Rectangle()
-                            .fill(goal.tint.opacity(0.7))
-                            .frame(width: 14, height: 1.5)
+                            .fill(Color.primary.opacity(0.35))
+                            .frame(width: 14, height: 1)
                         Text("target \(isTime ? Formatting.duration(dailyTarget * 60) : Formatting.number(dailyTarget))")
                     }
                     .font(.caption)
@@ -37,8 +37,8 @@ struct ActivityChartCard: View {
                 Spacer()
                 if let selected {
                     Text("\(selected.day.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())): \(goal.kind == .books ? "\(Formatting.number(selected.amount)) pages" : goal.format(selected.amount))")
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(goal.tint)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
                 Picker("Range", selection: $range) {
@@ -56,20 +56,20 @@ struct ActivityChartCard: View {
                         x: .value("Day", point.day, unit: .day),
                         y: .value("Amount", point.amount / scale)
                     )
-                    .foregroundStyle(goal.color.linear)
-                    .cornerRadius(range > 60 ? 1.5 : 4)
+                    .foregroundStyle(goal.color.swatch)
+                    .cornerRadius(range > 60 ? 1 : 3)
                     .opacity(selected == nil || selected?.day == point.day ? 1 : 0.45)
                 }
                 if let dailyTarget {
                     RuleMark(y: .value("Target", dailyTarget))
-                        .foregroundStyle(goal.tint.opacity(0.7))
-                        .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+                        .foregroundStyle(Color.primary.opacity(0.35))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 }
             }
             .chartXSelection(value: $selectedDay)
             .chartYAxis {
                 AxisMarks(position: .leading, values: isTime ? .stride(by: Self.minuteStride(for: peak)) : .automatic(desiredCount: 4)) { value in
-                    AxisGridLine().foregroundStyle(Color.primary.opacity(0.08))
+                    AxisGridLine().foregroundStyle(Color.primary.opacity(0.06))
                     AxisValueLabel {
                         if let number = value.as(Double.self) {
                             Text(isTime ? Formatting.duration(number * 60) : Formatting.number(number))
@@ -85,7 +85,7 @@ struct ActivityChartCard: View {
             .frame(height: 190)
             .animation(.easeInOut(duration: 0.35), value: range)
         }
-        .glassCard(tint: goal.tint)
+        .glassCard()
     }
 
     /// Round gridlines for a minutes axis: 15m, 30m, 1h or 2h apart.
@@ -109,8 +109,8 @@ struct HeatmapCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Activity", systemImage: "square.grid.3x3.fill")
-                    .font(.headline)
+                Text("Activity")
+                    .paneTitleStyle()
                 Spacer()
                 HStack(spacing: 3) {
                     Text("Less")
@@ -137,7 +137,7 @@ struct HeatmapCard: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .glassCard(tint: goal.tint)
+        .glassCard()
     }
 
     /// What the heatmap shows, for VoiceOver: "34 active days in the last 12 weeks".
@@ -158,7 +158,7 @@ struct HistorySection: View {
         let entries = store.engine.entries(for: goal)
         let visible = showsAll ? entries : Array(entries.prefix(8))
         VStack(alignment: .leading, spacing: 10) {
-            SectionTitle("History", systemImage: "clock.arrow.circlepath", trailing: AnyView(
+            SectionTitle("History", trailing: AnyView(
                 Text("\(entries.count) entries")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -196,7 +196,7 @@ private struct HistoryRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: entry.source == .timer ? "timer" : (entry.amount < 0 ? "arrow.uturn.backward" : "square.and.pencil"))
-                .foregroundStyle(entry.amount < 0 ? Color.secondary : goal.tint)
+                .foregroundStyle(.tertiary)
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {

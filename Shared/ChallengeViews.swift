@@ -16,12 +16,12 @@ struct ChallengeBadge: View {
             if status.isWon {
                 Image(systemName: "trophy.fill")
                     .font(.system(size: size * 0.34, weight: .semibold))
-                    .foregroundStyle(palette.linear(.yellow))
+                    .foregroundStyle(palette.color(.yellow))
                     .symbolEffect(.bounce, value: status.isWon)
             } else {
                 VStack(spacing: -2) {
                     Text("\(status.dayNumber)")
-                        .font(.system(size: size * 0.32, weight: .bold, design: .rounded))
+                        .font(.system(size: size * 0.32, weight: .semibold))
                         .monospacedDigit()
                         .contentTransition(.numericText(value: Double(status.dayNumber)))
                     Text("of \(status.challenge.days)")
@@ -103,10 +103,9 @@ private struct ChallengeDot: View {
     }
 }
 
-/// Today's dot breathes until the day is kept.
+/// Today's dot, ringed until the day is kept. It stands still: nothing on screen animates forever.
 private struct TodayDot: View {
     let color: GoalColor
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.palette) private var palette
 
     var body: some View {
@@ -114,26 +113,19 @@ private struct TodayDot: View {
         Circle()
             .strokeBorder(tint, lineWidth: 2)
             .background(Circle().fill(tint.opacity(0.15)))
-            .phaseAnimator(reduceMotion ? [1.0] : [1.0, 1.18]) { dot, scale in
-                dot.scaleEffect(scale)
-            } animation: { _ in .easeInOut(duration: 1.1) }
     }
 }
 
 /// "Day 12/30" on a goal's Today card, or a trophy once the challenge is won.
 struct ChallengeChip: View {
     let status: ChallengeStatus
-    let tint: Color
 
     var body: some View {
         let won = status.isWon
         Label(won ? "Won" : "Day \(status.dayNumber)/\(status.challenge.days)", systemImage: won ? "trophy.fill" : "flag.fill")
-            .font(.caption2.weight(.semibold))
+            .font(.caption2.weight(.medium))
             .monospacedDigit()
-            .foregroundStyle(won ? Color.award : tint)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Capsule().fill((won ? Color.award : tint).opacity(0.14)))
+            .foregroundStyle(won ? AnyShapeStyle(Color.award) : AnyShapeStyle(.secondary))
             .contentTransition(.numericText(value: Double(status.dayNumber)))
             .help(won ? "\(status.challenge.title), complete" : "Day \(status.dayNumber) of a \(status.challenge.title)")
     }

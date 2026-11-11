@@ -32,8 +32,7 @@ struct ToastBanner: View {
                         Spacer(minLength: 0)
                     }
                     .frame(width: 380, alignment: .leading)
-                    .glassCard(tint: tint, cornerRadius: 24, padding: 14, highlighted: true)
-                    .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+                    .floatingPane()
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 18)
@@ -77,7 +76,7 @@ struct ToastBanner: View {
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(Color.accent.foreground(in: environment))
                 .frame(width: 48, height: 48)
-                .background(Circle().fill(Color.accent.gradient))
+                .background(Circle().fill(Color.accent))
         }
     }
 
@@ -102,14 +101,6 @@ struct ToastBanner: View {
         case .achievement(let achievement): achievement.detail
         case .achievements: "Everything you've done so far counts. Take a look."
         case .message(_, let detail, _): detail
-        }
-    }
-
-    private var tint: Color {
-        switch toast.kind {
-        case .achievement(let achievement): achievement.family.tint
-        case .achievements: .award
-        case .message: .accent
         }
     }
 

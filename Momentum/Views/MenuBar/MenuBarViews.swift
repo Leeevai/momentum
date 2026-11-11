@@ -203,12 +203,12 @@ private struct MenuSessionCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            GoalIcon(goal: goal, size: 32)
+            GoalGlyph(goal: goal, size: 16)
+                .frame(width: 24)
             VStack(alignment: .leading, spacing: 1) {
-                Text(goal.name).font(.callout.weight(.semibold)).lineLimit(1)
+                Text(goal.name).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                 SessionClockText(session: session)
-                    .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(goal.tint)
+                    .font(.title3.weight(.semibold))
             }
             Spacer()
             Button {
@@ -224,8 +224,7 @@ private struct MenuSessionCard: View {
             }
             .buttonStyle(CircleButtonStyle(tint: goal.tint, size: 30))
         }
-        .padding(10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(goal.tint.opacity(0.12)))
+        .glassCard(tint: goal.tint, cornerRadius: 12, padding: 10, highlighted: true)
     }
 }
 
@@ -241,15 +240,17 @@ private struct MenuGoalRow: View {
                 .frame(width: 34, height: 34)
             VStack(alignment: .leading, spacing: 1) {
                 Text(goal.name)
-                    .font(.callout.weight(.semibold))
+                    .font(.callout.weight(.medium))
                     .lineLimit(1)
                 GoalProgressText(goal: goal)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
-            StreakBadge(count: streak.current, unit: streak.unit)
-            GoalPrimaryButton(goal: goal, compact: true, iconOnly: true)
+            if streak.current > 0 {
+                StreakBadge(count: streak.current, unit: streak.unit)
+            }
+            GoalPrimaryButton(goal: goal, compact: true, iconOnly: true, prominent: false)
         }
     }
 }
