@@ -50,3 +50,40 @@ struct EntryDurationTests {
         #expect(durations == [1800, nil, 1680, 1200, nil])
     }
 }
+
+@Suite("Durations and followed items elsewhere")
+struct DurationElsewhereTests {
+    @Test("A duration set straight on an entry that isn't a number doesn't stop the save")
+    func nonFiniteSaves() throws {
+        let gym = checkInGoal()
+        var entry = LogEntry(goalID: gym.id, date: referenceNow, amount: 1)
+        entry.duration = .nan
+        let data = AppData(goals: [gym], entries: [entry])
+        let reread = try FileStore.decode(FileStore.encode(data)).entries.first
+        #expect(reread != nil)
+        #expect(reread?.duration == nil)
+    }
+
+    @Test("The CSV export has each entry's duration in minutes, in a column at the end")
+    func csv() {
+        let gym = checkInGoal()
+        var data = AppData(goals: [gym])
+        data.log(1, for: gym.id, at: referenceNow, duration: 45 * 60)
+        data.log(1, for: gym.id, at: referenceNow.addingTimeInterval(60))
+        let lines = CSVExporter.csv(for: data).split(separator: "\n").map { $0.split(separator: ",", omittingEmptySubsequences: false) }
+        let lastColumns = lines.map { $0.last.map(String.init) ?? "?" }
+        #expect(lastColumns == ["duration_minutes", "45.00", ""])
+    }
+
+    @Test("Insights count finished books, not finished courses")
+    func insights() {
+        var course = Goal(name: "Course", kind: .amount, unit: "lessons", target: 3,
+                          createdAt: testCalendar.date(byAdding: .day, value: -30, to: referenceNow)!)
+        course.books = [Book(title: "Swift", totalPages: 10, currentPage: 10, status: .finished, finishedAt: dayOffset(-1))]
+        var reading = Goal(name: "Read", kind: .books, target: 12,
+                           createdAt: testCalendar.date(byAdding: .day, value: -30, to: referenceNow)!)
+        reading.books = [Book(title: "Dune", totalPages: 400, currentPage: 400, status: .finished, finishedAt: dayOffset(-1))]
+        let finished = engine(AppData(goals: [course, reading])).insights(days: 7, now: referenceNow).booksFinished
+        #expect(finished == 1)
+    }
+}
