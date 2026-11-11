@@ -145,41 +145,50 @@ func opaquePNG(_ rep: NSBitmapImageRep) -> Data {
     return data
 }
 
+// Everything is drawn first and written last, each file atomically, so a failure leaves the
+// catalogs as they were rather than with the icon half replaced.
+var files: [(URL, Data)] = []
+func json(_ object: [String: Any]) throws -> Data {
+    try JSONSerialization.data(withJSONObject: object, options: [.prettyPrinted, .sortedKeys])
+}
+
 var images: [[String: String]] = []
 for points in [16, 32, 128, 256, 512] {
     for scale in [1, 2] {
         let filename = "icon_\(points)x\(points)@\(scale)x.png"
-        try png(renderIcon(pixels: points * scale)).write(to: outputDirectory.appendingPathComponent(filename))
+        files.append((outputDirectory.appendingPathComponent(filename), png(renderIcon(pixels: points * scale))))
         images.append(["idiom": "mac", "size": "\(points)x\(points)", "scale": "\(scale)x", "filename": filename])
     }
 }
-let contents: [String: Any] = ["images": images, "info": ["author": "xcode", "version": 1]]
-try JSONSerialization.data(withJSONObject: contents, options: [.prettyPrinted, .sortedKeys])
-    .write(to: outputDirectory.appendingPathComponent("Contents.json"))
+files.append((outputDirectory.appendingPathComponent("Contents.json"),
+              try json(["images": images, "info": ["author": "xcode", "version": 1]])))
 
 // iOS: one opaque 1024 image, which Xcode scales for every device, and its dark and tinted
 // versions (these may be transparent: iOS draws its own background behind them).
 let large = renderIcon(pixels: 1024)
-try FileManager.default.createDirectory(at: mobileDirectory, withIntermediateDirectories: true)
-try opaquePNG(large).write(to: mobileDirectory.appendingPathComponent("icon_1024.png"))
-try png(renderIcon(pixels: 1024, style: .dark)).write(to: mobileDirectory.appendingPathComponent("icon_1024_dark.png"))
-try png(renderIcon(pixels: 1024, style: .tinted)).write(to: mobileDirectory.appendingPathComponent("icon_1024_tinted.png"))
+files.append((mobileDirectory.appendingPathComponent("icon_1024.png"), opaquePNG(large)))
+files.append((mobileDirectory.appendingPathComponent("icon_1024_dark.png"), png(renderIcon(pixels: 1024, style: .dark))))
+files.append((mobileDirectory.appendingPathComponent("icon_1024_tinted.png"), png(renderIcon(pixels: 1024, style: .tinted))))
 func appearance(_ value: String) -> [[String: String]] { [["appearance": "luminosity", "value": value]] }
-let mobileContents: [String: Any] = [
+files.append((mobileDirectory.appendingPathComponent("Contents.json"), try json([
     "images": [
         ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024.png"],
         ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024_dark.png", "appearances": appearance("dark")],
         ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024_tinted.png", "appearances": appearance("tinted")],
     ],
     "info": ["author": "xcode", "version": 1],
-]
-try JSONSerialization.data(withJSONObject: mobileContents, options: [.prettyPrinted, .sortedKeys])
-    .write(to: mobileDirectory.appendingPathComponent("Contents.json"))
+])))
 
 // watchOS: one opaque 1024 image, which the watch masks to a circle (its Contents.json names it).
-try opaquePNG(large).write(to: watchDirectory.appendingPathComponent("icon_1024.png"))
+files.append((watchDirectory.appendingPathComponent("icon_1024.png"), opaquePNG(large)))
 
 if arguments.count > 1 {
-    try png(large).write(to: URL(fileURLWithPath: arguments[1]))
+    files.append((URL(fileURLWithPath: arguments[1]), png(large)))
+}
+for directory in [outputDirectory, mobileDirectory, watchDirectory] {
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+}
+for (url, data) in files {
+    try data.write(to: url, options: .atomic)
 }
 print("Wrote \(images.count) macOS icon images, the iOS icon and the watch icon")
