@@ -114,6 +114,12 @@ Library catalog with covers and page counts, import your Goodreads library, log 
 and finish books with a rating. A goal counted in pages, like 20 pages a day, keeps your place too:
 add the book you're reading, and the page you reached and the pages left move as you log.
 
+### Courses, series and videos
+A goal counted in lessons keeps your place in a course, one counted in episodes your place in a
+series, and a time goal your place in a long video. Log how much you did or where you are now
+("finished lesson 7", "watched up to 1:23:40"), and the difference is logged for you. Time goals can
+be logged from one time to another, and a workout or a run can note how long it took.
+
 ### Insights
 Focus per day by goal against the period before, your strongest weekday, the hour you focus best,
 where time went by category, mood against progress, hit rates and streaks, from 7 days to a year.
