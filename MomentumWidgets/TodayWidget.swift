@@ -65,9 +65,8 @@ private struct TodaySmall: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     WidgetSessionClock(session: session, now: entry.date)
-                        .font(.system(.title, design: .rounded, weight: .bold))
+                        .font(.title.weight(.semibold))
                         .monospacedDigit()
-                        .foregroundStyle(goal.color.linear)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                     Spacer(minLength: 2)
@@ -88,7 +87,7 @@ private struct TodaySmall: View {
                 HStack(alignment: .center, spacing: 10) {
                     ProgressRing(progress: fraction, color: .blue, lineWidth: 9) {
                         Text("\(summary.done)/\(summary.total)")
-                            .font(.system(.headline, design: .rounded))
+                            .font(.headline)
                             .monospacedDigit()
                     }
                     .frame(width: 78, height: 78)
@@ -274,9 +273,8 @@ private struct TodayHero: View {
                 Text("Today")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
                 Text(summary.total == 0 ? "Nothing due" : "\(summary.done) of \(summary.total) done")
-                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .font(.title2.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 HStack(spacing: 10) {
@@ -339,9 +337,8 @@ private struct TodayTile: View {
                         }
                         if let session = entry.data.session, session.goalID == goal.id {
                             WidgetSessionClock(session: session, now: entry.date)
-                                .font(.system(.title3, design: .rounded, weight: .bold))
+                                .font(.title3.weight(.semibold))
                                 .monospacedDigit()
-                                .foregroundStyle(goal.tint)
                         } else {
                             Text(goal.progressText(engine.currentAmount(for: goal, now: entry.date), target: engine.target(for: goal)))
                                 .font(.caption)
@@ -401,7 +398,7 @@ private struct WeekGrid: View {
         if let day {
             let intensity = engine.intensity(for: goal, on: day, now: now)
             if intensity >= 1 {
-                Circle().fill(goal.color.linear).frame(width: 11, height: 11)
+                Circle().fill(goal.color.swatch).frame(width: 11, height: 11)
             } else if intensity > 0 {
                 Circle().fill(goal.tint.opacity(0.4)).frame(width: 11, height: 11)
             } else if engine.isRequired(goal, on: day) {
