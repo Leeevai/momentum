@@ -165,7 +165,7 @@ private struct GoalLarge: View {
     private func stat(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title).font(.caption2).foregroundStyle(.secondary)
-            Text(value).font(.system(.subheadline, design: .rounded, weight: .semibold)).lineLimit(1)
+            Text(value).font(.subheadline.weight(.semibold)).lineLimit(1)
         }
     }
 }
@@ -188,7 +188,6 @@ struct GoalDetailPanel: View {
                             .aspectRatio(contentMode: .fill)
                             .frame(width: compact ? 30 : 40, height: compact ? 44 : 60)
                             .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
-                            .shadow(color: .black.opacity(0.2), radius: 1.5, x: 1, y: 1)
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         Label(book.title, systemImage: "book")
