@@ -23,7 +23,7 @@ struct LinkIcon: View {
             .font(.system(size: size * 0.6))
             .foregroundStyle(Color.accent.foreground(in: environment))
             .frame(width: size, height: size)
-            .background(RoundedRectangle(cornerRadius: size * 0.25, style: .continuous).fill(Color.accent.gradient))
+            .background(RoundedRectangle(cornerRadius: size * 0.25, style: .continuous).fill(Color.accent))
         #endif
     }
 }

@@ -11,7 +11,7 @@ struct ReadingSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            SectionTitle("Reading", systemImage: "book", trailing: goal.currentBook == nil ? AnyView(addButton) : nil)
+            SectionTitle("Reading", trailing: goal.currentBook == nil ? AnyView(addButton) : nil)
             if let book = goal.currentBook {
                 CurrentBookRow(goal: goal, book: book) {
                     pageText = "\(book.currentPage)"

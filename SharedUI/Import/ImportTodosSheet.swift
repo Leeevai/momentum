@@ -45,7 +45,7 @@ struct ImportTodosSheet: View {
             footer
         }
         .sheetFrame(width: 580, height: 680)
-        .background(Aurora(animates: false))
+        .background(Aurora())
         .fileImporter(isPresented: $choosesFiles, allowedContentTypes: Self.fileTypes, allowsMultipleSelection: true) { result in
             if case .success(let urls) = result { add(urls) }
         }

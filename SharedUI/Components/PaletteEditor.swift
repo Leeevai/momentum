@@ -32,7 +32,7 @@ struct PaletteEditor: View {
             footer(palette)
         }
         .sheetFrame(width: 600, height: 720)
-        .background(Aurora(animates: false).palette(palette))
+        .background(Aurora().palette(palette))
         .confirmationDialog("Delete \(draft.displayName)?", isPresented: $confirmingDelete, titleVisibility: .visible) {
             Button("Delete Palette", role: .destructive) {
                 store.updatePreferences { $0.deleteCustomPalette(draft.id) }
@@ -179,10 +179,10 @@ private struct PalettePreviewPane: View {
             }
             SwatchRow()
         }
-        .glassCard(cornerRadius: 18, padding: 12)
+        .glassCard(padding: 12)
         .padding(10)
         .frame(minWidth: 256)
-        .background(Aurora(animates: false, scale: 0.4))
+        .background(Aurora())
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }

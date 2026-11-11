@@ -38,6 +38,14 @@ All notable changes to Momentum are recorded here. The format follows
   your Mac without the app being opened.
 
 ### Changed
+- A calmer, minimal look on the Mac and iPhone: flat panes on a plain ground tinted by your
+  palette, with color kept for each goal's ring and the one main action. No more glass, glows,
+  gradients or drifting aurora on content. Today shows your goals right after the timer and the
+  plan, with the coach's tips as rows in one pane and a quiet action on each goal; goal pages show
+  their stats in one row, and the sidebar is simpler. Dark mode is pure black throughout, title
+  bar and sidebar included.
+- Momentum no longer uses the processor while it sits open: nothing on screen animates forever,
+  and a running timer ticks once a second without redrawing in between.
 - The watch matches the calmer look: flat rings and bars, and plainer page backgrounds.
 - A new icon on the Mac, iPhone and Apple Watch: a spiral on warm paper, opening out from a fine
   indigo thread to a bold orange head, small steps compounding into momentum. The mark in the app

@@ -48,7 +48,7 @@ struct CelebrationOverlay: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
-                .glassCard(tint: celebration.goal.tint, cornerRadius: 22, padding: 0, highlighted: true)
+                .floatingPane(padding: 0)
                 .padding(.top, 24)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }

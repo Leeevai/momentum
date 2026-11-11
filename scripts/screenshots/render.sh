@@ -7,8 +7,6 @@
 # gallery and MOMENTUM_MAX_WIDTH=0 keeps full size; the harness also reads MOMENTUM_WINDOW,
 # MOMENTUM_SHOTS and MOMENTUM_PALETTE (see Harness.swift).
 set -euo pipefail
-# Clocks draw still, so a capture never lands between two digits.
-export MOMENTUM_SCREENSHOT=1
 ROOT="${0:A:h:h:h}"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/momentum-shots.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
