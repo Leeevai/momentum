@@ -38,6 +38,9 @@ All notable changes to Momentum are recorded here. The format follows
   your Mac without the app being opened.
 
 ### Changed
+- A new icon on the Mac, iPhone and Apple Watch: a spiral on warm paper, opening out from a fine
+  indigo thread to a bold orange head, small steps compounding into momentum. The mark in the app
+  draws the same spiral.
 - Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
   Dusk and Rose. Ocean, Lagoon, Amber, Lavender, Mint, Cherry and Midnight are retired; if you
   used one, Momentum switches to the closest new palette.
