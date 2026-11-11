@@ -200,9 +200,9 @@ struct WidgetWideButton: View {
     }
 }
 
-/// A label on a filled shape, glasscn's filled button: in full color, white or black on the fill,
-/// whichever contrasts more with `tint`, the fill's color. When the system draws widgets in one
-/// tint (the faded desktop, tinted Home Screens), the fill becomes a translucent wash with the
+/// A label on a flat filled shape, a widget's main button: in full color, white or black on the
+/// fill, whichever contrasts more with `tint`, the fill's color. When the system draws widgets in
+/// one tint (the faded desktop, tinted Home Screens), the fill becomes a translucent wash with the
 /// label over it, rather than one shape the label disappears into.
 struct WidgetFilledLabel<S: InsettableShape, Fill: ShapeStyle, Content: View>: View {
     let fill: Fill
@@ -216,7 +216,7 @@ struct WidgetFilledLabel<S: InsettableShape, Fill: ShapeStyle, Content: View>: V
         if renderingMode == .fullColor {
             content
                 .foregroundStyle(tint.foreground(in: environment))
-                .background(shape.fill(fill).overlay(shape.strokeBorder(.white.opacity(0.3), lineWidth: 0.5)))
+                .background(shape.fill(fill))
         } else {
             content
                 .foregroundStyle(.primary)
