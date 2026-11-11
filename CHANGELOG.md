@@ -39,6 +39,9 @@ All notable changes to Momentum are recorded here. The format follows
 
 ### Changed
 - The watch matches the calmer look: flat rings and bars, and plainer page backgrounds.
+- A new icon on the Mac, iPhone and Apple Watch: a spiral on warm paper, opening out from a fine
+  indigo thread to a bold orange head, small steps compounding into momentum. The mark in the app
+  draws the same spiral.
 - Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
   Dusk and Rose. Ocean, Lagoon, Amber, Lavender, Mint, Cherry and Midnight are retired; if you
   used one, Momentum switches to the closest new palette.
@@ -51,6 +54,11 @@ All notable changes to Momentum are recorded here. The format follows
   with the sync folder before it answers the watch, without the iPhone app being opened.
 
 ### Fixed
+- The Today widget could cut off its header with several goals due, the medium size on the Mac
+  most of all. It now shows as many goals as fit, then "+N more", and the large widget drops its
+  week grid before clipping anything.
+- On the Mac, with a focus session or a break shown in the menu bar, the app could hang for
+  seconds at launch and keep a processor core busy. The menu bar timer now ticks once a second.
 - On macOS 27, the Start button on Today's cards, and Start block on a break, drew its label
   upside down.
 - With sync on, a tap on the Apple Watch, a Lock Screen timer button, a notification's button or
