@@ -182,6 +182,8 @@ struct LogProgressSheet: View {
                 LabeledContent(isCorrection ? "Correction" : "Duration",
                                value: (isCorrection ? "−" : "") + Formatting.duration(Double(abs(minutes) * 60)))
             }
+            // Time watched in a video moved its position, so it stays as logged, like pages.
+            .disabled(amountIsLocked)
         } else {
             LabeledContent("Amount") {
                 HStack {
