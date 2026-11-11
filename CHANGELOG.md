@@ -7,6 +7,15 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- Log progress the way each goal tracks it. A goal counted in lessons (or modules, classes,
+  lectures) keeps your place in a course, one counted in episodes or videos your place in a series,
+  and a time goal your place in a video of known length. The Log sheet asks how much you did or
+  where you are now ("I'm on page 134", "Finished lesson 7", "watched up to 1:23:40") and logs the
+  difference; books get the same choice. The goal's page shows where you are and what's left, and
+  the + button, widgets and the watch move it along. New templates: Finish a course and Watch a
+  lecture series.
+- Log a time goal from one time to another ("7:10 to 7:45"), and note how long a workout or a run
+  took: the history shows "1 workout · 45m", or "5 km · 28m · 5:36/km".
 - Keep your place in a book on a goal counted in pages, like 20 pages a day: add the book you're
   reading on the goal's page, and every page you log (the + button, the Log sheet, a widget, Siri
   or the watch) moves its bookmark. The goal shows the page you reached, of how many, and the pages
