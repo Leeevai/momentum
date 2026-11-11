@@ -16,13 +16,16 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
     public var amount: Double
     public var source: Source
     public var note: String
-    /// The book the pages were read in, for books goals.
+    /// The book the pages were read in, for books goals; on a goal that follows something else
+    /// (`Goal.follows`), the course, series or video the progress was made in.
     public var bookID: UUID?
     /// How the session went, if it was rated.
     public var quality: FocusQuality?
+    /// How long it took, in seconds, for progress that isn't time itself: a workout, a 5 km run.
+    public var duration: TimeInterval?
 
     public init(id: UUID = UUID(), goalID: UUID, date: Date, amount: Double, source: Source = .manual, note: String = "", bookID: UUID? = nil,
-                quality: FocusQuality? = nil) {
+                quality: FocusQuality? = nil, duration: TimeInterval? = nil) {
         self.id = id
         self.goalID = goalID
         self.date = date
@@ -31,12 +34,18 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
         self.note = note
         self.bookID = bookID
         self.quality = quality
+        self.duration = Self.validDuration(duration)
     }
 
-    private enum CodingKeys: String, CodingKey { case id, goalID, date, amount, source, note, bookID, quality }
+    /// A duration that's a positive number of seconds, or nil.
+    public static func validDuration(_ seconds: TimeInterval?) -> TimeInterval? {
+        seconds.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+    }
 
-    /// Leaves out values that are the decoding default (a manual entry, no note, no book): most
-    /// entries are just an amount at a time, and the file is rewritten on every change.
+    private enum CodingKeys: String, CodingKey { case id, goalID, date, amount, source, note, bookID, quality, duration }
+
+    /// Leaves out values that are the decoding default (a manual entry, no note, no book, no
+    /// duration): most entries are just an amount at a time, and the file is rewritten on every change.
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
@@ -47,6 +56,7 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
         if !note.isEmpty { try c.encode(note, forKey: .note) }
         try c.encodeIfPresent(bookID, forKey: .bookID)
         try c.encodeIfPresent(quality, forKey: .quality)
+        try c.encodeIfPresent(duration, forKey: .duration)
     }
 
     public init(from decoder: Decoder) throws {
@@ -60,6 +70,8 @@ public struct LogEntry: Codable, Identifiable, Hashable, Sendable {
         bookID = try c.decodeIfPresent(UUID.self, forKey: .bookID)
         // A rating this version doesn't know is dropped, not the entry.
         quality = (try? c.decodeIfPresent(FocusQuality.self, forKey: .quality)) ?? nil
+        // A duration that isn't a positive number of seconds is dropped rather than failing the file.
+        duration = Self.validDuration((try? c.decodeIfPresent(TimeInterval.self, forKey: .duration)) ?? nil)
     }
 }
 
