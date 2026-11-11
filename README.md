@@ -156,7 +156,7 @@ nothing uploaded.
 
 ### Calm palettes, or your own
 Pick a palette in Settings (Slate, Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso, Dusk or
-Rose) and it sets the accent, the **aurora drifting behind every screen**, **every goal's color**
+Rose) and it sets the accent, the **calm ground behind every screen**, **every goal's color**
 and the widgets, on every device you sync. Each goal keeps its color, drawn as the palette's own
 muted version of it. Or **make your own**: an accent, a background tint, goal colors spread
 around a base hue (spectrum, analogous, complementary, triadic or monochrome), and how light and
@@ -294,5 +294,5 @@ branches, the commit format, pull requests and releases.
 
 [MIT](LICENSE) © 2026 Leeevai
 
-The look follows [glasscn](https://glasscn.app) (MIT, © 2026 Tim Mikeladze): its palettes, its
-glass and its aurora, ported to SwiftUI.
+The palettes follow the themes of [glasscn](https://glasscn.app) (MIT, © 2026 Tim Mikeladze),
+ported to SwiftUI.

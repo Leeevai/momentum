@@ -15,16 +15,14 @@ struct WeekReviewSheet: View {
                 SheetHeader(symbol: "calendar.badge.checkmark", tint: .swatch(.teal), title: "Your week",
                             subtitle: review.range.start.formatted(.dateTime.month(.abbreviated).day()) + " to "
                                 + review.range.end.addingTimeInterval(-1).formatted(.dateTime.month(.abbreviated).day()))
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
-                    StatTile(title: "Focused", value: Formatting.duration(review.focusSeconds), systemImage: "timer", tint: .focus,
+                StatGrid {
+                    StatTile(title: "Focused", value: Formatting.duration(review.focusSeconds),
                              caption: review.focusChange.map { change in
                                  (change >= 0 ? "Up " : "Down ") + Formatting.percent(abs(change)) + " on last week"
                              } ?? "No focus the week before")
-                    StatTile(title: "Perfect days", value: "\(review.perfectDays) of 7", systemImage: "star.fill", tint: .success)
-                    StatTile(title: "Active days", value: "\(review.activeDays) of 7", systemImage: "flame.fill", tint: .streak)
-                    StatTile(title: "Mood", value: review.averageMood.flatMap { Mood(rawValue: Int($0.rounded())) }?.title ?? "Not rated",
-                             systemImage: review.averageMood.flatMap { Mood(rawValue: Int($0.rounded())) }?.symbolName ?? "cloud.sun.fill",
-                             tint: .swatch(.teal))
+                    StatTile(title: "Perfect days", value: "\(review.perfectDays) of 7")
+                    StatTile(title: "Active days", value: "\(review.activeDays) of 7")
+                    StatTile(title: "Mood", value: review.averageMood.flatMap { Mood(rawValue: Int($0.rounded())) }?.title ?? "Not rated")
                 }
                 if let best = review.bestDay {
                     Label("Best day: \(best.formatted(.dateTime.weekday(.wide)))", systemImage: "sparkles")
@@ -53,7 +51,7 @@ struct WeekReviewSheet: View {
                             }
                         }
                     }
-                    .glassCard(cornerRadius: 20)
+                    .glassCard()
                 }
                 if !review.wins.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -68,7 +66,7 @@ struct WeekReviewSheet: View {
                             }
                         }
                     }
-                    .glassCard(tint: .award, cornerRadius: 20)
+                    .glassCard(tint: .award)
                 }
                 if !review.achievements.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {

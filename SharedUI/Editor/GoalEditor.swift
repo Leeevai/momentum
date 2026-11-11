@@ -472,7 +472,7 @@ struct ColorChooser: View {
                     withAnimation(.snappy) { selection = option }
                 } label: {
                     Circle()
-                        .fill(palette.linear(option))
+                        .fill(palette.color(option))
                         .frame(width: 20, height: 20)
                         .overlay(Circle().strokeBorder(Color.primary.opacity(isSelected ? 0.9 : 0), lineWidth: 2).padding(-3))
                         .scaleEffect(isSelected ? 1.1 : 1)
@@ -510,7 +510,7 @@ struct WeekdayChooser: View {
                         Text(symbols[day - 1])
                             .font(.caption.weight(.semibold))
                             .frame(width: 44, height: 28)
-                            .background(Capsule().fill(isOn ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(Color.primary.opacity(0.07))))
+                            .background(Capsule().fill(isOn ? AnyShapeStyle(tint) : AnyShapeStyle(Color.primary.opacity(0.07))))
                             .foregroundStyle(isOn ? tint.foreground(in: environment) : Color.primary)
                     }
                     .buttonStyle(.plain)

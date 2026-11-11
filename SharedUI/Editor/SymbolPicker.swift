@@ -106,7 +106,7 @@ private struct SymbolCell: View {
                 .frame(width: 40, height: 40)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(isSelected ? AnyShapeStyle(color.linear) : AnyShapeStyle(color.color.opacity(isHovered ? 0.16 : 0.07)))
+                        .fill(isSelected ? AnyShapeStyle(color.swatch) : AnyShapeStyle(color.color.opacity(isHovered ? 0.16 : 0.07)))
                 )
                 .scaleEffect(isHovered && !isSelected ? 1.06 : 1)
                 .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isHovered)

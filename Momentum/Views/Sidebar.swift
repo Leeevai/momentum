@@ -11,15 +11,14 @@ struct Sidebar: View {
         let summary = engine.todaySummary(now: store.now)
         List(selection: $store.route) {
             Section {
-                Label("Today", systemImage: "sun.max.fill")
+                Label("Today", systemImage: "sun.max")
                     .badge(summary.total - summary.done)
                     .tag(Route.today)
-                Label("Journal", systemImage: "book.closed.fill")
+                Label("Journal", systemImage: "book.closed")
                     .tag(Route.journal)
                 Label("Insights", systemImage: "chart.bar.xaxis")
                     .tag(Route.insights)
-                Label("Awards", systemImage: "trophy.fill")
-                    .badge(earnedCount)
+                Label("Awards", systemImage: "trophy")
                     .tag(Route.awards)
             }
 
@@ -61,10 +60,6 @@ struct Sidebar: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: store.data.session?.goalID)
     }
 
-    private var earnedCount: Int {
-        store.data.achievements.keys.filter { Achievement.with(id: $0) != nil }.count
-    }
-
     private struct GoalGroup {
         var name: String
         var goals: [Goal]
@@ -100,26 +95,23 @@ private struct SidebarGoalRow: View {
 
     var body: some View {
         let engine = store.engine
-        let streak = engine.streak(for: goal, now: store.now)
         HStack(spacing: 8) {
-            GoalIcon(goal: goal, size: 24)
+            GoalGlyph(goal: goal, size: 12)
+                .frame(width: 20)
             Text(goal.name)
                 .lineLimit(1)
             Spacer(minLength: 4)
             if engine.isRunning(goal) {
                 Image(systemName: "waveform")
-                    .foregroundStyle(goal.tint)
-                    .symbolEffect(.variableColor.iterative, options: .repeating)
+                    .foregroundStyle(.secondary)
+                    .help("Focusing now")
             } else if goal.isOnBreak(at: store.now) {
                 Image(systemName: "pause.circle")
                     .foregroundStyle(.secondary)
                     .help("On a break")
             }
-            if streak.current > 0 {
-                StreakBadge(count: streak.current, unit: streak.unit)
-            }
-            GoalRing(goal: goal, lineWidth: 3, showsIcon: false)
-                .frame(width: 16, height: 16)
+            GoalRing(goal: goal, lineWidth: 2.5, showsIcon: false)
+                .frame(width: 14, height: 14)
         }
     }
 }
@@ -132,14 +124,15 @@ private struct MiniFocusPlayer: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            GoalIcon(goal: goal, size: 28)
+            GoalGlyph(goal: goal, size: 14)
+                .frame(width: 20)
             VStack(alignment: .leading, spacing: 1) {
                 Text(goal.name)
-                    .font(.caption.weight(.semibold))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                 SessionClockText(session: session)
-                    .font(.system(.callout, design: .rounded, weight: .bold))
-                    .foregroundStyle(goal.tint)
+                    .font(.callout.weight(.semibold))
             }
             Spacer(minLength: 0)
             Button {
@@ -157,7 +150,7 @@ private struct MiniFocusPlayer: View {
             .buttonStyle(CircleButtonStyle(tint: goal.tint, size: 26))
             .help("Stop and save")
         }
-        .glassCard(tint: goal.tint, cornerRadius: 14, padding: 10, highlighted: true)
+        .glassCard(tint: goal.tint, cornerRadius: 12, padding: 10, highlighted: true)
         .contentShape(Rectangle())
         .onTapGesture { store.select(goal.id) }
     }

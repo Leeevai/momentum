@@ -3,10 +3,9 @@ import SwiftUI
 
 // MARK: - Buttons
 
-/// A capsule button, glasscn's Button. Prominent pills are its default variant: a flat fill of the
-/// tint with a lit top edge and a glow of the tint, the same on every system. Secondary pills are
-/// its tinted variant: tinted Liquid Glass on macOS 26 and iOS 26 (interactive, morphing with
-/// other glass in their container), a tinted fill before. Presses squash a touch.
+/// A capsule button. Prominent pills are a flat fill of the tint, for the one main action in a
+/// place; secondary pills a neutral fill with the label in the tint. No glow, sheen or glass.
+/// Presses squash a touch.
 struct GlassPillStyle: ButtonStyle {
     var tint: Color
     var prominent = true
@@ -26,46 +25,21 @@ struct GlassPillStyle: ButtonStyle {
         @Environment(\.isEnabled) private var isEnabled
         @State private var isHovered = false
 
-        private var wash: Double { colorScheme == .dark ? 0.22 : 0.16 }
-
         var body: some View {
-            let label = configuration.label
-                .font((compact ? Font.callout : Font.body).weight(.semibold))
+            let tokens = GlassTokens(colorScheme)
+            configuration.label
+                .font((compact ? Font.callout : Font.body).weight(.medium))
                 .labelStyle(.titleAndIcon)
-                .padding(.horizontal, compact ? 14 : 20)
-                .padding(.vertical, compact ? 7 : 10)
+                .padding(.horizontal, compact ? 12 : 18)
+                .padding(.vertical, compact ? 6 : 9)
                 .foregroundStyle(prominent ? tint.foreground(in: environment) : tint)
-                .contentShape(Capsule())
-            #if compiler(>=6.2)
-            if #available(macOS 26.0, iOS 26.0, *), !prominent {
-                label
-                    .glassEffect(.regular.tint(tint.opacity(wash)).interactive(), in: Capsule())
-                    .scaleEffect(configuration.isPressed ? GlassTokens.pressScale : 1)
-                    .opacity(isEnabled ? 1 : 0.45)
-                    .animation(GlassTokens.motion, value: configuration.isPressed)
-            } else {
-                fallback(label)
-            }
-            #else
-            fallback(label)
-            #endif
-        }
-
-        private func fallback(_ label: some View) -> some View {
-            label
                 .background {
-                    if prominent {
-                        Capsule().fill(tint)
-                            // glasscn's inset highlight: a white line along the top edge.
-                            .overlay(Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0)], startPoint: .top, endPoint: .center), lineWidth: 1))
-                            .shadow(color: tint.opacity(isHovered ? 0.45 : 0.32), radius: 11, y: 8)
-                    } else {
-                        Capsule().fill(tint.opacity(isHovered ? wash + 0.08 : wash))
-                    }
+                    Capsule().fill(prominent ? AnyShapeStyle(tint) : AnyShapeStyle(tokens.controlFill))
+                        .overlay(Capsule().fill(Color.primary.opacity(isHovered ? 0.06 : 0)))
                 }
-                .brightness(isHovered && prominent ? 0.05 : 0)
+                .contentShape(Capsule())
                 .scaleEffect(configuration.isPressed ? GlassTokens.pressScale : 1)
-                .opacity(isEnabled ? (configuration.isPressed ? 0.88 : 1) : 0.45)
+                .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
                 .onHover { isHovered = $0 }
                 .animation(GlassTokens.motion, value: configuration.isPressed)
                 .animation(.easeOut(duration: 0.15), value: isHovered)
@@ -79,7 +53,7 @@ extension View {
         buttonStyle(GlassPillStyle(tint: tint, prominent: true, compact: compact))
     }
 
-    /// A secondary action: a tinted pill, Liquid Glass where the system has it.
+    /// A secondary action: a neutral pill with its label in the tint.
     func secondaryActionStyle(_ tint: Color, compact: Bool = false) -> some View {
         buttonStyle(GlassPillStyle(tint: tint, prominent: false, compact: compact))
     }
@@ -95,25 +69,6 @@ extension View {
         } else {
             self
         }
-    }
-}
-
-/// Groups glass shapes so they blend and morph together (macOS 26); a plain stack before.
-/// For glass pills only: macOS 27 draws a solid pill's label upside down inside one.
-struct GlassGroup<Content: View>: View {
-    var spacing: CGFloat = 12
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, iOS 26.0, *) {
-            GlassEffectContainer(spacing: spacing) { content }
-        } else {
-            content
-        }
-        #else
-        content
-        #endif
     }
 }
 
@@ -134,9 +89,8 @@ struct RingStack: View {
                 let tint = palette.color(ring.goal.color)
                 ZStack {
                     Circle()
-                        .stroke(tint.opacity(0.16), lineWidth: lineWidth)
+                        .stroke(tint.opacity(0.14), lineWidth: lineWidth)
                     RingSweep(progress: ring.progress, color: ring.goal.color, lineWidth: lineWidth)
-                        .shadow(color: tint.opacity(ring.progress >= 1 ? 0.5 : 0.25), radius: lineWidth * 0.35)
                 }
                 .padding(inset + lineWidth / 2)
             }

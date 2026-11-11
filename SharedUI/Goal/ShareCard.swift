@@ -24,7 +24,7 @@ struct ShareCard: View {
                     .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.white.opacity(0.18)))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(goal.name)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(size: 28, weight: .semibold))
                     Text(goal.targetDescription)
                         .font(.system(size: 15, weight: .medium))
                         .opacity(0.8)
@@ -40,7 +40,7 @@ struct ShareCard: View {
                         .rotationEffect(.degrees(-90))
                     VStack(spacing: 0) {
                         Text(goal.formatShort(engine.currentAmount(for: goal, now: now)))
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .font(.system(size: 26, weight: .semibold))
                         Text(goal.effectivePeriod.currentLabel)
                             .font(.system(size: 12, weight: .semibold))
                             .textCase(.uppercase)
@@ -92,7 +92,7 @@ struct ShareCard: View {
                 .font(.system(size: 18, weight: .semibold))
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 0) {
-                Text(value).font(.system(size: 22, weight: .bold, design: .rounded))
+                Text(value).font(.system(size: 22, weight: .semibold))
                 Text(label).font(.system(size: 12, weight: .medium)).opacity(0.8)
             }
         }

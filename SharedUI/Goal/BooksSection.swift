@@ -16,7 +16,7 @@ struct BooksSection: View {
         let abandoned = goal.books.filter { $0.status == .abandoned }
 
         VStack(alignment: .leading, spacing: 16) {
-            SectionTitle("Library", systemImage: "books.vertical", trailing: AnyView(
+            SectionTitle("Library", trailing: AnyView(
                 HStack(spacing: 8) {
                     Button { picksExport = true } label: {
                         Label("Import", systemImage: "square.and.arrow.down")

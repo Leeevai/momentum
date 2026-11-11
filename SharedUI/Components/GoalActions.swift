@@ -2,18 +2,20 @@ import MomentumCore
 import SwiftUI
 
 /// The primary action for any goal: start/stop focus, log the quick-add step, complete the next
-/// milestone, or read pages in the current book.
+/// milestone, or read pages in the current book. Where many goals sit side by side (Today's
+/// cards), it is drawn quiet, so no one goal's color shouts over the rest.
 struct GoalPrimaryButton: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
     var compact = false
     var iconOnly = false
+    var prominent = true
 
     var body: some View {
         Group {
             switch goal.kind {
             case .time:
-                FocusControlCluster(goal: goal, compact: compact, iconOnly: iconOnly)
+                FocusControlCluster(goal: goal, compact: compact, iconOnly: iconOnly, prominent: prominent)
             case .count, .amount:
                 button(quickAddTitle, "plus") { store.quickAdd(goal) }
             case .milestones:
@@ -40,26 +42,25 @@ struct GoalPrimaryButton: View {
     private func button(_ title: String, _ systemImage: String, action: @escaping () -> Void) -> some View {
         if iconOnly {
             Button(action: action) { Image(systemName: systemImage) }
-                .buttonStyle(CircleButtonStyle(tint: goal.tint, size: compact ? 28 : 34))
+                .buttonStyle(CircleButtonStyle(tint: goal.tint, size: compact ? 28 : 34, prominent: prominent))
                 .help(title)
                 .accessibilityLabel(title)
         } else {
             Button(action: action) { Label(title, systemImage: systemImage) }
-                .primaryActionStyle(goal.tint, compact: compact)
+                .buttonStyle(GlassPillStyle(tint: goal.tint, prominent: prominent, compact: compact))
         }
     }
 }
 
 /// Start, or Pause and Stop: the Pause pill slides out of the main pill when a session starts and
 /// back into it when it stops.
-///
-/// No glass container here: the main pill is solid, with no glass of its own to morph, and inside
-/// a `GlassEffectContainer` with a glass id macOS 27 draws its label upside down.
 struct FocusControlCluster: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
     var compact = false
     var iconOnly = false
+    /// Whether the main pill (Start, Stop) fills with the goal's color.
+    var prominent = true
 
     var body: some View {
         let session = store.data.session
@@ -85,7 +86,7 @@ struct FocusControlCluster: View {
             } label: {
                 label(running ? "Stop" : "Start", running ? "stop.fill" : "play.fill")
             }
-            .primaryActionStyle(goal.tint, compact: compact)
+            .buttonStyle(GlassPillStyle(tint: goal.tint, prominent: prominent, compact: compact))
             .help(running ? "Stop and save" : "Start a focus session")
             .contextMenu { FocusLengthMenu(goal: goal) }
         }
@@ -148,11 +149,11 @@ struct LinkChip: View {
                         .help("Opens when a focus session starts")
                 }
             }
-            .font(.callout.weight(.medium))
+            .font(.callout)
+            .foregroundStyle(.secondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Capsule().fill(tint.opacity(isHovered ? 0.18 : 0.1)))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.2), lineWidth: 0.5))
+            .background(Capsule().fill(Color.primary.opacity(isHovered ? 0.08 : 0.05)))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
