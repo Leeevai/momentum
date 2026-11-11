@@ -52,6 +52,12 @@ public struct GoalTemplate: Identifiable, Sendable {
         GoalTemplate(id: "learn-course", subtitle: "3 hours of study a week", prototype: Goal(
             name: "Online course", symbol: "graduationcap.fill", color: .blue, category: "Learning", kind: .time, period: .weekly,
             target: 3 * 3600, focusMinutes: 45)),
+        GoalTemplate(id: "course-lessons", subtitle: "3 lessons a week, keeping your place in the course", prototype: Goal(
+            name: "Finish a course", symbol: "graduationcap.fill", color: .teal, category: "Learning", kind: .amount, unit: "lessons",
+            period: .weekly, target: 3, quickAddStep: 1)),
+        GoalTemplate(id: "lecture-series", subtitle: "2 episodes a week, keeping your place in the series", prototype: Goal(
+            name: "Watch a lecture series", symbol: "play.rectangle.fill", color: .red, category: "Learning", kind: .amount, unit: "episodes",
+            period: .weekly, target: 2, quickAddStep: 1)),
         GoalTemplate(id: "steps", subtitle: "8,000 steps a day, 4,000 still counts", prototype: Goal(
             name: "Walk", symbol: "figure.walk", color: .green, category: "Fitness", kind: .amount, unit: "steps",
             period: .daily, target: 8_000, streakMinimum: 4_000, quickAddStep: 1_000)),

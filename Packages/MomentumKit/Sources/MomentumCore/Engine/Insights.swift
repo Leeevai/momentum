@@ -93,7 +93,8 @@ extension ProgressEngine {
             for milestone in goal.milestones {
                 if let done = milestone.completedAt, range.holds(done) { milestones += 1 }
             }
-            books += booksFinished(for: goal, in: range)
+            // Only books: a course or a video finished on a goal that follows one isn't a book.
+            if goal.follows == .book { books += booksFinished(for: goal, in: range) }
         }
         let bookGoalIDs = Set(data.goals.filter { $0.kind == .books }.map(\.id))
         let pages = rangeEntries
