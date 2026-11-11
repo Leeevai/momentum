@@ -19,25 +19,25 @@ struct MobileTodayView: View {
         let tips = store.coachTips
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 20) {
                     TodayHeader(goals: today)
                     if let session = store.data.session, let goal = store.goal(session.goalID) {
                         FocusBanner(goal: goal, session: session)
                             .id(session.startedAt)
-                            .transition(.scale(scale: 0.96).combined(with: .opacity))
+                            .transition(.opacity)
                     } else if let rest = store.data.rest, let goal = store.goal(rest.goalID) {
                         RestBanner(rest: rest, goal: goal)
                             .id(rest.start)
-                            .transition(.scale(scale: 0.96).combined(with: .opacity))
+                            .transition(.opacity)
                     }
                     if engine.activeGoals.isEmpty {
                         WelcomeView()
                     } else {
-                        if !tips.isEmpty { CoachStrip(tips: tips) }
                         if let plan, plan.hasPlan { DayPlanCard(entry: plan) }
+                        section("Up next", goals: upNext)
+                        if !tips.isEmpty { CoachStrip(tips: tips) }
                         if !engine.timeline(on: now, now: now).isEmpty { FocusTimeline() }
-                        section("Up next", systemImage: "arrow.forward.circle", goals: upNext)
-                        section("Done", systemImage: "checkmark.circle", goals: done)
+                        section("Done", goals: done)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -84,16 +84,15 @@ struct MobileTodayView: View {
     }
 
     @ViewBuilder
-    private func section(_ title: String, systemImage: String, goals: [Goal]) -> some View {
+    private func section(_ title: String, goals: [Goal]) -> some View {
         if !goals.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 SectionTitle(title)
-                    .foregroundStyle(.secondary)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14)], spacing: 14) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 12)], spacing: 12) {
                     ForEach(goals) { goal in
                         GoalCard(goal: goal) { path.append(goal.id) }
                             .zoomSource(id: goal.id, in: zoom)
-                            .transition(.scale(scale: 0.95).combined(with: .opacity))
+                            .transition(.opacity)
                     }
                 }
             }

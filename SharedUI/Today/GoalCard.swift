@@ -1,15 +1,13 @@
 import MomentumCore
 import SwiftUI
 
-/// A goal on the Today screen: ring, progress, streak, links and its one-tap action. Clicking it
-/// opens the goal in place; with `hero`, its glass, ring and title morph into that page.
+/// A goal on the Today screen: ring, progress, streak, a link and its one-tap action. Clicking it
+/// opens the goal in place; with `hero`, its pane, ring and title morph into that page.
 struct GoalCard: View {
     @Environment(GoalStore.self) private var store
     let goal: Goal
     var hero: Namespace.ID?
     var onOpen: () -> Void = {}
-    @State private var isHovered = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let engine = store.engine
@@ -18,20 +16,20 @@ struct GoalCard: View {
         let running = engine.isRunning(goal)
         let complete = engine.isComplete(goal, now: now)
 
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                GoalRing(goal: goal, lineWidth: 7)
-                    .frame(width: 62, height: 62)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                GoalRing(goal: goal, lineWidth: 5)
+                    .frame(width: 46, height: 46)
                     .heroMatch("ring-\(goal.id)", in: hero)
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(goal.name)
                             .font(.headline)
                             .lineLimit(1)
                             .heroMatch("title-\(goal.id)", in: hero)
                         if let rank = store.data.journalEntry(for: DayID(now))?.priorities.firstIndex(of: goal.id) {
-                            Image(systemName: "\(rank + 1).circle.fill")
-                                .foregroundStyle(.swatch(.orange))
+                            Image(systemName: "\(rank + 1).circle")
+                                .foregroundStyle(.secondary)
                                 .help("Priority \(rank + 1) today")
                         }
                         if complete {
@@ -41,29 +39,28 @@ struct GoalCard: View {
                         } else if goal.streakMinimum != nil && engine.keepsStreak(goal, periodContaining: now, now: now) {
                             Label("Streak safe", systemImage: "shield.checkered")
                                 .labelStyle(.iconOnly)
-                                .foregroundStyle(.streak)
+                                .foregroundStyle(.secondary)
                                 .help("You've done the minimum: the streak is safe for today")
                                 .transition(.scale.combined(with: .opacity))
                         }
                     }
                     GoalProgressText(goal: goal)
-                        .font(.subheadline.weight(.medium))
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     detailLine(engine: engine, now: now)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
+                        .labelStyle(.titleOnly)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 4)
                 VStack(alignment: .trailing, spacing: 6) {
-                    StreakBadge(count: streak.current, unit: streak.unit)
+                    if streak.current > 0 {
+                        StreakBadge(count: streak.current, unit: streak.unit)
+                    }
                     if let challenge = engine.challengeStatus(for: goal, now: now), challenge.dayNumber > 0,
                        !challenge.isFinished || challenge.isWon {
                         ChallengeChip(status: challenge, tint: goal.tint)
-                    } else {
-                        Text(goal.effectivePeriod.currentLabel)
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.tertiary)
                     }
                 }
             }
@@ -74,10 +71,10 @@ struct GoalCard: View {
                         SessionClockText(session: session)
                     } icon: {
                         Image(systemName: session.isRunning ? "waveform" : "pause.fill")
-                            .symbolEffect(.variableColor.iterative, options: .repeating, isActive: session.isRunning)
                     }
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(goal.tint)
+                    .font(.callout.weight(.medium))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
                 } else if let link = goal.links.first {
                     LinkChip(link: link, tint: goal.tint)
                     if goal.links.count > 1 {
@@ -87,16 +84,12 @@ struct GoalCard: View {
                     }
                 }
                 Spacer(minLength: 4)
-                GoalPrimaryButton(goal: goal, compact: true)
+                GoalPrimaryButton(goal: goal, compact: true, prominent: false)
             }
         }
         .glassCard(tint: goal.tint, highlighted: running)
         .heroMatch("card-\(goal.id)", in: hero)
-        .scaleEffect(isHovered && !reduceMotion ? 1.012 : 1)
-        .shadow(color: goal.tint.opacity(isHovered ? 0.18 : 0), radius: 16, y: 6)
-        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isHovered)
-        .onHover { isHovered = $0 }
-        .contentShape(RoundedRectangle(cornerRadius: 18))
+        .contentShape(RoundedRectangle(cornerRadius: GlassTokens.surfaceRadius))
         .onTapGesture(perform: onOpen)
         .contextMenu { GoalContextMenu(goal: goal) }
         .accessibilityElement(children: .contain)
