@@ -103,10 +103,9 @@ private struct ChallengeDot: View {
     }
 }
 
-/// Today's dot breathes until the day is kept.
+/// Today's dot, ringed until the day is kept. It stands still: nothing on screen animates forever.
 private struct TodayDot: View {
     let color: GoalColor
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.palette) private var palette
 
     var body: some View {
@@ -114,9 +113,6 @@ private struct TodayDot: View {
         Circle()
             .strokeBorder(tint, lineWidth: 2)
             .background(Circle().fill(tint.opacity(0.15)))
-            .phaseAnimator(reduceMotion ? [1.0] : [1.0, 1.18]) { dot, scale in
-                dot.scaleEffect(scale)
-            } animation: { _ in .easeInOut(duration: 1.1) }
     }
 }
 

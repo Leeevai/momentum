@@ -9,7 +9,6 @@ import UIKit
 /// there's nothing left to show.
 struct FocusModeView: View {
     @Environment(GoalStore.self) private var store
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var onClose: () -> Void
 
     var body: some View {
@@ -34,8 +33,7 @@ struct FocusModeView: View {
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background {
-                    Breathing(tint: goal.tint, secondary: goal.color.highlight, isCalm: rest != nil || session?.isRunning == false,
-                              reduceMotion: reduceMotion)
+                    FocusField(tint: goal.tint, secondary: goal.color.highlight)
                         .ignoresSafeArea()
                 }
             }
@@ -168,37 +166,22 @@ private struct RestFace: View {
     }
 }
 
-/// A deep field of the goal's colors with a glow that swells and settles about six times a
-/// minute: something to breathe with. Still when Reduce Motion is on, slower while paused.
-private struct Breathing: View {
+/// A deep field of the goal's colors under a soft, still glow. It doesn't move: an animated glow
+/// redrew the screen 30 times a second for the whole session.
+private struct FocusField: View {
     let tint: Color
     let secondary: Color
-    let isCalm: Bool
-    let reduceMotion: Bool
 
     var body: some View {
         // The glow is an overlay, so its size never widens the screen's layout.
         LinearGradient(colors: [tint.blended(with: .black, by: 0.55), tint.blended(with: .black, by: 0.25), secondary.blended(with: .black, by: 0.45)],
                        startPoint: .topLeading, endPoint: .bottomTrailing)
             .overlay {
-                if reduceMotion {
-                    glow(scale: 1)
-                } else {
-                    TimelineView(.animation(minimumInterval: 1 / 30)) { context in
-                        let period = isCalm ? 14.0 : 10.0
-                        let phase = (sin(context.date.timeIntervalSinceReferenceDate * 2 * .pi / period) + 1) / 2
-                        glow(scale: 0.85 + 0.3 * phase)
-                    }
-                }
+                Circle()
+                    .fill(RadialGradient(colors: [secondary.opacity(0.55), tint.opacity(0.25), .clear], center: .center, startRadius: 0, endRadius: 360))
+                    .frame(width: 720, height: 720)
+                    .blur(radius: 30)
             }
             .clipped()
-    }
-
-    private func glow(scale: CGFloat) -> some View {
-        Circle()
-            .fill(RadialGradient(colors: [secondary.opacity(0.55), tint.opacity(0.25), .clear], center: .center, startRadius: 0, endRadius: 360))
-            .frame(width: 720, height: 720)
-            .scaleEffect(scale)
-            .blur(radius: 30)
     }
 }
