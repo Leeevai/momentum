@@ -79,7 +79,7 @@ struct MobileTodayView: View {
                         .zoomTransition(id: id, in: zoom)
                 }
             }
-            .sheet(isPresented: $showsSettings) { MobileSettings() }
+            .sheet(isPresented: $showsSettings) { MobileSettings().darkGround() }
         }
     }
 

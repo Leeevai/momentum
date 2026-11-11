@@ -53,6 +53,50 @@ private struct FloatingPane: ViewModifier {
     }
 }
 
+// MARK: - Dark mode
+
+extension View {
+    /// Pure black behind this view in dark mode, with lists and forms on it drawn without their
+    /// own grey ground, so rows and fields sit as subtle fills on black. In light mode it changes
+    /// nothing. For the roots that don't draw `Aurora`: the sidebar, sheets, Settings, the menu
+    /// bar panel.
+    func darkGround() -> some View {
+        modifier(DarkGround())
+    }
+}
+
+private struct DarkGround: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let dark = colorScheme == .dark
+        content
+            .scrollContentBackground(dark ? .hidden : .automatic)
+            .background {
+                if dark {
+                    Color.black.ignoresSafeArea()
+                }
+            }
+    }
+}
+
+extension View {
+    /// Where content scrolls under the toolbar, fades it out rather than drawing the hard edge,
+    /// whose line shows on a black window (macOS 26 and iOS 26); unchanged elsewhere.
+    @ViewBuilder
+    func softScrollEdge(when condition: Bool) -> some View {
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, iOS 26.0, *), condition {
+            scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            self
+        }
+        #else
+        self
+        #endif
+    }
+}
+
 // MARK: - Buttons
 
 /// A round icon button. Prominent ones are a flat disc of the tint; others a neutral well with
