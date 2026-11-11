@@ -32,4 +32,21 @@ struct EntryDurationTests {
         #expect(reread == [2700, nil])
         #expect(!plain.contains("duration"))
     }
+
+    @Test("Durations are kept on amounts and counts, followed or not, never on time")
+    func whereKept() {
+        let gym = checkInGoal()
+        let work = timeGoal()
+        let run = Goal(name: "Run", kind: .amount, unit: "km", target: 5)
+        var course = Goal(name: "Course", kind: .amount, unit: "lessons", target: 3)
+        course.books = [Book(title: "Swift", totalPages: 10, status: .reading, startedAt: referenceNow)]
+        var data = AppData(goals: [gym, work, run, course])
+        data.log(1, for: gym.id, at: referenceNow, duration: 1800)
+        data.log(1800, for: work.id, at: referenceNow, duration: 1800)
+        data.logReading(5, for: run.id, at: referenceNow, duration: 1680)
+        data.logReading(1, for: course.id, at: referenceNow, duration: 1200)
+        data.log(1, for: gym.id, at: referenceNow, duration: .infinity)
+        let durations = data.entries.map(\.duration)
+        #expect(durations == [1800, nil, 1680, 1200, nil])
+    }
 }

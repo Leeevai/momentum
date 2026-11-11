@@ -134,17 +134,20 @@ extension AppData {
     public static let entryLimit: Double = 1_000_000_000
 
     /// Records progress. Zero amounts are ignored; negative ones are corrections. An amount that
-    /// isn't a number, or is beyond `entryLimit`, is refused.
+    /// isn't a number, or is beyond `entryLimit`, is refused. A `duration` is kept for progress
+    /// that isn't time itself (a workout, a run); a time goal's amount is already its duration.
     @discardableResult
-    public mutating func log(_ amount: Double, for goalID: UUID, at date: Date = .now, note: String = "", source: LogEntry.Source = .manual, bookID: UUID? = nil) -> LogEntry? {
-        guard amount != 0, amount.isFinite, abs(amount) <= Self.entryLimit, goal(goalID) != nil else { return nil }
-        let entry = LogEntry(goalID: goalID, date: date, amount: amount, source: source, note: note, bookID: bookID)
+    public mutating func log(_ amount: Double, for goalID: UUID, at date: Date = .now, note: String = "", source: LogEntry.Source = .manual,
+                             bookID: UUID? = nil, duration: TimeInterval? = nil) -> LogEntry? {
+        guard amount != 0, amount.isFinite, abs(amount) <= Self.entryLimit, let goal = goal(goalID) else { return nil }
+        let entry = LogEntry(goalID: goalID, date: date, amount: amount, source: source, note: note, bookID: bookID,
+                             duration: goal.kind == .time ? nil : duration)
         entries.append(entry)
         return entry
     }
 
     /// The one-tap action for a goal: a check-in, its quick-add step, the next milestone,
-    /// or pages in the current book.
+    /// or progress in what it follows (pages in the current book, a lesson in the course).
     public mutating func quickAdd(to goalID: UUID, at now: Date = .now) {
         guard let goal = goal(goalID) else { return }
         switch goal.kind {
@@ -154,23 +157,24 @@ extension AppData {
             if let book = goal.currentBook {
                 logPages(Int(goal.quickAddStep.rounded()), in: book.id, of: goalID, at: now)
             }
-        case .amount where goal.tracksPages:
-            logReading(goal.quickAddStep, for: goalID, at: now)
         case .time, .count, .amount:
-            log(goal.quickAddStep, for: goalID, at: now)
+            logReading(goal.quickAddStep, for: goalID, at: now)
         }
     }
 
-    /// Logs an amount on a goal; on a goal counted in pages with a book being read, it's pages
-    /// read in that book, and its bookmark moves with them. The whole amount counts toward the
-    /// goal, whatever's left of the book (the rest is read in the next one); the bookmark stops at
-    /// the last page, and the book is finished there.
+    /// Logs an amount on a goal; on a goal that follows something (`Goal.follows`) with an item in
+    /// progress, it's progress in that item, and the item's position moves with it: pages read in
+    /// the book, lessons done in the course, episodes watched, time watched in the video. The whole
+    /// amount counts toward the goal, whatever's left of the item (the rest goes to the next one);
+    /// the position stops at the end, and the item is finished there. Timer sessions don't come
+    /// through here, so they never move a video's position.
     @discardableResult
-    public mutating func logReading(_ amount: Double, for goalID: UUID, at date: Date = .now, note: String = "") -> LogEntry? {
-        guard let goal = goal(goalID), goal.tracksPages, let book = goal.currentBook else {
-            return log(amount, for: goalID, at: date, note: note)
+    public mutating func logReading(_ amount: Double, for goalID: UUID, at date: Date = .now, note: String = "",
+                                    duration: TimeInterval? = nil) -> LogEntry? {
+        guard let goal = goal(goalID), goal.follows != nil, let book = goal.currentBook else {
+            return log(amount, for: goalID, at: date, note: note, duration: duration)
         }
-        guard let entry = log(amount, for: goalID, at: date, note: note, bookID: book.id) else { return nil }
+        guard let entry = log(amount, for: goalID, at: date, note: note, bookID: book.id, duration: duration) else { return nil }
         let moved = max(0, book.currentPage + Int(min(max(amount, -1_000_000), 1_000_000).rounded()))
         // A page count that isn't positive (a damaged import) is no page count.
         let total = book.totalPages.flatMap { $0 > 0 ? $0 : nil }
@@ -479,10 +483,12 @@ extension AppData {
         }
     }
 
-    /// Moves the bookmark to `page`, logging the difference.
-    public mutating func setPage(_ page: Int, in bookID: UUID, of goalID: UUID, at now: Date = .now) {
+    /// Moves the bookmark to `page`, logging the difference. On a goal that follows a course, a
+    /// series or a video, it's the position in the goal's own unit: "finished lesson 7", "watched
+    /// up to episode 5", or the second a video was watched up to.
+    public mutating func setPage(_ page: Int, in bookID: UUID, of goalID: UUID, at now: Date = .now, note: String = "") {
         guard let book = goal(goalID)?.books.first(where: { $0.id == bookID }) else { return }
-        logPages(page - book.currentPage, in: bookID, of: goalID, at: now)
+        logPages(page - book.currentPage, in: bookID, of: goalID, at: now, note: note)
     }
 
     private mutating func updateBook(_ bookID: UUID, in goalID: UUID, _ change: (inout Book) -> Void) {
