@@ -117,36 +117,56 @@ private struct TodayList: View {
                 let right = engine.isRunning(rhs) ? 0 : (engine.isComplete(rhs, now: entry.date) ? 2 : 1)
                 return left < right
             }
-        if isLarge && goals.count <= 2 {
-            layout(goals, rows: goals.count, showsMore: false, showsWeek: true)
-        } else if isLarge {
-            // As much as the widget's height takes: the system sizes widgets differently on each
-            // Mac and iPhone, and a list taller than the widget is cut off at the top and bottom.
-            ViewThatFits(in: .vertical) {
-                layout(goals, rows: maxRows, showsMore: true, showsWeek: true)
-                layout(goals, rows: maxRows - 1, showsMore: true, showsWeek: true)
-                layout(goals, rows: maxRows - 2, showsMore: true, showsWeek: true)
-                layout(goals, rows: maxRows, showsMore: true, showsWeek: false)
-                layout(goals, rows: maxRows - 1, showsMore: false, showsWeek: false)
-                layout(goals, rows: 1, showsMore: false, showsWeek: false)
-            }
-        } else {
-            ViewThatFits(in: .vertical) {
-                layout(goals, rows: maxRows, showsMore: true, showsWeek: false)
-                // The header's "0 of 11 done" already says there are more.
-                layout(goals, rows: maxRows, showsMore: false, showsWeek: false)
-                layout(goals, rows: maxRows - 1, showsMore: true, showsWeek: false)
-                layout(goals, rows: maxRows - 1, showsMore: false, showsWeek: false)
-                layout(goals, rows: 1, showsMore: false, showsWeek: false)
+        // As much as the widget's height takes: the system sizes widgets differently on each Mac
+        // and iPhone, and with larger text, and a layout taller than the widget is cut off at the
+        // top and bottom. ViewThatFits shows the first candidate that fits.
+        ViewThatFits(in: .vertical) {
+            ForEach(candidates(goalCount: goals.count), id: \.self) { candidate in
+                layout(goals, candidate)
             }
         }
     }
 
+    /// One way to lay the widget out.
+    private struct Candidate: Hashable {
+        var rows: Int
+        var showsMore: Bool
+        var showsWeek: Bool
+    }
+
+    /// Every layout worth trying, most informative first: each row count with "+N more" and then
+    /// without (the header's "0 of 11 done" already says there are more), the large size giving
+    /// up two rows before its week grid, and last the header alone, which fits at any text size.
+    private func candidates(goalCount: Int) -> [Candidate] {
+        var list: [Candidate] = []
+        func add(_ rows: Int, week: Bool) {
+            for more in [true, false] where !(more && goalCount <= rows) {
+                let candidate = Candidate(rows: rows, showsMore: more, showsWeek: week)
+                if !list.contains(candidate) { list.append(candidate) }
+            }
+        }
+        if isLarge && goalCount <= 2 {
+            // None, one or two goals, which take a tile each: all of them or none.
+            add(goalCount, week: true)
+            add(goalCount, week: false)
+        } else {
+            let most = max(1, min(maxRows, goalCount))
+            if isLarge {
+                for rows in stride(from: most, through: max(1, most - 2), by: -1) { add(rows, week: true) }
+            }
+            for rows in stride(from: most, through: 1, by: -1) { add(rows, week: false) }
+        }
+        add(0, week: false)
+        return list
+    }
+
     /// The header, up to `rows` goals, how many more there are, and on the large size the week.
-    private func layout(_ goals: [Goal], rows: Int, showsMore: Bool, showsWeek: Bool) -> some View {
+    private func layout(_ goals: [Goal], _ candidate: Candidate) -> some View {
         let engine = entry.engine
         let summary = engine.todaySummary(now: entry.date)
-        let shown = max(1, rows)
+        let shown = candidate.rows
+        let showsMore = candidate.showsMore
+        let showsWeek = candidate.showsWeek
         return VStack(alignment: .leading, spacing: isLarge ? 8 : 6) {
             if isLarge {
                 TodayHero(entry: entry, goals: goals)
@@ -164,7 +184,7 @@ private struct TodayList: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            if isLarge && goals.count <= 2 {
+            if isLarge && goals.count <= 2 && shown > 0 {
                 ForEach(goals) { goal in
                     TodayTile(goal: goal, entry: entry, showsDetail: goals.count == 1)
                 }
