@@ -159,7 +159,7 @@ struct MobileSheet: View {
             case .link(let goalID, let link):
                 LinkEditor(goalID: goalID, link: link)
             case .book(let goalID, let book):
-                BookEditor(goalID: goalID, book: book)
+                BookEditor(goalID: goalID, book: book, follows: store.goal(goalID)?.follows ?? .book)
             case .share(let goal):
                 ShareCardSheet(goal: goal)
             case .plan(let day):
