@@ -24,8 +24,8 @@ struct MenuBarLabel: View {
                         .monospacedDigit()
                 }
             }
-        } else if store.data.preferences.showsTimerInMenuBar, let rest = store.data.rest, !rest.isOver(at: store.now) {
-            MenuBarClock(isLive: true) { now in
+        } else if store.data.preferences.showsTimerInMenuBar, let rest = store.data.rest, !rest.isOver(at: .now) {
+            MenuBarClock(isLive: true, until: rest.end) { now in
                 HStack(spacing: 4) {
                     Image(systemName: rest.isLong ? "cup.and.saucer.fill" : "leaf.fill")
                     Text(Formatting.clock(rest.remaining(at: now)))
@@ -53,19 +53,26 @@ struct MenuBarLabel: View {
 }
 
 /// The menu bar label's clock: `content` with the time, redrawn on each whole second while
-/// `isLive`. Not `LiveClock`: a `TimelineView` inside a `MenuBarExtra` label redraws without pause
-/// on macOS 27, which pinned a core and hung the app at launch with a timer in the menu bar. A
-/// task that wakes once a second redraws it instead, and only while it's live.
+/// `isLive`, and no longer once `until` has passed. Not `LiveClock`: a `TimelineView` inside a
+/// `MenuBarExtra` label redraws without pause on macOS 27, which pinned a core and hung the app at
+/// launch with a timer in the menu bar. A task that wakes once a second redraws it instead.
 private struct MenuBarClock<Content: View>: View {
     var isLive: Bool
+    var until: Date?
     @ViewBuilder var content: (Date) -> Content
     @State private var now = Date.now
 
+    private struct Run: Hashable {
+        var isLive: Bool
+        var until: Date?
+    }
+
     var body: some View {
         content(isLive ? now : .now)
-            .task(id: isLive) {
+            .task(id: Run(isLive: isLive, until: until)) {
                 while isLive, !Task.isCancelled {
                     now = .now
+                    if let until, now >= until { break }
                     let nextSecond = (now.timeIntervalSinceReferenceDate + 1).rounded(.down)
                     try? await Task.sleep(for: .seconds(nextSecond - Date.now.timeIntervalSinceReferenceDate))
                 }
