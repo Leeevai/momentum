@@ -52,7 +52,7 @@ private struct TemplateGallery: View {
                             Image(systemName: "plus")
                                 .font(.title2.weight(.semibold))
                                 .frame(width: 44, height: 44)
-                                .background(Circle().fill(Color.accent.opacity(0.15)))
+                                .background(Circle().fill(Color.primary.opacity(0.06)))
                                 .foregroundStyle(Color.accent)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Blank goal").font(.headline)
@@ -63,7 +63,7 @@ private struct TemplateGallery: View {
                             Spacer()
                             Image(systemName: "chevron.right").foregroundStyle(.tertiary)
                         }
-                        .glassCard(tint: .accent, padding: 14)
+                        .glassCard(padding: 14)
                     }
                     .buttonStyle(.plain)
 
@@ -72,8 +72,8 @@ private struct TemplateGallery: View {
                             Image(systemName: "play.rectangle.on.rectangle")
                                 .font(.title2.weight(.semibold))
                                 .frame(width: 44, height: 44)
-                                .background(Circle().fill(Color.purple.opacity(0.15)))
-                                .foregroundStyle(.swatch(.purple))
+                                .background(Circle().fill(Color.primary.opacity(0.06)))
+                                .foregroundStyle(Color.accent)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("From videos").font(.headline)
                                 Text("Saved reels, clips or screenshots become to-dos as long as each video.")
@@ -83,7 +83,7 @@ private struct TemplateGallery: View {
                             Spacer()
                             Image(systemName: "chevron.right").foregroundStyle(.tertiary)
                         }
-                        .glassCard(tint: .swatch(.purple), padding: 14)
+                        .glassCard(padding: 14)
                     }
                     .buttonStyle(.plain)
 
@@ -91,9 +91,8 @@ private struct TemplateGallery: View {
                         let templates = GoalTemplate.all.filter { $0.prototype.kind == kind }
                         if !templates.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Label(kind.title, systemImage: kind.symbolName)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.secondary)
+                                Text(kind.title)
+                                    .paneTitleStyle()
                                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
                                     ForEach(templates) { template in
                                         Button { onPick(template.makeGoal()) } label: {
@@ -124,7 +123,7 @@ private struct TemplateGallery: View {
 struct TemplateTile: View {
     let template: GoalTemplate
     @State private var isHovered = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let goal = template.prototype
@@ -142,10 +141,13 @@ struct TemplateTile: View {
             Spacer(minLength: 0)
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(goal.tint.opacity(isHovered ? 0.16 : 0.08)))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(goal.tint.opacity(isHovered ? 0.45 : 0.15), lineWidth: 1))
-        .scaleEffect(isHovered && !reduceMotion ? 1.02 : 1)
-        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isHovered)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: GlassTokens.controlRadius, style: .continuous)
+            shape.fill(GlassTokens(colorScheme).fill)
+                .overlay(shape.fill(Color.primary.opacity(isHovered ? 0.04 : 0)))
+                .overlay(shape.strokeBorder(GlassTokens(colorScheme).rim, lineWidth: 0.5))
+        }
+        .animation(.easeOut(duration: 0.15), value: isHovered)
         .onHover { isHovered = $0 }
     }
 }

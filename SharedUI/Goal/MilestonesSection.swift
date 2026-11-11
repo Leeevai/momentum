@@ -29,7 +29,7 @@ struct MilestonesSection: View {
         // Time left across what's still to do, for to-dos made from videos.
         let remaining = goal.milestones.filter { !$0.isDone }.compactMap(\.duration).reduce(0, +)
         return VStack(alignment: .leading, spacing: 12) {
-            SectionTitle("Milestones", systemImage: "flag.checkered", trailing: AnyView(
+            SectionTitle("Milestones", trailing: AnyView(
                 HStack(spacing: 10) {
                     if remaining > 0 {
                         Label("\(Formatting.duration(remaining)) left", systemImage: "clock")

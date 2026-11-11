@@ -70,7 +70,7 @@ capture_screens() {
     for screen in "${SCREENS[@]}"; do
       read -r name tab sheet goal <<< "$screen"
       [[ "$sheet" == "-" ]] && sheet=""
-      SIMCTL_CHILD_MOMENTUM_DEMO=1 SIMCTL_CHILD_MOMENTUM_SCREENSHOT=1 SIMCTL_CHILD_MOMENTUM_TAB="$tab" \
+      SIMCTL_CHILD_MOMENTUM_DEMO=1 SIMCTL_CHILD_MOMENTUM_TAB="$tab" \
         SIMCTL_CHILD_MOMENTUM_SHEET="$sheet" SIMCTL_CHILD_MOMENTUM_GOAL="$goal" \
         xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE_ID" >/dev/null
       sleep 5

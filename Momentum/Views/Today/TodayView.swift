@@ -9,7 +9,7 @@ struct TodayView: View {
     @Namespace private var hero
     @State private var expanded: UUID?
 
-    private let columns = [GridItem(.adaptive(minimum: 300, maximum: 520), spacing: 16)]
+    private let columns = [GridItem(.adaptive(minimum: 300, maximum: 520), spacing: 12)]
     static let morph = Animation.spring(response: 0.5, dampingFraction: 0.86)
 
     var body: some View {
@@ -25,7 +25,7 @@ struct TodayView: View {
 
         ZStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 26) {
+                VStack(alignment: .leading, spacing: 24) {
                     TodayHeader(goals: today)
 
                     if let filter = store.activeFocusFilter {
@@ -38,24 +38,16 @@ struct TodayView: View {
                         FocusBanner(goal: goal, session: session)
                             // A new session gets a fresh banner, so the note field never carries over.
                             .id(session.startedAt)
-                            .transition(.asymmetric(insertion: .scale(scale: 0.96).combined(with: .opacity), removal: .opacity))
+                            .transition(.opacity)
                     } else if let rest = store.data.rest, let goal = store.goal(rest.goalID) {
                         RestBanner(rest: rest, goal: goal)
                             .id(rest.start)
-                            .transition(.asymmetric(insertion: .scale(scale: 0.96).combined(with: .opacity), removal: .opacity))
-                    }
-
-                    if !tips.isEmpty && !engine.activeGoals.isEmpty {
-                        CoachStrip(tips: tips)
+                            .transition(.opacity)
                     }
 
                     if let plan, plan.hasPlan {
                         DayPlanCard(entry: plan)
-                            .transition(.scale(scale: 0.97).combined(with: .opacity))
-                    }
-
-                    if hasTimeline {
-                        FocusTimeline()
+                            .transition(.opacity)
                     }
 
                     if engine.activeGoals.isEmpty {
@@ -63,22 +55,28 @@ struct TodayView: View {
                     } else {
                         if !dismissedWidgetTip {
                             WidgetTip { withAnimation { dismissedWidgetTip = true } }
-                                .transition(.opacity.combined(with: .move(edge: .top)))
+                                .transition(.opacity)
                         }
                         if !upNext.isEmpty {
-                            section("Up next", systemImage: "arrow.forward.circle", goals: upNext)
+                            section("Up next", goals: upNext)
                         } else if !today.isEmpty {
                             allDoneBanner
-                        }
-                        if !done.isEmpty {
-                            section("Done", systemImage: "checkmark.circle", goals: done)
                         }
                         if today.isEmpty && resting.isEmpty {
                             Text("Nothing is due today. Enjoy the day off, or get ahead from the sidebar.")
                                 .foregroundStyle(.secondary)
                         }
+                        if !tips.isEmpty {
+                            CoachStrip(tips: tips)
+                        }
+                        if hasTimeline {
+                            FocusTimeline()
+                        }
+                        if !done.isEmpty {
+                            section("Done", goals: done)
+                        }
                         if !resting.isEmpty {
-                            section("On a break", systemImage: "pause.circle", goals: resting)
+                            section("On a break", goals: resting)
                                 .opacity(0.75)
                         }
                     }
@@ -119,36 +117,34 @@ struct TodayView: View {
         withAnimation(Self.morph) { expanded = nil }
     }
 
-    private func section(_ title: String, systemImage: String, goals: [Goal]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionTitle(title, systemImage: systemImage)
-                .foregroundStyle(.secondary)
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
+    private func section(_ title: String, goals: [Goal]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle(title)
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
                 ForEach(goals) { goal in
                     // The opened card leaves a same-sized space, and its parts morph into the page.
                     GoalCard(goal: goal, hero: expanded == goal.id ? nil : hero) { open(goal) }
                         .opacity(expanded == goal.id ? 0 : 1)
-                        .transition(.scale(scale: 0.95).combined(with: .opacity))
+                        .transition(.opacity)
                 }
             }
         }
     }
 
     private var allDoneBanner: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 34))
-                .foregroundStyle(Color.success.gradient)
-                .symbolEffect(.bounce, value: store.engine.todaySummary(now: store.now).done)
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle")
+                .font(.title2)
+                .foregroundStyle(Color.success)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Everything is done for today")
-                    .font(.title3.weight(.semibold))
+                    .font(.headline)
                 Text("That's how momentum is built. See you tomorrow.")
                     .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(tint: .success, highlighted: false)
+        .glassCard()
     }
 }
 
@@ -161,7 +157,7 @@ private struct ExpandedGoal: View {
     var onOpenPage: () -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         ScrollView {
             GoalDetailContent(goal: goal, hero: hero)
                 .padding(28)
@@ -178,23 +174,21 @@ private struct ExpandedGoal: View {
             .clipShape(shape)
             .heroMatch("card-\(goal.id)", in: hero)
         }
-        .overlay(shape.strokeBorder(.white.opacity(0.12), lineWidth: 1))
-        .shadow(color: .black.opacity(0.28), radius: 30, y: 12)
+        .overlay(shape.strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.12), radius: 24, y: 8)
         .overlay(alignment: .topTrailing) {
-            GlassGroup(spacing: 8) {
-                HStack(spacing: 8) {
-                    Button(action: onOpenPage) {
-                        Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    }
-                    .secondaryActionStyle(.secondary, compact: true)
-                    .help("Open as a page")
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                    }
-                    .secondaryActionStyle(.secondary, compact: true)
-                    .keyboardShortcut(.cancelAction)
-                    .help("Close (Esc)")
+            HStack(spacing: 8) {
+                Button(action: onOpenPage) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
                 }
+                .secondaryActionStyle(.secondary, compact: true)
+                .help("Open as a page")
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                }
+                .secondaryActionStyle(.secondary, compact: true)
+                .keyboardShortcut(.cancelAction)
+                .help("Close (Esc)")
             }
             .padding(16)
         }
@@ -209,12 +203,12 @@ private struct WidgetTip: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: "rectangle.3.group.fill")
-                .font(.system(size: 28))
-                .foregroundStyle(LinearGradient(colors: [.swatch(.orange), .swatch(.pink)], startPoint: .top, endPoint: .bottom))
+            Image(systemName: "rectangle.3.group")
+                .font(.title2)
+                .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Put Momentum on your desktop")
-                    .font(.headline)
+                    .font(.callout.weight(.medium))
                 Text("Right-click the desktop, choose Edit Widgets, and search for Momentum. Widgets start timers, check in and log pages without opening the app.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -222,8 +216,8 @@ private struct WidgetTip: View {
             }
             Spacer(minLength: 8)
             Button("Got it", action: onDismiss)
-                .secondaryActionStyle(.swatch(.orange), compact: true)
+                .secondaryActionStyle(.accent, compact: true)
         }
-        .glassCard(tint: .swatch(.orange))
+        .glassCard()
     }
 }

@@ -17,18 +17,18 @@ struct MenuBarLabel: View {
     @ViewBuilder
     private var label: some View {
         if store.data.preferences.showsTimerInMenuBar, let session = store.data.session, let goal = store.goal(session.goalID) {
-            LiveClock(isLive: session.isRunning, fallback: .now) { now in
+            MenuBarClock(isLive: session.isRunning) { now in
                 HStack(spacing: 4) {
                     Image(systemName: session.isRunning ? goal.symbol : "pause.fill")
                     Text(label(session, now: now))
                         .monospacedDigit()
                 }
             }
-        } else if store.data.preferences.showsTimerInMenuBar, let rest = store.data.rest, !rest.isOver(at: store.now) {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+        } else if store.data.preferences.showsTimerInMenuBar, let rest = store.data.rest, !rest.isOver(at: .now) {
+            MenuBarClock(isLive: true, until: rest.end) { now in
                 HStack(spacing: 4) {
                     Image(systemName: rest.isLong ? "cup.and.saucer.fill" : "leaf.fill")
-                    Text(Formatting.clock(rest.remaining(at: context.date)))
+                    Text(Formatting.clock(rest.remaining(at: now)))
                         .monospacedDigit()
                 }
             }
@@ -49,6 +49,34 @@ struct MenuBarLabel: View {
             return Formatting.clock(remaining)
         }
         return Formatting.clock(session.elapsed(at: now))
+    }
+}
+
+/// The menu bar label's clock: `content` with the time, redrawn on each whole second while
+/// `isLive`, and no longer once `until` has passed. Not `LiveClock`: a `TimelineView` inside a
+/// `MenuBarExtra` label redraws without pause on macOS 27, which pinned a core and hung the app at
+/// launch with a timer in the menu bar. A task that wakes once a second redraws it instead.
+private struct MenuBarClock<Content: View>: View {
+    var isLive: Bool
+    var until: Date?
+    @ViewBuilder var content: (Date) -> Content
+    @State private var now = Date.now
+
+    private struct Run: Hashable {
+        var isLive: Bool
+        var until: Date?
+    }
+
+    var body: some View {
+        content(isLive ? now : .now)
+            .task(id: Run(isLive: isLive, until: until)) {
+                while isLive, !Task.isCancelled {
+                    now = .now
+                    if let until, now >= until { break }
+                    let nextSecond = (now.timeIntervalSinceReferenceDate + 1).rounded(.down)
+                    try? await Task.sleep(for: .seconds(nextSecond - Date.now.timeIntervalSinceReferenceDate))
+                }
+            }
     }
 }
 
@@ -175,12 +203,12 @@ private struct MenuSessionCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            GoalIcon(goal: goal, size: 32)
+            GoalGlyph(goal: goal, size: 16)
+                .frame(width: 24)
             VStack(alignment: .leading, spacing: 1) {
-                Text(goal.name).font(.callout.weight(.semibold)).lineLimit(1)
+                Text(goal.name).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                 SessionClockText(session: session)
-                    .font(.system(.title3, design: .rounded, weight: .bold))
-                    .foregroundStyle(goal.tint)
+                    .font(.title3.weight(.semibold))
             }
             Spacer()
             Button {
@@ -196,8 +224,7 @@ private struct MenuSessionCard: View {
             }
             .buttonStyle(CircleButtonStyle(tint: goal.tint, size: 30))
         }
-        .padding(10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(goal.tint.opacity(0.12)))
+        .glassCard(tint: goal.tint, cornerRadius: 12, padding: 10, highlighted: true)
     }
 }
 
@@ -213,15 +240,17 @@ private struct MenuGoalRow: View {
                 .frame(width: 34, height: 34)
             VStack(alignment: .leading, spacing: 1) {
                 Text(goal.name)
-                    .font(.callout.weight(.semibold))
+                    .font(.callout.weight(.medium))
                     .lineLimit(1)
                 GoalProgressText(goal: goal)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
-            StreakBadge(count: streak.current, unit: streak.unit)
-            GoalPrimaryButton(goal: goal, compact: true, iconOnly: true)
+            if streak.current > 0 {
+                StreakBadge(count: streak.current, unit: streak.unit)
+            }
+            GoalPrimaryButton(goal: goal, compact: true, iconOnly: true, prominent: false)
         }
     }
 }

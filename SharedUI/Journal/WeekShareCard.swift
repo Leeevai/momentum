@@ -12,7 +12,7 @@ struct WeekShareCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("My week")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .font(.system(size: 34, weight: .semibold))
                     Text(rangeText)
                         .font(.system(size: 15, weight: .medium))
                         .opacity(0.8)
@@ -123,7 +123,7 @@ struct WeekShareCard: View {
                 .font(.system(size: 15, weight: .semibold))
                 .opacity(0.85)
             Text(value)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.system(size: 24, weight: .semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
