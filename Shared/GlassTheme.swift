@@ -1,8 +1,8 @@
 import MomentumCore
 import SwiftUI
 
-// The app's look follows glasscn (https://glasscn.app, MIT license, copyright 2026 Tim
-// Mikeladze): frosted panes with a light rim over a drifting aurora, in one of its palettes.
+// The app's palettes follow glasscn's themes (https://glasscn.app, MIT license, copyright 2026 Tim
+// Mikeladze), drawn minimally: flat panes on a plain ground faintly tinted by the palette.
 
 extension Color {
     /// A palette color, defined in OKLCH.
@@ -176,58 +176,39 @@ extension View {
     }
 }
 
-/// glasscn's glass in numbers (its glass-style tokens): how much a pane frosts, the rim and
-/// highlight on its edge, and its shadow, in light and dark.
+/// The look in numbers: a pane's fill and hairline, the fill of quiet controls, radii and motion,
+/// in light and dark. Panes are flat: no blur, sheen, glow or shadow, so color is left to the
+/// goals' rings and the one main action on a screen.
 struct GlassTokens {
-    /// The pane's own tint over the blur: default, strong (dialogs, menus) and subtle.
+    /// A pane's fill, a step off the screen's ground: lighter in light mode, lighter in dark.
     let fill: Color
-    let strongFill: Color
+    /// A quieter fill, for wells and rows inside a pane.
     let subtleFill: Color
-    /// The 1-point edge, and the brighter line along its top.
+    /// The pane's hairline edge.
     let rim: Color
-    let highlight: Color
-    /// The diagonal sheen across the top-leading corner.
-    let sheen: Double
-    let shadow: Color
-    /// Tint laid into Liquid Glass so panes read on a pale aurora.
-    let liquidTint: Color
     /// Neutral fill for secondary controls, tracks and wells.
     let controlFill: Color
 
     init(_ scheme: ColorScheme) {
         if scheme == .dark {
-            let tint = OKLCH(0.24, 0.012, 285)
-            fill = Color(tint, opacity: 0.45)
-            strongFill = Color(tint, opacity: 0.72)
-            subtleFill = Color(tint, opacity: 0.24)
-            rim = .white.opacity(0.12)
-            highlight = .white.opacity(0.14)
-            sheen = 0.05
-            shadow = .black.opacity(0.45)
-            liquidTint = Color(.sRGB, red: 30 / 255, green: 30 / 255, blue: 38 / 255, opacity: 0.4)
-            controlFill = Color(OKLCH(0.6, 0.01, 285), opacity: 0.24)
+            fill = .white.opacity(0.055)
+            subtleFill = .white.opacity(0.035)
+            rim = .white.opacity(0.07)
+            controlFill = .white.opacity(0.09)
         } else {
-            fill = .white.opacity(0.52)
-            strongFill = .white.opacity(0.74)
-            subtleFill = .white.opacity(0.28)
-            rim = .white.opacity(0.85)
-            highlight = .white.opacity(0.92)
-            sheen = 0.10
-            shadow = Color(OKLCH(0.3, 0.05, 270), opacity: 0.12)
-            liquidTint = .white.opacity(0.45)
-            controlFill = Color(OKLCH(0.55, 0.01, 285), opacity: 0.12)
+            fill = .white.opacity(0.7)
+            subtleFill = .white.opacity(0.45)
+            rim = .black.opacity(0.06)
+            controlFill = .black.opacity(0.05)
         }
     }
 
     /// Panes and cards.
-    static let surfaceRadius: CGFloat = 24
+    static let surfaceRadius: CGFloat = 16
     /// Fields, tiles and other controls that aren't capsules.
-    static let controlRadius: CGFloat = 12
-    /// glasscn's 10-point drop and 30-point blur, as SwiftUI measures shadows.
-    static let shadowRadius: CGFloat = 15
-    static let shadowY: CGFloat = 10
+    static let controlRadius: CGFloat = 10
     /// How far a press squashes a control.
-    static let pressScale: CGFloat = 0.97
-    /// glasscn's easing, cubic-bezier(0.2, 0.9, 0.3, 1.12) over 200 ms: quick, a touch of overshoot.
-    static let motion = Animation.timingCurve(0.2, 0.9, 0.3, 1.12, duration: 0.2)
+    static let pressScale: CGFloat = 0.98
+    /// A short ease-out with no overshoot.
+    static let motion = Animation.easeOut(duration: 0.18)
 }

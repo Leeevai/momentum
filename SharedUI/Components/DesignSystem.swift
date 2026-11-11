@@ -3,88 +3,60 @@ import SwiftUI
 
 // MARK: - Surfaces
 
-/// A pane of glass, glasscn's surface. Liquid Glass on macOS 26 and iOS 26, tinted so it reads on
-/// the aurora; a frosted material before, under glasscn's fill, sheen, rim, highlight and shadow.
-/// Highlighted panes (a running timer) take a wash and a rim of their tint.
+/// A pane: a flat fill a step off the ground, under a hairline. No blur, shadow or sheen, so a
+/// screen of panes stays calm. A highlighted pane (a running timer) draws its hairline in its
+/// tint instead. Named for the frosted glass it replaced.
 struct GlassCard: ViewModifier {
     var tint: Color?
     var cornerRadius: CGFloat = GlassTokens.surfaceRadius
-    var padding: CGFloat = 18
+    var padding: CGFloat = 16
     var isHighlighted = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.palette) private var palette
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        // Liquid Glass needs the macOS 26 SDK (Swift 6.2) to compile, and macOS 26 to run.
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, iOS 26.0, *) {
-            glass(content)
-        } else {
-            frosted(content)
-        }
-        #else
-        frosted(content)
-        #endif
-    }
-
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-    }
-
-    /// What a highlighted pane is washed with: its tint, or the palette's accent.
-    private var wash: Color { tint ?? palette.colors.accent }
-
-    private var highlightRim: some View {
-        shape.strokeBorder(wash.opacity(isHighlighted ? 0.7 : 0), lineWidth: 1.5)
-    }
-
-    #if compiler(>=6.2)
-    @available(macOS 26.0, iOS 26.0, *)
-    private func glass(_ content: Content) -> some View {
         let tokens = GlassTokens(colorScheme)
-        return content
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        content
             .padding(padding)
-            .glassEffect(.regular.tint(isHighlighted ? wash.opacity(0.22) : tokens.liquidTint), in: shape)
-            .overlay(highlightRim)
-    }
-    #endif
-
-    private func frosted(_ content: Content) -> some View {
-        let tokens = GlassTokens(colorScheme)
-        return content
-            .padding(padding)
-            .background {
-                ZStack {
-                    shape.fill(.ultraThinMaterial)
-                    shape.fill(isHighlighted ? wash.opacity(0.16) : tokens.fill)
-                    // glasscn's sheen: a 160-degree wash of white, gone halfway down.
-                    shape.fill(LinearGradient(stops: [.init(color: .white.opacity(tokens.sheen), location: 0),
-                                                      .init(color: .white.opacity(0), location: 0.55)],
-                                              startPoint: UnitPoint(x: 0.33, y: 0.03), endPoint: UnitPoint(x: 0.67, y: 0.97)))
-                }
-                .compositingGroup()
-                .shadow(color: tokens.shadow, radius: GlassTokens.shadowRadius, y: GlassTokens.shadowY)
-            }
+            .background(shape.fill(tokens.fill))
             .overlay {
-                // The rim, brightest along the top edge where the light catches it.
-                shape.strokeBorder(LinearGradient(colors: [tokens.highlight, tokens.rim], startPoint: .top,
-                                                  endPoint: UnitPoint(x: 0.5, y: 0.15)), lineWidth: 1)
+                shape.strokeBorder(isHighlighted ? (tint ?? palette.colors.accent).opacity(0.55) : tokens.rim,
+                                   lineWidth: isHighlighted ? 1 : 0.5)
             }
-            .overlay(highlightRim)
     }
 }
 
 extension View {
-    func glassCard(tint: Color? = nil, cornerRadius: CGFloat = GlassTokens.surfaceRadius, padding: CGFloat = 18, highlighted: Bool = false) -> some View {
+    func glassCard(tint: Color? = nil, cornerRadius: CGFloat = GlassTokens.surfaceRadius, padding: CGFloat = 16, highlighted: Bool = false) -> some View {
         modifier(GlassCard(tint: tint, cornerRadius: cornerRadius, padding: padding, isHighlighted: highlighted))
+    }
+
+    /// A pane that floats over other content (a toast, a celebration): the system's material, so
+    /// it reads over anything, under a hairline, with a soft shadow that lifts it off the screen.
+    func floatingPane(padding: CGFloat = 14) -> some View {
+        modifier(FloatingPane(padding: padding))
+    }
+}
+
+private struct FloatingPane: ViewModifier {
+    var padding: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: GlassTokens.surfaceRadius, style: .continuous)
+        content
+            .padding(padding)
+            .background(shape.fill(.regularMaterial))
+            .overlay(shape.strokeBorder(GlassTokens(colorScheme).rim, lineWidth: 0.5))
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.12), radius: 16, y: 6)
     }
 }
 
 // MARK: - Buttons
 
-/// A round icon button: glasscn's icon button. Prominent ones fill with the tint, under a lit top
-/// edge and a glow of the tint; others are a soft tinted well. Presses squash a touch.
+/// A round icon button. Prominent ones are a flat disc of the tint; others a neutral well with
+/// the symbol in the tint. Presses squash a touch.
 struct CircleButtonStyle: ButtonStyle {
     var tint: Color = .accent
     var size: CGFloat = 32
@@ -105,21 +77,15 @@ struct CircleButtonStyle: ButtonStyle {
         @State private var isHovered = false
 
         var body: some View {
+            let tokens = GlassTokens(colorScheme)
             configuration.label
-                .font(.system(size: size * 0.4, weight: .bold))
+                .font(.system(size: size * 0.38, weight: .semibold))
                 .foregroundStyle(prominent ? tint.foreground(in: environment) : tint)
                 .frame(width: size, height: size)
                 .background {
-                    if prominent {
-                        Circle().fill(tint)
-                            .overlay(Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.3), .white.opacity(0)], startPoint: .top, endPoint: .center), lineWidth: 1))
-                            .shadow(color: tint.opacity(isHovered ? 0.45 : 0.32), radius: size * 0.22, y: size * 0.12)
-                    } else {
-                        Circle().fill(tint.opacity(colorScheme == .dark ? 0.22 : 0.16))
-                            .overlay(Circle().fill(tint.opacity(isHovered ? 0.08 : 0)))
-                    }
+                    Circle().fill(prominent ? AnyShapeStyle(tint) : AnyShapeStyle(tokens.controlFill))
+                        .overlay(Circle().fill(Color.primary.opacity(isHovered ? 0.06 : 0)))
                 }
-                .brightness(isHovered && prominent ? 0.04 : 0)
                 .scaleEffect(configuration.isPressed ? GlassTokens.pressScale : 1)
                 .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
                 .contentShape(Circle())

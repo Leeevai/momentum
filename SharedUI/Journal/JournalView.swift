@@ -97,15 +97,13 @@ private struct MonthCalendar: View {
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .contentTransition(.numericText())
                 Spacer()
-                GlassGroup(spacing: 6) {
-                    HStack(spacing: 6) {
-                        Button { shift(-1) } label: { Image(systemName: "chevron.left") }
-                            .secondaryActionStyle(.secondary, compact: true)
-                            .help("Previous month")
-                        Button { shift(1) } label: { Image(systemName: "chevron.right") }
-                            .secondaryActionStyle(.secondary, compact: true)
-                            .help("Next month")
-                    }
+                HStack(spacing: 6) {
+                    Button { shift(-1) } label: { Image(systemName: "chevron.left") }
+                        .secondaryActionStyle(.secondary, compact: true)
+                        .help("Previous month")
+                    Button { shift(1) } label: { Image(systemName: "chevron.right") }
+                        .secondaryActionStyle(.secondary, compact: true)
+                        .help("Next month")
                 }
             }
             HStack(spacing: 0) {

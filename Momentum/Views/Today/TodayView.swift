@@ -181,20 +181,18 @@ private struct ExpandedGoal: View {
         .overlay(shape.strokeBorder(.white.opacity(0.12), lineWidth: 1))
         .shadow(color: .black.opacity(0.28), radius: 30, y: 12)
         .overlay(alignment: .topTrailing) {
-            GlassGroup(spacing: 8) {
-                HStack(spacing: 8) {
-                    Button(action: onOpenPage) {
-                        Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    }
-                    .secondaryActionStyle(.secondary, compact: true)
-                    .help("Open as a page")
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                    }
-                    .secondaryActionStyle(.secondary, compact: true)
-                    .keyboardShortcut(.cancelAction)
-                    .help("Close (Esc)")
+            HStack(spacing: 8) {
+                Button(action: onOpenPage) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
                 }
+                .secondaryActionStyle(.secondary, compact: true)
+                .help("Open as a page")
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                }
+                .secondaryActionStyle(.secondary, compact: true)
+                .keyboardShortcut(.cancelAction)
+                .help("Close (Esc)")
             }
             .padding(16)
         }
