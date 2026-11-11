@@ -17,7 +17,7 @@ struct MenuBarLabel: View {
     @ViewBuilder
     private var label: some View {
         if store.data.preferences.showsTimerInMenuBar, let session = store.data.session, let goal = store.goal(session.goalID) {
-            LiveClock(isLive: session.isRunning, fallback: .now) { now in
+            MenuBarClock(isLive: session.isRunning) { now in
                 HStack(spacing: 4) {
                     Image(systemName: session.isRunning ? goal.symbol : "pause.fill")
                     Text(label(session, now: now))
@@ -25,10 +25,10 @@ struct MenuBarLabel: View {
                 }
             }
         } else if store.data.preferences.showsTimerInMenuBar, let rest = store.data.rest, !rest.isOver(at: store.now) {
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+            MenuBarClock(isLive: true) { now in
                 HStack(spacing: 4) {
                     Image(systemName: rest.isLong ? "cup.and.saucer.fill" : "leaf.fill")
-                    Text(Formatting.clock(rest.remaining(at: context.date)))
+                    Text(Formatting.clock(rest.remaining(at: now)))
                         .monospacedDigit()
                 }
             }
@@ -49,6 +49,27 @@ struct MenuBarLabel: View {
             return Formatting.clock(remaining)
         }
         return Formatting.clock(session.elapsed(at: now))
+    }
+}
+
+/// The menu bar label's clock: `content` with the time, redrawn on each whole second while
+/// `isLive`. Not `LiveClock`: a `TimelineView` inside a `MenuBarExtra` label redraws without pause
+/// on macOS 27, which pinned a core and hung the app at launch with a timer in the menu bar. A
+/// task that wakes once a second redraws it instead, and only while it's live.
+private struct MenuBarClock<Content: View>: View {
+    var isLive: Bool
+    @ViewBuilder var content: (Date) -> Content
+    @State private var now = Date.now
+
+    var body: some View {
+        content(isLive ? now : .now)
+            .task(id: isLive) {
+                while isLive, !Task.isCancelled {
+                    now = .now
+                    let nextSecond = (now.timeIntervalSinceReferenceDate + 1).rounded(.down)
+                    try? await Task.sleep(for: .seconds(nextSecond - Date.now.timeIntervalSinceReferenceDate))
+                }
+            }
     }
 }
 
