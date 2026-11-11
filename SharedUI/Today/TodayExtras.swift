@@ -261,8 +261,7 @@ struct RestBanner: View {
 
     var body: some View {
         let settings = store.data.preferences.pomodoro
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let now = context.date
+        LiveClock(isLive: true, fallback: .now) { now in
             let over = rest.isOver(at: now)
             HStack(spacing: 20) {
                 ProgressRing(progress: over ? 1 : 1 - rest.remaining(at: now) / rest.duration, color: .mint, lineWidth: 7) {
@@ -284,7 +283,6 @@ struct RestBanner: View {
                             .font(.system(size: 32, weight: .semibold))
                             .monospacedDigit()
                             .contentTransition(.numericText(countsDown: true))
-                            .clockTick(now)
                     }
                     BlockDots(done: rest.isLong ? settings.blocksPerCycle : rest.completedBlocks, total: settings.blocksPerCycle)
                 }

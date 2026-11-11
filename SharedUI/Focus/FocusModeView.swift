@@ -94,7 +94,6 @@ private struct SessionFace: View {
                                 style: StrokeStyle(lineWidth: 18, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .shadow(color: .white.opacity(0.5), radius: 12)
-                        .animation(.linear(duration: 1), value: Int(now.timeIntervalSince1970))
                     VStack(spacing: 8) {
                         Text(session.isRunning ? (pomodoro.isEnabled ? "Block \(session.block)" : "Focusing") : "Paused")
                             .font(.headline)
@@ -134,8 +133,8 @@ private struct RestFace: View {
     let rest: RestPeriod
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let over = rest.isOver(at: context.date)
+        LiveClock(isLive: true, fallback: .now) { now in
+            let over = rest.isOver(at: now)
             VStack(spacing: 26) {
                 Image(systemName: over ? "bell.fill" : (rest.isLong ? "cup.and.saucer.fill" : "leaf.fill"))
                     .font(.system(size: 56))
@@ -146,12 +145,11 @@ private struct RestFace: View {
                     .font(.title.weight(.bold))
                     .foregroundStyle(.white)
                 if !over {
-                    Text(Formatting.clock(rest.remaining(at: context.date)))
+                    Text(Formatting.clock(rest.remaining(at: now)))
                         .font(.system(size: 64, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(.white)
                         .contentTransition(.numericText(countsDown: true))
-                        .clockTick(context.date)
                 }
                 Button {
                     store.startNextBlock()

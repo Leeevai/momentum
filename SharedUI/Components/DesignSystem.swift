@@ -99,7 +99,10 @@ struct CircleButtonStyle: ButtonStyle {
 // MARK: - Live values
 
 /// Renders `content` with the current time: every second while `isLive`, otherwise once.
-/// Keeps the per-second redraw confined to the views that show a running timer.
+/// Keeps the per-second redraw confined to the views that show a running timer, and each tick
+/// jumps to the new second without animating: a ring's spring or a rolling digit started every
+/// second never comes to rest, and kept the window redrawing at its full rate for as long as a
+/// timer ran. Changes that aren't ticks (a logged amount, a timer stopping) still animate.
 struct LiveClock<Content: View>: View {
     var isLive: Bool
     var fallback: Date
@@ -109,23 +112,15 @@ struct LiveClock<Content: View>: View {
         if isLive {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 content(context.date)
+                    .transaction { transaction in
+                        transaction.disablesAnimations = true
+                        transaction.animation = nil
+                    }
             }
         } else {
             content(fallback)
         }
     }
-}
-
-extension View {
-    /// Rolls a clock's digits as they change each second. Screenshot runs set `MOMENTUM_SCREENSHOT`
-    /// to draw them still, so a capture never lands between two digits.
-    func clockTick(_ date: Date) -> some View {
-        animation(ClockTick.rolls ? .default : nil, value: Int(date.timeIntervalSince1970))
-    }
-}
-
-enum ClockTick {
-    static let rolls = ProcessInfo.processInfo.environment["MOMENTUM_SCREENSHOT"] == nil
 }
 
 /// A running session's elapsed time, or time left for a planned session.
@@ -138,7 +133,6 @@ struct SessionClockText: View {
             Text(label(at: now))
                 .monospacedDigit()
                 .contentTransition(.numericText(countsDown: countsDown && session.plannedDuration != nil))
-                .clockTick(now)
         }
     }
 
