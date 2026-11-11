@@ -105,8 +105,10 @@ black, whichever reads on its goal's color (`WidgetFilledLabel`).
 
 ## The look
 
-The design follows [glasscn](https://glasscn.app): frosted panes with a lit rim over a drifting
-aurora, in one of its palettes.
+The look is minimal: flat panes on a plain ground, in one of the palettes, which follow the themes
+of [glasscn](https://glasscn.app). Color is kept for each goal's ring, bar and glyph and for
+the one main action in a place; headings, metadata and secondary controls are neutral. Content has
+no glass, glow, gradient or drop shadow, and no decorative motion.
 
 - **Palettes** live in the core because the choice is a synced preference that the widgets read
   from the data file. Every palette comes from a `PaletteRecipe`: an accent, a background tint,
@@ -130,9 +132,9 @@ aurora, in one of its palettes.
   `.focus`, `.award`, `.rest`, `.swatch(_:)`) use the active palette's colors, made once per
   palette (`PaletteColors`). Each is a dynamic color named after its palette, so a view redrawn in
   a new palette gets a new color. Errors and warnings keep the system's red and orange.
-- **Text in palette colors.** The accent is generated to read as text on glass (4.5:1 against
-  `TextSurface.glass`, a pane over the aurora's strongest blob), since the system draws it as text
-  too. `goal.tint`, `GoalColor.color` and the named roles are a shade of the swatch that does the
+- **Text in palette colors.** The accent is generated to read as text on a pane (4.5:1 against
+  `TextSurface.glass`, measured over the aurora's strongest blob, darker than any ground the apps
+  now draw), since the system draws it as text too. `goal.tint`, `GoalColor.color` and the named roles are a shade of the swatch that does the
   same (`OKLCH.readable`): deeper in light mode, lighter in dark. Widgets have no panes, so their
   timeline sets `ActivePalette.textSurface` to the bare aurora. Rings, bars, tiles and glyphs draw
   the swatch itself (`palette.color(_:)`, `GoalColor.swatch`), so a palette's look holds.
@@ -140,11 +142,20 @@ aurora, in one of its palettes.
   its fill (`Color.foreground(in:)`), so in dark mode, where swatches are light, labels are black.
   Icon tiles, medals and kept days keep white symbols on a deep shade of their color
   (`GoalColor.tile`), which holds white at 4.5:1.
-- **Glass.** `GlassTokens` holds glasscn's numbers (pane fills, rim, highlight, sheen, shadow,
-  radii, press squash and easing) for light and dark. `GlassCard` uses Liquid Glass tinted with
-  them on macOS 26 and iOS 26, and a frosted material with the fill, sheen, rim and shadow before.
-- **The aurora** (`Shared/Aurora.swift`) is three radial-gradient blobs moved by transforms, so the
-  drift is cheap; it stands still with Reduce Motion, in Low Power Mode, in widgets and in swatches.
+- **Panes and controls.** `GlassTokens` holds the numbers for light and dark: a pane's fill a step
+  off the ground, its hairline, the neutral fill of secondary controls, radii (16 for panes, 10 for
+  controls), the press squash and a short ease-out. `glassCard` draws a pane (a running timer's
+  pane takes a hairline in its tint), `floatingPane` one that floats over content, with the
+  system's material and a soft shadow, and `paneTitleStyle()` a pane's or section's title. A
+  prominent pill (`primaryActionStyle`) is a flat fill of its tint, for the one main action in a
+  place; a secondary pill is neutral with its label in the tint. Where many goals sit side by side
+  (Today's cards, the menu bar), `GoalPrimaryButton(prominent: false)` keeps each goal's action
+  quiet. The names come from the frosted look these replaced.
+- **Liquid Glass** is left to the system's own chrome (toolbars, the tab bar, the sidebar) and the
+  Mac's floating quick panel; content panes and buttons are flat on every system.
+- **The ground** (`Aurora` in `Shared/Aurora.swift`, named for the drifting aurora it replaced) is
+  the palette's base color, flat; a goal's screen mixes in a breath of the goal's color. Widgets and
+  palette swatches draw it too.
 - **Widgets drawn in one tint** (the faded desktop, tinted Home Screens) collapse each element to a
   single silhouette, so anything white on a fill (buttons, goal tiles) switches to a wash under its
   label there (`WidgetFilledLabel`), and photos are marked to stay photos.
