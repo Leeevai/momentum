@@ -46,6 +46,7 @@ All notable changes to Momentum are recorded here. The format follows
   bar and sidebar included.
 - Momentum no longer uses the processor while it sits open: nothing on screen animates forever,
   and a running timer ticks once a second without redrawing in between.
+- The widgets are calmer too: clocks and numbers in plain text, quieter labels and flat buttons.
 - A new icon on the Mac, iPhone and Apple Watch: a spiral on warm paper, opening out from a fine
   indigo thread to a bold orange head, small steps compounding into momentum. The mark in the app
   draws the same spiral.

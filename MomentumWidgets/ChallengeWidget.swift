@@ -128,9 +128,9 @@ private struct ChallengeSmall: View {
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
                 Spacer(minLength: 2)
-                Image(systemName: "flag.fill")
+                Image(systemName: "flag")
                     .font(.caption2)
-                    .foregroundStyle(goal.tint)
+                    .foregroundStyle(.secondary)
             }
             ChallengeBadge(status: status, color: goal.color, size: 72)
             if status.isFinished {
@@ -166,8 +166,8 @@ private struct ChallengeMedium: View {
                         .lineLimit(1)
                     Spacer(minLength: 2)
                     Text(status.challenge.title)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(goal.tint)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
                 Text(ChallengeText.short(status))

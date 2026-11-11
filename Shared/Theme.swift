@@ -14,9 +14,6 @@ extension GoalColor {
     /// A lighter companion of the swatch.
     var highlight: Color { ActivePalette.colors.highlight(self) }
 
-    /// The swatch, as the Today widget still names it. The look has no gradients any more.
-    var linear: Color { swatch }
-
     /// A deep shade of the color that white symbols read on, in light and dark.
     var tile: Color { ActivePalette.current.tile(self) }
 
