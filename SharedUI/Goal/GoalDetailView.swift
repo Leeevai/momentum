@@ -180,7 +180,7 @@ private struct HeroPanel: View {
                         .lineLimit(1)
                     Text(goal.effectivePeriod.currentLabel)
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(16)
             }

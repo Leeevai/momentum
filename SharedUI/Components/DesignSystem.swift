@@ -200,7 +200,7 @@ struct StatTile: View {
                 .minimumScaleFactor(0.7)
             Text(caption ?? " ")
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

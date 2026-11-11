@@ -221,7 +221,7 @@ private struct HistoryRow: View {
             Spacer()
             Text(entry.date, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
         }
         .padding(.vertical, 7)
         .contentShape(Rectangle())

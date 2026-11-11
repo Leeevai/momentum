@@ -49,7 +49,7 @@ struct GoalCard: View {
                         .foregroundStyle(.secondary)
                     detailLine(engine: engine, now: now)
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                         .labelStyle(.titleOnly)
                         .lineLimit(1)
                 }

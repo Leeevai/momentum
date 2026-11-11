@@ -54,7 +54,7 @@ private struct CoachRow: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .frame(width: 20, height: 20)
                     .contentShape(Circle())
             }
@@ -95,7 +95,7 @@ struct DayPlanCard: View {
                 if !priorities.isEmpty {
                     Text("\(done) of \(priorities.count) done")
                         .font(.subheadline)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                         .contentTransition(.numericText())
                 }
                 Spacer()
@@ -185,7 +185,7 @@ struct FocusTimeline: View {
                     } else {
                         Text(Formatting.duration(blocks.reduce(0) { $0 + $1.interval.duration }) + " focused")
                             .font(.subheadline)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 GeometryReader { proxy in

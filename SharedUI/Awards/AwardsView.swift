@@ -47,7 +47,7 @@ struct AwardsView: View {
                                 Text(family.title)
                                     .paneTitleStyle()
                                 Text("\(items.filter(\.isEarned).count)/\(items.count)")
-                                    .font(.callout.weight(.semibold))
+                                    .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .monospacedDigit()
                             }
