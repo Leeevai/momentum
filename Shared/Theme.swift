@@ -3,31 +3,28 @@ import SwiftUI
 
 extension GoalColor {
     /// The color as `goal.tint` and the named roles draw it: the active palette's swatch in a
-    /// shade that reads as text on glass (4.5:1), since that's mostly what they color. Rings,
+    /// shade that reads as text on a pane (4.5:1), since that's mostly what they color. Rings,
     /// bars, tiles and glyphs draw the swatch itself, through `palette.color(_:)` or `swatch`.
     var color: Color { ActivePalette.colors.text(self) }
 
-    /// The active palette's swatch itself, for a fill whose label is chosen by its color.
+    /// The active palette's swatch itself, for rings, bars and glyphs, and for a fill whose label
+    /// is chosen by its color.
     var swatch: Color { ActivePalette.colors.swatch(self) }
 
-    /// A lighter companion hue for gradients.
+    /// A lighter companion of the swatch.
     var highlight: Color { ActivePalette.colors.highlight(self) }
 
-    /// The ring's sweep: from the light companion into the full color.
-    var gradient: AngularGradient { ActivePalette.current.ringGradient(self) }
-
-    /// The color as a soft diagonal gradient, for symbols, bars and swatches drawn in it.
-    var linear: LinearGradient { ActivePalette.current.linear(self) }
+    /// The swatch, as the Today widget still names it. The look has no gradients any more.
+    var linear: Color { swatch }
 
     /// A deep shade of the color that white symbols read on, in light and dark.
-    var tile: LinearGradient { ActivePalette.current.tile(self) }
+    var tile: Color { ActivePalette.current.tile(self) }
 
-    /// The deep shade on its own, flat.
+    /// The deep shade on its own.
     var deep: Color { ActivePalette.colors.deep(self) }
 
-    /// A fill for a label: from the swatch away from the label's color, so text in white or black
-    /// (`Color.foreground(in:)` of the swatch) holds 4.5:1 across it.
-    var fill: LinearGradient { ActivePalette.current.fill(self) }
+    /// A fill for a label, white or black (`Color.foreground(in:)` of the swatch): the swatch.
+    var fill: Color { swatch }
 }
 
 extension Palette {
@@ -36,34 +33,10 @@ extension Palette {
         colors.swatch(goalColor)
     }
 
-    /// A ring's sweep in a goal color: from its highlight into the full color.
-    func ringGradient(_ goalColor: GoalColor) -> AngularGradient {
-        let shades = colors
-        let swatch = shades.swatch(goalColor)
-        return AngularGradient(colors: [shades.highlight(goalColor), swatch, swatch], center: .center,
-                               startAngle: .degrees(0), endAngle: .degrees(360))
-    }
-
-    /// A goal color as a soft diagonal gradient, for symbols, bars and swatches drawn in it.
-    func linear(_ goalColor: GoalColor) -> LinearGradient {
-        let shades = colors
-        return LinearGradient(colors: [shades.highlight(goalColor), shades.swatch(goalColor)],
-                              startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
-    /// A goal color as a label's fill: from the swatch away from its label's color.
-    func fill(_ goalColor: GoalColor) -> LinearGradient {
-        let shades = colors
-        return LinearGradient(colors: [shades.swatch(goalColor), shades.fillEnd(goalColor)],
-                              startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
     /// A goal color deep enough for white symbols on it: icon tiles, medals, kept days. In
     /// light mode it's the swatch itself; in dark mode, where swatches are light, a deeper shade.
-    func tile(_ goalColor: GoalColor) -> LinearGradient {
-        let shades = colors
-        return LinearGradient(colors: [shades.deepHighlight(goalColor), shades.deep(goalColor)],
-                              startPoint: .topLeading, endPoint: .bottomTrailing)
+    func tile(_ goalColor: GoalColor) -> Color {
+        colors.deep(goalColor)
     }
 }
 
