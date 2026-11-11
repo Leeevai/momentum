@@ -34,7 +34,7 @@ struct TodayHeader: View {
             .font(.title3.weight(.medium))
             .foregroundStyle(.secondary)
         Text(store.now, format: .dateTime.weekday(.wide).month(.wide).day())
-            .font(.system(size: dateSize, weight: .bold, design: .rounded))
+            .font(.system(size: dateSize, weight: .semibold))
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -166,7 +166,7 @@ struct FocusBanner: View {
             .font(.title2.weight(.bold))
             .lineLimit(1)
         SessionClockText(session: session)
-            .font(.system(size: clockSize, weight: .bold, design: .rounded))
+            .font(.system(size: clockSize, weight: .semibold))
             .foregroundStyle(session.isRunning ? AnyShapeStyle(goal.color.linear) : AnyShapeStyle(.secondary))
     }
 
@@ -293,7 +293,7 @@ struct WelcomeView: View {
                 MomentumMark(size: 112)
                     .padding(.bottom, 6)
                 Text("Show up for what matters")
-                    .font(.system(.title, design: .rounded, weight: .bold))
+                    .font(.title.weight(.semibold))
                     .multilineTextAlignment(.center)
                 Text("Momentum turns big intentions into small daily wins. Track focus time, habits, books, savings, or a project's milestones, and watch your streaks grow \(Self.whereWidgetsLive).")
                     .multilineTextAlignment(.center)

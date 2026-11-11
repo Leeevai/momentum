@@ -94,7 +94,7 @@ private struct MonthCalendar: View {
         VStack(spacing: 14) {
             HStack {
                 Text(month, format: .dateTime.month(.wide).year())
-                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .font(.title2.weight(.semibold))
                     .contentTransition(.numericText())
                 Spacer()
                 HStack(spacing: 6) {
@@ -130,7 +130,7 @@ private struct MonthCalendar: View {
                 }
             }
         }
-        .glassCard(cornerRadius: 24, padding: 20)
+        .glassCard(padding: 20)
         .gesture(DragGesture(minimumDistance: 30).onEnded { value in
             if abs(value.translation.width) > abs(value.translation.height) { shift(value.translation.width < 0 ? 1 : -1) }
         })
@@ -165,14 +165,14 @@ private struct DayCell: View {
                     .stroke(.primary.opacity(isFuture ? 0.04 : 0.08), lineWidth: 3)
                 Circle()
                     .trim(from: 0, to: completion)
-                    .stroke(summary.isPerfect ? AnyShapeStyle(Color.success.gradient) : AnyShapeStyle(Color.accent.gradient),
+                    .stroke(summary.isPerfect ? AnyShapeStyle(Color.success) : AnyShapeStyle(Color.accent),
                             style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 if summary.isPerfect {
                     Circle().fill(Color.success.opacity(0.18))
                 }
                 Text(summary.day, format: .dateTime.day())
-                    .font(.system(.callout, design: .rounded, weight: isToday ? .bold : .medium))
+                    .font(.callout.weight(isToday ? .semibold : .medium))
                     .foregroundStyle(isFuture ? AnyShapeStyle(.tertiary) : (isToday ? AnyShapeStyle(Color.accent) : AnyShapeStyle(.primary)))
             }
             .frame(width: 32, height: 32)
@@ -232,13 +232,12 @@ private struct MonthStats: View {
         let summaries = days.map { engine.daySummary($0, now: store.now) }
         let mood = engine.moodReport(in: interval, now: store.now)
         let focus = summaries.reduce(0) { $0 + $1.focusSeconds }
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            StatTile(title: "Perfect days", value: "\(summaries.filter(\.isPerfect).count)", systemImage: "star.fill", tint: .success)
-            StatTile(title: "Journaled", value: "\(summaries.filter { $0.journal?.isEmpty == false }.count) days", systemImage: "book.closed.fill", tint: .swatch(.orange))
+        StatGrid(minimum: 120) {
+            StatTile(title: "Perfect days", value: "\(summaries.filter(\.isPerfect).count)")
+            StatTile(title: "Journaled", value: "\(summaries.filter { $0.journal?.isEmpty == false }.count) days")
             StatTile(title: "Average mood", value: mood.averageMood.map { Mood(rawValue: Int($0.rounded()))?.title ?? "–" } ?? "–",
-                     systemImage: mood.averageMood.flatMap { Mood(rawValue: Int($0.rounded())) }?.symbolName ?? "cloud.sun.fill", tint: .swatch(.teal),
                      caption: mood.days > 0 ? "\(mood.days) days rated" : "Rate days to see it")
-            StatTile(title: "Focused", value: Formatting.duration(focus), systemImage: "timer", tint: .focus)
+            StatTile(title: "Focused", value: Formatting.duration(focus))
         }
     }
 }
@@ -263,10 +262,10 @@ private struct DayDetail: View {
                     .font(.title3.weight(.medium))
                     .foregroundStyle(.secondary)
                 Text(day, format: .dateTime.month(.wide).day().year())
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(.system(size: 30, weight: .semibold))
             }
 
-            journalCard(title: "Plan", symbol: "sun.horizon.fill", tint: .swatch(.orange), isEmpty: entry?.hasPlan != true,
+            journalCard(title: "Plan", isEmpty: entry?.hasPlan != true,
                         empty: isFuture ? "Plan ahead: set an intention and pick priorities." : "No plan written.",
                         action: entry?.hasPlan == true ? "Edit" : "Plan", route: .plan(id)) {
                 if let entry {
@@ -291,7 +290,7 @@ private struct DayDetail: View {
             }
 
             if !isFuture {
-                journalCard(title: "Reflection", symbol: "moon.stars.fill", tint: .swatch(.indigo), isEmpty: entry?.hasReflection != true,
+                journalCard(title: "Reflection", isEmpty: entry?.hasReflection != true,
                             empty: "How did the day go? Rate it and note a win.",
                             action: entry?.hasReflection == true ? "Edit" : "Reflect", route: .reflect(id)) {
                     if let entry {
@@ -335,16 +334,15 @@ private struct DayDetail: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func journalCard<Content: View>(title: String, symbol: String, tint: Color, isEmpty: Bool, empty: String, action: String,
+    private func journalCard<Content: View>(title: String, isEmpty: Bool, empty: String, action: String,
                                             route: SheetRoute, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label(title, systemImage: symbol)
-                    .font(.headline)
-                    .symbolRenderingMode(.multicolor)
+                Text(title)
+                    .paneTitleStyle()
                 Spacer()
                 Button(action) { store.sheet = route }
-                    .secondaryActionStyle(tint, compact: true)
+                    .secondaryActionStyle(.accent, compact: true)
             }
             if isEmpty {
                 Text(empty)
@@ -354,7 +352,7 @@ private struct DayDetail: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(tint: tint, cornerRadius: 22)
+        .glassCard()
     }
 }
 
@@ -365,9 +363,8 @@ private struct OnThisDayCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("On this day", systemImage: "clock.arrow.circlepath")
-                .font(.headline)
-                .foregroundStyle(.swatch(.purple))
+            Text("On this day")
+                .paneTitleStyle()
             ForEach(memories) { memory in
                 Button {
                     onSelect(memory.entry.day.date())
@@ -382,7 +379,7 @@ private struct OnThisDayCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(tint: .swatch(.purple), cornerRadius: 22)
+        .glassCard()
     }
 
     private func row(_ memory: JournalMemory) -> some View {
@@ -432,8 +429,8 @@ private struct DayGoals: View {
     var body: some View {
         let ids = summary.due + summary.active.filter { !summary.due.contains($0) }
         VStack(alignment: .leading, spacing: 10) {
-            Label("Goals", systemImage: "target")
-                .font(.headline)
+            Text("Goals")
+                .paneTitleStyle()
             ForEach(ids.compactMap(store.goal)) { goal in
                 let amount = store.engine.amount(for: goal, on: summary.day, now: store.now)
                 let met = summary.met.contains(goal.id)
@@ -458,6 +455,6 @@ private struct DayGoals: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 22)
+        .glassCard()
     }
 }

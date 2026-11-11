@@ -138,7 +138,7 @@ private struct MiniFocusPlayer: View {
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
                 SessionClockText(session: session)
-                    .font(.system(.callout, design: .rounded, weight: .bold))
+                    .font(.callout.weight(.semibold))
                     .foregroundStyle(goal.tint)
             }
             Spacer(minLength: 0)

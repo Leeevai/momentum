@@ -158,7 +158,7 @@ struct HistorySection: View {
         let entries = store.engine.entries(for: goal)
         let visible = showsAll ? entries : Array(entries.prefix(8))
         VStack(alignment: .leading, spacing: 10) {
-            SectionTitle("History", systemImage: "clock.arrow.circlepath", trailing: AnyView(
+            SectionTitle("History", trailing: AnyView(
                 Text("\(entries.count) entries")
                     .font(.callout)
                     .foregroundStyle(.secondary)

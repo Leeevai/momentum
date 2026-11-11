@@ -31,7 +31,7 @@ private struct TimeControls: View {
                             .foregroundStyle(.secondary)
                             .textCase(.uppercase)
                         SessionClockText(session: session)
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .font(.system(size: 40, weight: .semibold))
                             .foregroundStyle(goal.color.linear)
                     }
                 } else {

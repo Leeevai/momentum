@@ -87,7 +87,7 @@ struct MobileTodayView: View {
     private func section(_ title: String, systemImage: String, goals: [Goal]) -> some View {
         if !goals.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                SectionTitle(title, systemImage: systemImage)
+                SectionTitle(title)
                     .foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14)], spacing: 14) {
                     ForEach(goals) { goal in

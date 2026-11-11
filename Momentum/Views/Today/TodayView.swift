@@ -121,7 +121,7 @@ struct TodayView: View {
 
     private func section(_ title: String, systemImage: String, goals: [Goal]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionTitle(title, systemImage: systemImage)
+            SectionTitle(title)
                 .foregroundStyle(.secondary)
             LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                 ForEach(goals) { goal in

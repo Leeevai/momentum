@@ -104,7 +104,7 @@ private struct SessionFace: View {
                             .tracking(2)
                             .foregroundStyle(.white.opacity(0.75))
                         SessionClockText(session: session)
-                            .font(.system(size: 72, weight: .bold, design: .rounded))
+                            .font(.system(size: 72, weight: .semibold))
                             .foregroundStyle(.white)
                             .minimumScaleFactor(0.5)
                             .lineLimit(1)
@@ -149,7 +149,7 @@ private struct RestFace: View {
                     .foregroundStyle(.white)
                 if !over {
                     Text(Formatting.clock(rest.remaining(at: context.date)))
-                        .font(.system(size: 64, weight: .bold, design: .rounded))
+                        .font(.system(size: 64, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(.white)
                         .contentTransition(.numericText(countsDown: true))

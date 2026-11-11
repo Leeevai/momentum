@@ -152,71 +152,84 @@ struct SessionClockText: View {
 
 // MARK: - Small pieces
 
+extension View {
+    /// A section's or a pane's title: small, semibold and secondary, with no icon.
+    func paneTitleStyle() -> some View {
+        font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+    }
+}
+
+/// A section's heading: quiet text, with an optional control on the trailing side.
 struct SectionTitle: View {
     let title: String
-    var systemImage: String?
     var trailing: AnyView?
 
-    init(_ title: String, systemImage: String? = nil, trailing: AnyView? = nil) {
+    init(_ title: String, trailing: AnyView? = nil) {
         self.title = title
-        self.systemImage = systemImage
         self.trailing = trailing
     }
 
     var body: some View {
         HStack {
-            if let systemImage {
-                Label(title, systemImage: systemImage)
-            } else {
-                Text(title)
-            }
+            Text(title)
+                .paneTitleStyle()
             Spacer()
             trailing
         }
-        .font(.headline)
     }
 }
 
+/// A number with its label above and a caption below, for a row of stats in one pane.
 struct StatTile: View {
     let title: String
     let value: String
-    let systemImage: String
-    var tint: Color = .accent
     var caption: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: systemImage)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(tint)
-                .symbolRenderingMode(.hierarchical)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             Text(value)
-                .font(.system(.title2, design: .rounded, weight: .bold))
+                .font(.title3.weight(.semibold))
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(caption ?? " ")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.tertiary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(tint: tint, padding: 14)
+    }
+}
+
+/// Stats side by side in one pane, wrapping onto more rows at narrow widths.
+struct StatGrid<Content: View>: View {
+    var minimum: CGFloat = 130
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: minimum), spacing: 16, alignment: .topLeading)], alignment: .leading, spacing: 14) {
+            content
+        }
+        .glassCard()
     }
 }
 
 struct CategoryPill: View {
     let text: String
-    var tint: Color = .secondary
 
     var body: some View {
         Text(text)
-            .font(.caption.weight(.semibold))
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .foregroundStyle(tint)
-            .background(Capsule().fill(tint.opacity(0.13)))
+            .background(Capsule().fill(Color.primary.opacity(0.06)))
     }
 }
 
@@ -227,23 +240,21 @@ struct EmptyStateView<Actions: View>: View {
     @ViewBuilder var actions: Actions
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 46, weight: .light))
-                .foregroundStyle(.tint)
-                .symbolRenderingMode(.hierarchical)
-                .symbolEffect(.pulse, options: .repeating.speed(0.4))
+                .font(.system(size: 34, weight: .light))
+                .foregroundStyle(.tertiary)
             Text(title)
-                .font(.title2.weight(.semibold))
+                .font(.title3.weight(.semibold))
             Text(message)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: 440)
+                .frame(maxWidth: 420)
             actions
                 .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
+        .padding(.vertical, 44)
     }
 }
 

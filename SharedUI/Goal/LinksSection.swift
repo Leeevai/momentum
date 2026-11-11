@@ -10,7 +10,7 @@ struct LinksSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionTitle("Links", systemImage: "link", trailing: AnyView(
+            SectionTitle("Links", trailing: AnyView(
                 Button {
                     store.sheet = .link(goalID: goal.id, link: nil)
                 } label: {

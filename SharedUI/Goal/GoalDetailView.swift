@@ -89,7 +89,7 @@ private struct GoalHeader: View {
                 .heroMatch("icon-\(goal.id)", in: hero)
             VStack(alignment: .leading, spacing: 6) {
                 Text(goal.name)
-                    .font(.system(size: Metrics.showsInlineTitles ? 30 : 26, weight: .bold, design: .rounded))
+                    .font(.system(size: Metrics.showsInlineTitles ? 30 : 26, weight: .semibold))
                     .fixedSize(horizontal: false, vertical: true)
                     .heroMatch("title-\(goal.id)", in: hero)
                 FlowLayout(spacing: 8) { meta }
@@ -120,7 +120,7 @@ private struct GoalHeader: View {
     @ViewBuilder
     private var meta: some View {
         if !goal.category.isEmpty {
-            CategoryPill(text: goal.category, tint: goal.tint)
+            CategoryPill(text: goal.category)
         }
         Label(goal.targetDescription, systemImage: goal.kind.symbolName)
         Label(goal.scheduleDescription(), systemImage: "calendar")
@@ -173,7 +173,7 @@ private struct HeroPanel: View {
             ProgressRing(progress: engine.ringProgress(for: goal, now: now), color: goal.color, lineWidth: 14) {
                 VStack(spacing: 2) {
                     Text(goal.formatShort(amount))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(size: 28, weight: .semibold))
                         .monospacedDigit()
                         .contentTransition(.numericText(value: amount))
                         .minimumScaleFactor(0.6)
@@ -272,27 +272,27 @@ private struct StatsRow: View {
         let now = store.now
         let streak = engine.streak(for: goal, now: now)
         let unit = streak.unit
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 14)], spacing: 14) {
-            StatTile(title: "Current streak", value: "\(streak.current) \(Formatting.unit("\(unit)s", for: Double(streak.current)))", systemImage: "flame.fill", tint: .streak,
+        StatGrid {
+            StatTile(title: "Current streak", value: "\(streak.current) \(Formatting.unit("\(unit)s", for: Double(streak.current)))",
                      caption: goal.kind == .books || goal.kind == .milestones ? "Days with progress" : streakCaption(streak))
-            StatTile(title: "Best streak", value: "\(streak.best) \(Formatting.unit("\(unit)s", for: Double(streak.best)))", systemImage: "trophy.fill", tint: .award,
+            StatTile(title: "Best streak", value: "\(streak.best) \(Formatting.unit("\(unit)s", for: Double(streak.best)))",
                      caption: streak.best > 0 && streak.current >= streak.best ? "Happening now" : nil)
             if goal.kind == .books {
                 let year = engine.interval(of: .yearly, containing: now)
-                StatTile(title: "Books this year", value: "\(engine.booksFinished(for: goal, in: year))", systemImage: "books.vertical.fill", tint: goal.tint)
-                StatTile(title: "Pages read", value: Formatting.number(engine.lifetimeAmount(for: goal, now: now)), systemImage: "book.pages.fill", tint: .swatch(.brown),
+                StatTile(title: "Books this year", value: "\(engine.booksFinished(for: goal, in: year))")
+                StatTile(title: "Pages read", value: Formatting.number(engine.lifetimeAmount(for: goal, now: now)),
                          caption: "\(Formatting.number(engine.amount(for: goal, in: engine.interval(of: .monthly, containing: now), now: now))) this month")
             } else if goal.kind == .milestones {
                 let done = goal.milestones.filter(\.isDone).count
-                StatTile(title: "Completed", value: "\(done) of \(goal.milestones.count)", systemImage: "flag.checkered", tint: goal.tint)
-                StatTile(title: "Remaining", value: "\(goal.milestones.count - done)", systemImage: "list.bullet", tint: .secondary)
+                StatTile(title: "Completed", value: "\(done) of \(goal.milestones.count)")
+                StatTile(title: "Remaining", value: "\(goal.milestones.count - done)")
             } else {
-                StatTile(title: "Hit rate", value: Formatting.percent(engine.completionRate(for: goal, now: now)), systemImage: "target", tint: goal.tint,
+                StatTile(title: "Hit rate", value: Formatting.percent(engine.completionRate(for: goal, now: now)),
                          caption: rateCaption)
-                StatTile(title: "All time", value: goal.format(engine.lifetimeAmount(for: goal, now: now)), systemImage: "sum", tint: .secondary,
+                StatTile(title: "All time", value: goal.format(engine.lifetimeAmount(for: goal, now: now)),
                          caption: "Since \(engine.firstDay(of: goal).formatted(.dateTime.month(.abbreviated).day().year()))")
                 if goal.kind == .time, let sessions = engine.sessionStats(for: goal) {
-                    StatTile(title: "Sessions", value: "\(sessions.count)", systemImage: "timer", tint: goal.tint,
+                    StatTile(title: "Sessions", value: "\(sessions.count)",
                              caption: "avg \(Formatting.duration(sessions.average)) · longest \(Formatting.duration(sessions.longest))")
                 }
             }

@@ -12,8 +12,8 @@ struct YearInPixels: View {
         let weeks = Self.weeks(pixels, firstWeekday: Calendar.current.firstWeekday)
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Year in pixels", systemImage: "square.grid.3x3.fill")
-                    .font(.headline)
+                Text("Year in pixels")
+                    .paneTitleStyle()
                 Spacer()
                 Picker("Color by", selection: $showsMood.animation(.easeInOut)) {
                     Text("Progress").tag(false)
@@ -51,7 +51,7 @@ struct YearInPixels: View {
             .accessibilityValue(summary(pixels))
             legend
         }
-        .glassCard(cornerRadius: 22)
+        .glassCard()
     }
 
     private var legend: some View {

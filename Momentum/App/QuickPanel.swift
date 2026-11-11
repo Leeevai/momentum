@@ -236,7 +236,7 @@ struct HotKeyRecorder: View {
                 isRecording ? stop() : start()
             } label: {
                 Text(isRecording ? "Type a shortcut…" : (combo?.displayString ?? "Off"))
-                    .font(.system(.body, design: .rounded, weight: .semibold))
+                    .font(.body.weight(.semibold))
                     .frame(minWidth: 120)
             }
             .secondaryActionStyle(isRecording ? .attention : .accent, compact: true)

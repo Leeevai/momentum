@@ -19,7 +19,7 @@ struct AwardsView: View {
                     header(progress)
                     if !recent.isEmpty {
                         VStack(alignment: .leading, spacing: 14) {
-                            SectionTitle("Recently earned", systemImage: "sparkles")
+                            SectionTitle("Recently earned")
                             ScrollView(.horizontal) {
                                 HStack(spacing: 22) {
                                     ForEach(Array(recent)) { item in
@@ -34,7 +34,7 @@ struct AwardsView: View {
                     }
                     if !closest.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            SectionTitle("Almost there", systemImage: "chart.line.uptrend.xyaxis")
+                            SectionTitle("Almost there")
                             LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 14)], spacing: 14) {
                                 ForEach(Array(closest)) { item in AwardRow(item: item) { open(item, from: "closest") } }
                             }
@@ -44,8 +44,8 @@ struct AwardsView: View {
                         let items = progress.filter { $0.achievement.family == family }
                         VStack(alignment: .leading, spacing: 14) {
                             HStack {
-                                Label(family.title, systemImage: family.symbolName)
-                                    .font(.headline)
+                                Text(family.title)
+                                    .paneTitleStyle()
                                 Text("\(items.filter(\.isEarned).count)/\(items.count)")
                                     .font(.callout.weight(.semibold))
                                     .foregroundStyle(.secondary)
@@ -57,7 +57,7 @@ struct AwardsView: View {
                                 }
                             }
                         }
-                        .glassCard(cornerRadius: 24, padding: 20)
+                        .glassCard(padding: 20)
                     }
                 }
                 .padding(Metrics.screenPadding)
@@ -87,7 +87,7 @@ struct AwardsView: View {
         let summary = VStack(alignment: .leading, spacing: 8) {
             if Metrics.showsInlineTitles {
                 Text("Awards")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(.system(size: 36, weight: .semibold))
             }
             Text("\(earned) of \(total) earned. Each one marks something you kept showing up for.")
                 .foregroundStyle(.secondary)
@@ -170,7 +170,7 @@ private struct TierCount: View {
                     .frame(width: 44, height: 44)
                     .shadow(color: tier.ringColors[0].opacity(0.4), radius: 5, y: 2)
                 Text("\(count)")
-                    .font(.system(.headline, design: .rounded, weight: .bold))
+                    .font(.headline.weight(.semibold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.3), radius: 1, y: 1)
             }
@@ -206,7 +206,7 @@ private struct AwardRow: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassCard(tint: item.achievement.family.tint, cornerRadius: 20, padding: 14)
+            .glassCard(tint: item.achievement.family.tint, padding: 14)
         }
         .buttonStyle(MedalButtonStyle())
     }
@@ -235,7 +235,7 @@ private struct AwardDetail: View {
                     .tracking(2)
                     .foregroundStyle(item.achievement.tier.ringColors[0])
                 Text(item.achievement.title)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: 28, weight: .semibold))
                 Text(item.achievement.detail)
                     .font(.title3)
                     .foregroundStyle(.secondary)

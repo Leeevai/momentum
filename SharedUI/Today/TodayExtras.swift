@@ -299,7 +299,7 @@ struct RestBanner: View {
                             .foregroundStyle(.secondary)
                     } else {
                         Text(Formatting.clock(rest.remaining(at: now)))
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(size: 34, weight: .semibold))
                             .monospacedDigit()
                             .contentTransition(.numericText(countsDown: true))
                             .clockTick(now)

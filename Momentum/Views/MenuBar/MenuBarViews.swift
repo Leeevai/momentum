@@ -179,7 +179,7 @@ private struct MenuSessionCard: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(goal.name).font(.callout.weight(.semibold)).lineLimit(1)
                 SessionClockText(session: session)
-                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(goal.tint)
             }
             Spacer()
