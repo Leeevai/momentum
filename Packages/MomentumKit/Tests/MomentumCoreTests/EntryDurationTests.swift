@@ -63,4 +63,15 @@ struct DurationElsewhereTests {
         #expect(reread != nil)
         #expect(reread?.duration == nil)
     }
+
+    @Test("The CSV export has each entry's duration in minutes, in a column at the end")
+    func csv() {
+        let gym = checkInGoal()
+        var data = AppData(goals: [gym])
+        data.log(1, for: gym.id, at: referenceNow, duration: 45 * 60)
+        data.log(1, for: gym.id, at: referenceNow.addingTimeInterval(60))
+        let lines = CSVExporter.csv(for: data).split(separator: "\n").map { $0.split(separator: ",", omittingEmptySubsequences: false) }
+        let lastColumns = lines.map { $0.last.map(String.init) ?? "?" }
+        #expect(lastColumns == ["duration_minutes", "45.00", ""])
+    }
 }
