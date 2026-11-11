@@ -24,24 +24,24 @@ struct InsightsView: View {
                     }
                 }
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 14)], spacing: 14) {
-                    StatTile(title: "Focused", value: Formatting.duration(report.totalFocusSeconds), systemImage: "timer", tint: .focus,
+                StatGrid {
+                    StatTile(title: "Focused", value: Formatting.duration(report.totalFocusSeconds),
                              caption: focusCaption(report))
-                    StatTile(title: "Active days", value: "\(report.activeDays) of \(days)", systemImage: "calendar.badge.checkmark", tint: .success,
+                    StatTile(title: "Active days", value: "\(report.activeDays) of \(days)",
                              caption: Formatting.percent(Double(report.activeDays) / Double(days)) + " of days")
                     let streaks = engine.activeGoals.map { ($0, engine.streak(for: $0, now: store.now)) }
                     let longest = streaks.max { $0.1.current < $1.1.current }
-                    StatTile(title: "Best streak now", value: "\(longest?.1.current ?? 0)", systemImage: "flame.fill", tint: .streak,
+                    StatTile(title: "Best streak now", value: "\(longest?.1.current ?? 0)",
                              caption: longest.flatMap { $0.1.current > 0 ? $0.0.name : nil })
-                    StatTile(title: "Books finished", value: "\(report.booksFinished)", systemImage: "books.vertical.fill", tint: .swatch(.brown),
+                    StatTile(title: "Books finished", value: "\(report.booksFinished)",
                              caption: "\(Formatting.number(report.pagesRead)) pages read")
-                    StatTile(title: "Milestones", value: "\(report.milestonesCompleted)", systemImage: "flag.checkered", tint: .swatch(.pink),
+                    StatTile(title: "Milestones", value: "\(report.milestonesCompleted)",
                              caption: "\(report.loggedEntries) entries logged")
                     if let flow = quality.flowShare {
-                        StatTile(title: "In the flow", value: Formatting.percent(flow), systemImage: "water.waves", tint: .focus,
+                        StatTile(title: "In the flow", value: Formatting.percent(flow),
                                  caption: "of rated focus")
                     } else {
-                        StatTile(title: "Daily focus", value: Formatting.duration(report.averageFocusPerDay), systemImage: "sun.max.fill", tint: .swatch(.yellow),
+                        StatTile(title: "Daily focus", value: Formatting.duration(report.averageFocusPerDay),
                                  caption: "on average")
                     }
                 }
@@ -79,7 +79,7 @@ struct InsightsView: View {
         VStack(alignment: .leading, spacing: 4) {
             if Metrics.showsInlineTitles {
                 Text("Insights")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.system(size: 34, weight: .semibold))
             }
             Text("How the last \(days) days went.")
                 .foregroundStyle(.secondary)
@@ -117,8 +117,8 @@ private struct FocusChart: View {
         let order = Array(NSOrderedSet(array: names)) as? [String] ?? []
         let colors = order.map { name in store.data.goals.first { $0.name == name }?.tint ?? .accent }
         VStack(alignment: .leading, spacing: 12) {
-            Label("Focus time per day", systemImage: "chart.bar.fill")
-                .font(.headline)
+            Text("Focus time per day")
+                .paneTitleStyle()
             Chart(report.focusByDay) { day in
                 BarMark(
                     x: .value("Day", day.day, unit: .day),
@@ -152,8 +152,8 @@ private struct WeekdayChart: View {
         let buckets = order.compactMap { day in report.focusByWeekday.first { $0.index == day } }
         let best = buckets.max { $0.seconds < $1.seconds }
         VStack(alignment: .leading, spacing: 12) {
-            Label("By weekday", systemImage: "calendar")
-                .font(.headline)
+            Text("By weekday")
+                .paneTitleStyle()
             if let best, best.seconds > 0 {
                 Text("\(Calendar.current.weekdaySymbols[best.index - 1])s are your strongest days.")
                     .font(.callout)
@@ -164,7 +164,7 @@ private struct WeekdayChart: View {
                     x: .value("Weekday", symbols[bucket.index - 1]),
                     y: .value("Hours", bucket.seconds / 3600)
                 )
-                .foregroundStyle(bucket.index == best?.index ? AnyShapeStyle(Color.focus.gradient) : AnyShapeStyle(Color.focus.opacity(0.35)))
+                .foregroundStyle(bucket.index == best?.index ? AnyShapeStyle(Color.focus) : AnyShapeStyle(Color.focus.opacity(0.35)))
                 .cornerRadius(5)
             }
             .chartYAxis(.hidden)
@@ -179,8 +179,8 @@ private struct HourChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Time of day", systemImage: "clock")
-                .font(.headline)
+            Text("Time of day")
+                .paneTitleStyle()
             if let peak = report.peakHour {
                 let start = Calendar.current.date(bySettingHour: peak, minute: 0, second: 0, of: .now) ?? .now
                 Text("You focus best around \(start.formatted(date: .omitted, time: .shortened)).")
@@ -221,8 +221,8 @@ private struct FocusQualityCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Focus quality", systemImage: "water.waves")
-                .font(.headline)
+            Text("Focus quality")
+                .paneTitleStyle()
             Text(summary)
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -232,7 +232,7 @@ private struct FocusQualityCard: View {
                         let share = (report.seconds[quality] ?? 0) / max(report.ratedSeconds, 1)
                         if share > 0 {
                             Capsule()
-                                .fill(quality.tint.gradient)
+                                .fill(quality.tint)
                                 .frame(width: max(6, (proxy.size.width - 6) * share))
                         }
                     }
@@ -307,7 +307,7 @@ private struct CategoryChart: View {
             .chartBackground { _ in
                 VStack(spacing: 2) {
                     Text(selected.map { Formatting.duration($0.seconds) } ?? Formatting.duration(report.totalFocusSeconds))
-                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .font(.title3.weight(.semibold))
                     Text(selected?.name ?? "total")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -317,8 +317,8 @@ private struct CategoryChart: View {
         }
         let legend = Group {
             VStack(alignment: .leading, spacing: 10) {
-                Label("By category", systemImage: "chart.pie.fill")
-                    .font(.headline)
+                Text("By category")
+                    .paneTitleStyle()
                 ForEach(Array(shares.enumerated()), id: \.element.id) { index, share in
                     HStack(spacing: 8) {
                         Circle()
@@ -358,9 +358,8 @@ private struct MoodCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label("Mood and momentum", systemImage: "cloud.sun.fill")
-                .font(.headline)
-                .symbolRenderingMode(.multicolor)
+            Text("Mood and momentum")
+                .paneTitleStyle()
             Text(headline)
                 .foregroundStyle(.secondary)
             ViewThatFits(in: .horizontal) {
@@ -375,7 +374,7 @@ private struct MoodCard: View {
                 }
             }
         }
-        .glassCard(cornerRadius: 22)
+        .glassCard()
     }
 
     @ViewBuilder
@@ -391,7 +390,7 @@ private struct MoodCard: View {
     private var chart: some View {
         Chart(Mood.allCases) { mood in
             BarMark(x: .value("Mood", mood.title), y: .value("Focus", (report.focusByMood[mood] ?? 0) / 3600))
-                .foregroundStyle(mood.tint.gradient)
+                .foregroundStyle(mood.tint)
                 .cornerRadius(5)
         }
         .chartYAxis {
@@ -435,7 +434,7 @@ private struct MoodCard: View {
                     .font(.system(size: 34))
                     .foregroundStyle(mood.tint)
                 Text(String(format: "%.1f", value))
-                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .font(.title2.weight(.semibold))
                 Text(title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -452,8 +451,8 @@ private struct ScoresCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Goals", systemImage: "list.bullet.rectangle")
-                .font(.headline)
+            Text("Goals")
+                .paneTitleStyle()
             if report.scores.isEmpty {
                 Text("Add a goal to see how it's going.")
                     .foregroundStyle(.secondary)

@@ -48,7 +48,7 @@ struct ReadingSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            SectionTitle(kind.sectionTitle, systemImage: kind.symbolName, trailing: goal.currentBook == nil ? AnyView(addButton) : nil)
+            SectionTitle(kind.sectionTitle, trailing: goal.currentBook == nil ? AnyView(addButton) : nil)
             if let book = goal.currentBook {
                 CurrentBookRow(goal: goal, book: book) {
                     pageText = kind == .video ? Formatting.clock(Double(book.currentPage)) : "\(book.currentPage)"

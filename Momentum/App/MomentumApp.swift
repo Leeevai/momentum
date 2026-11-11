@@ -23,12 +23,15 @@ struct MomentumApp: App {
             SettingsView()
                 .storePalette()
                 .environment(store)
+                .darkGround()
+                .darkWindowChrome()
         }
 
         MenuBarExtra {
             MenuBarPanel()
                 .storePalette()
                 .environment(store)
+                .darkGround()
         } label: {
             MenuBarLabel()
                 .environment(store)

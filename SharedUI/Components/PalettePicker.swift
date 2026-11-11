@@ -150,7 +150,7 @@ private struct PaletteSwatchCard: View {
     var body: some View {
         let accent = palette.colors.accent
         let shape = RoundedRectangle(cornerRadius: GlassTokens.controlRadius, style: .continuous)
-        Aurora(animates: false, scale: 0.12)
+        Aurora()
             .overlay {
                 VStack(spacing: 7) {
                     Circle()

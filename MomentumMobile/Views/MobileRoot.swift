@@ -41,6 +41,7 @@ struct MobileRoot: View {
         return content
             .sheet(item: bindable.sheet) { route in
                 MobileSheet(route: route)
+                    .darkGround()
             }
             .fullScreenCover(isPresented: bindable.isFocusModePresented) {
                 FocusModeView { store.isFocusModePresented = false }

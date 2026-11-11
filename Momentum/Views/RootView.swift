@@ -4,15 +4,18 @@ import SwiftUI
 struct RootView: View {
     @Environment(GoalStore.self) private var store
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         @Bindable var store = store
         NavigationSplitView {
             Sidebar()
+                .darkGround()
                 .navigationSplitViewColumnWidth(min: 220, ideal: 250, max: 340)
         } detail: {
             detail
                 .frame(minWidth: 560)
+                .softScrollEdge(when: colorScheme == .dark)
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -24,8 +27,10 @@ struct RootView: View {
                 .help("New goal (⌘N)")
             }
         }
+        .darkWindowChrome()
         .sheet(item: $store.sheet) { route in
             SheetContent(route: route)
+                .darkGround()
         }
         .overlay {
             if let celebration = store.celebration {

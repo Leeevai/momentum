@@ -264,7 +264,7 @@ extension View {
     /// it when the widget is about one thing. The view is drawn in the palette too.
     func widgetBackground(for entry: MomentumEntry, accent: Color? = nil) -> some View {
         containerBackground(for: .widget) {
-            Aurora(accent: accent, animates: false, scale: 0.3)
+            Aurora(accent: accent)
         }
         .palette(entry.palette)
     }

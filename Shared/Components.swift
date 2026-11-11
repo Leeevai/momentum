@@ -2,8 +2,8 @@ import MomentumCore
 import SwiftUI
 import WidgetKit
 
-/// A gradient progress ring. Past 100% it laps: a second sweep over the first, as Activity rings
-/// and glasscn's rings do, with a soft glow once the goal is met.
+/// A progress ring in a goal's color over a faint track. Past 100% it laps: a second sweep over
+/// the first, as Activity rings do.
 struct ProgressRing<Center: View>: View {
     let progress: Double
     let color: GoalColor
@@ -15,9 +15,8 @@ struct ProgressRing<Center: View>: View {
         let tint = palette.color(color)
         ZStack {
             Circle()
-                .stroke(tint.opacity(0.16), lineWidth: lineWidth)
+                .stroke(tint.opacity(0.14), lineWidth: lineWidth)
             RingSweep(progress: progress, color: color, lineWidth: lineWidth)
-                .shadow(color: tint.opacity(progress >= 1 ? 0.45 : 0), radius: lineWidth * 0.6)
             center
         }
         .padding(lineWidth / 2)
@@ -42,7 +41,7 @@ struct RingSweep: View {
         ZStack {
             Circle()
                 .trim(from: 0, to: max(0.0001, min(value, 1)))
-                .stroke(palette.ringGradient(color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .opacity(value > 0 ? 1 : 0)
             if lap > 0 {
                 Circle()
@@ -70,7 +69,7 @@ private struct LapTip: View {
             Circle()
                 .fill(color)
                 .frame(width: lineWidth, height: lineWidth)
-                .shadow(color: .black.opacity(0.45), radius: reach, x: -sin(angle) * reach, y: cos(angle) * reach)
+                .shadow(color: .black.opacity(0.3), radius: reach, x: -sin(angle) * reach, y: cos(angle) * reach)
                 .position(x: proxy.size.width / 2 + radius * cos(angle), y: proxy.size.height / 2 + radius * sin(angle))
         }
     }
@@ -90,25 +89,21 @@ struct StreakBadge: View {
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: "flame.fill")
-                .foregroundStyle(count > 0 ? AnyShapeStyle(flame) : AnyShapeStyle(.tertiary))
+                .foregroundStyle(count > 0 ? AnyShapeStyle(palette.color(.orange)) : AnyShapeStyle(.tertiary))
             Text("\(count)")
                 .monospacedDigit()
                 .contentTransition(.numericText(value: Double(count)))
         }
-        .font(.caption.weight(.semibold))
+        .font(.caption.weight(.medium))
+        .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Goal.streakText(count, unit: unit))
         .help(Goal.streakText(count, unit: unit))
     }
-
-    /// A flame in the palette's warm colors, from its yellow at the tip to its red.
-    private var flame: LinearGradient {
-        LinearGradient(colors: [palette.color(.yellow), palette.color(.orange), palette.color(.red)], startPoint: .top, endPoint: .bottom)
-    }
 }
 
-/// The goal's symbol on an iOS-style tile: a deep shade of the goal's color that the white
-/// symbol reads on in light and dark, a glassy top light, a fine edge and a soft colored shadow.
+/// The goal's symbol on a flat tile: a deep shade of the goal's color that the white symbol reads
+/// on in light and dark.
 struct GoalIcon: View {
     let goal: Goal
     var size: CGFloat = 36
@@ -136,13 +131,6 @@ struct GoalIcon: View {
             .foregroundStyle(.white)
             .frame(width: size, height: size)
             .background(shape.fill(palette.tile(goal.color)))
-            .overlay(
-                shape.fill(LinearGradient(colors: [.white.opacity(0.32), .white.opacity(0)], startPoint: .top, endPoint: .center))
-                    .blendMode(.plusLighter)
-                    .allowsHitTesting(false)
-            )
-            .overlay(shape.strokeBorder(.white.opacity(0.22), lineWidth: max(0.5, size * 0.02)))
-            .shadow(color: palette.color(goal.color).opacity(0.32), radius: size * 0.14, y: size * 0.07)
             .accessibilityHidden(true)
     }
 }
@@ -157,7 +145,7 @@ struct GoalGlyph: View {
         Image(systemName: goal.symbol)
             .font(.system(size: size, weight: .semibold))
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(palette.linear(goal.color))
+            .foregroundStyle(palette.color(goal.color))
             .accessibilityHidden(true)
     }
 }
@@ -255,9 +243,9 @@ struct ProgressBar: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(palette.color(color).opacity(0.16))
+                Capsule().fill(palette.color(color).opacity(0.14))
                 Capsule()
-                    .fill(palette.linear(color))
+                    .fill(palette.color(color))
                     .frame(width: max(height, geometry.size.width * min(max(progress, 0), 1)))
                     .opacity(progress > 0 ? 1 : 0)
             }
