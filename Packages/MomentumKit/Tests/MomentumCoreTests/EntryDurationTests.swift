@@ -74,4 +74,16 @@ struct DurationElsewhereTests {
         let lastColumns = lines.map { $0.last.map(String.init) ?? "?" }
         #expect(lastColumns == ["duration_minutes", "45.00", ""])
     }
+
+    @Test("Insights count finished books, not finished courses")
+    func insights() {
+        var course = Goal(name: "Course", kind: .amount, unit: "lessons", target: 3,
+                          createdAt: testCalendar.date(byAdding: .day, value: -30, to: referenceNow)!)
+        course.books = [Book(title: "Swift", totalPages: 10, currentPage: 10, status: .finished, finishedAt: dayOffset(-1))]
+        var reading = Goal(name: "Read", kind: .books, target: 12,
+                           createdAt: testCalendar.date(byAdding: .day, value: -30, to: referenceNow)!)
+        reading.books = [Book(title: "Dune", totalPages: 400, currentPage: 400, status: .finished, finishedAt: dayOffset(-1))]
+        let finished = engine(AppData(goals: [course, reading])).insights(days: 7, now: referenceNow).booksFinished
+        #expect(finished == 1)
+    }
 }
