@@ -151,3 +151,30 @@ struct FollowingTests {
         #expect(follows == [.course, .series])
     }
 }
+
+@Suite("Typed times and paces")
+struct ClockAndPaceTests {
+    @Test("A typed stopwatch reading becomes seconds; a bare number is minutes")
+    func clock() {
+        let parsed = ["1:23:40", "23:40", "45", " 2:05:00 ", "0:00", "90:00"].map(Formatting.seconds(fromClock:))
+        let refused = ["", "1:60", "1:2:3:4", "-5", "1.5", "a:10", "1::2", "١٢"].map(Formatting.seconds(fromClock:))
+        #expect(parsed == [5020, 1420, 2700, 7500, 0, 5400])
+        #expect(refused.allSatisfy { $0 == nil })
+    }
+
+    @Test("Pace shows on distance goals only")
+    func pace() {
+        let run = Goal(name: "Run", kind: .amount, unit: "km", target: 5)
+        let walk = Goal(name: "Walk", kind: .amount, unit: " Miles", target: 2)
+        let gym = checkInGoal()
+        let paces = [run.paceText(amount: 5, duration: 28 * 60), walk.paceText(amount: 2, duration: 30 * 60),
+                     run.paceText(amount: 0, duration: 600), gym.paceText(amount: 1, duration: 600)]
+        #expect(paces == ["5:36/km", "15:00/mi", nil, nil])
+    }
+
+    @Test("What a goal follows, in the plural")
+    func plurals() {
+        let plurals = FollowKind.allCases.map(\.pluralNoun)
+        #expect(plurals == ["books", "courses", "series", "videos"])
+    }
+}

@@ -33,6 +33,9 @@ public enum FollowKind: String, CaseIterable, Identifiable, Sendable {
     /// "book", "course", "series", "video".
     public var noun: String { title.lowercased() }
 
+    /// "books", "courses", "series", "videos".
+    public var pluralNoun: String { self == .series ? noun : noun + "s" }
+
     /// The heading of its card on the goal screen.
     public var sectionTitle: String {
         switch self {
