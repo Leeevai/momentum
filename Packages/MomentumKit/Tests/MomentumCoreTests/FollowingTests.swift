@@ -144,4 +144,10 @@ struct FollowingTests {
         let finished = try #require(progress.first { $0.id == "book-10" }).value
         #expect(finished == 1)
     }
+
+    @Test("The course and series templates follow what they say")
+    func templates() {
+        let follows = ["course-lessons", "lecture-series"].map { id in GoalTemplate.all.first { $0.id == id }?.prototype.follows }
+        #expect(follows == [.course, .series])
+    }
 }
