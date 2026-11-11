@@ -38,6 +38,7 @@ All notable changes to Momentum are recorded here. The format follows
   your Mac without the app being opened.
 
 ### Changed
+- The widgets are calmer too: clocks and numbers in plain text, quieter labels and flat buttons.
 - Calmer palettes: Slate (the new default), Graphite, Fjord, Sage, Forest, Sand, Clay, Espresso,
   Dusk and Rose. Ocean, Lagoon, Amber, Lavender, Mint, Cherry and Midnight are retired; if you
   used one, Momentum switches to the closest new palette.
