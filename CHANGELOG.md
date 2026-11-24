@@ -7,6 +7,9 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- Choose the app icon in Settings: Paper, Midnight (the spiral on black, to go with dark mode),
+  Mono or Ink. On iPhone each has its own dark and tinted look for the Home Screen; on the Mac
+  it's the Dock icon while Momentum is open.
 - Log progress the way each goal tracks it. A goal counted in lessons (or modules, classes,
   lectures) keeps your place in a course, one counted in episodes or videos your place in a series,
   and a time goal your place in a video of known length. The Log sheet asks how much you did or
