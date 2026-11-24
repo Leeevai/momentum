@@ -99,6 +99,19 @@ struct WatchSnapshotTests {
         #expect(data.session?.plannedDuration == 1500)
     }
 
+    @Test("A tap on a goal archived since the watch last heard does nothing")
+    func archivedSince() {
+        let gym = checkInGoal()
+        let work = timeGoal()
+        var data = AppData(goals: [gym, work])
+        data.archiveGoal(gym.id, at: referenceNow)
+        data.archiveGoal(work.id, at: referenceNow)
+        data.apply(WatchCommand(action: .quickAdd(goal: gym.id), date: time(60)), now: time(60), calendar: testCalendar)
+        data.apply(WatchCommand(action: .start(goal: work.id), date: time(60)), now: time(60), calendar: testCalendar)
+        #expect(data.entries.isEmpty)
+        #expect(data.session == nil)
+    }
+
     private func time(_ seconds: Double) -> Date { referenceNow.addingTimeInterval(seconds) }
 
     @Test("A snapshot of a full history stays small enough to send on every change")
