@@ -56,9 +56,9 @@ app group container, `~/Library/Group Containers/<team>.<prefix>.momentum/Moment
 
 ## Progress is derived, not stored
 
-The file stores facts: log entries (with a date, an amount in base units, an optional note and
-book), milestone and book completion dates, and breaks. Everything shown is computed from those
-facts by `ProgressEngine`:
+The file stores facts: log entries (with a date, an amount in base units, an optional note, book
+and duration), milestone and book completion dates, and breaks. Everything shown is computed from
+those facts by `ProgressEngine`:
 
 - **Periods.** A goal's target applies per day, week, month, year, or overall. The engine finds the
   calendar period containing a date and sums the entries in it.
@@ -70,6 +70,13 @@ facts by `ProgressEngine`:
   milestones count consecutive days with any activity.
 - **Pace.** For yearly, monthly and overall goals, the engine compares the recent rate (14 days,
   or 90 days of finished books) with what the deadline needs, and projects a finish date.
+
+What a goal follows is worked out, never stored (`Goal.follows`, `Model/Following.swift`): a book
+on a books goal or one counted in pages, a course on one counted in lessons, a series on one counted
+in episodes, a video on a time goal. The item is a `Book` record whose `currentPage` and
+`totalPages` hold the position and length in the goal's unit (seconds, for a video). Logging an
+amount moves it (`AppData.logReading`), and setting a position logs the difference
+(`AppData.setPage`); timer sessions leave it alone.
 
 The engine indexes entries by goal and day when it is built, so the many per-render queries are
 dictionary lookups. The app rebuilds it only when data changes; live counters redraw themselves
