@@ -86,6 +86,14 @@ private struct AppearanceSettings: View {
             } footer: {
                 Text("The accent, the aurora behind every screen, every goal's color and the widgets follow the palette, on every device you sync. Click New to make your own, or right-click a palette to customize it.")
             }
+            Section {
+                AppIconPicker()
+                    .padding(.vertical, 6)
+            } header: {
+                Text("App icon")
+            } footer: {
+                Text("The icon in the Dock while Momentum is open, on this Mac. Finder and Launchpad keep the paper one.")
+            }
         }
         .formStyle(.grouped)
         .frame(height: 560)

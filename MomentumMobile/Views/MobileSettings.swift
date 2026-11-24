@@ -36,6 +36,14 @@ struct MobileSettings: View {
                 } footer: {
                     Text("The accent, the aurora behind every screen, every goal's color and the widgets follow the palette. Tap New to make your own, or touch and hold a palette to customize it.")
                 }
+                Section {
+                    AppIconPicker()
+                        .padding(.vertical, 6)
+                } header: {
+                    Text("App icon")
+                } footer: {
+                    Text("Each icon has its own dark and tinted look for the Home Screen.")
+                }
                 Section("Focus") {
                     Picker("Default session length", selection: binding(\.defaultFocusMinutes, preferences)) {
                         ForEach(FocusLengthMenu.lengths, id: \.self) { Text("\($0) minutes").tag($0) }

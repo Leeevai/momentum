@@ -72,6 +72,11 @@ struct MomentumApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// The Dock icon chosen in Settings → Appearance.
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        AppIconChoice.applySaved()
+    }
+
     /// Keep running in the menu bar after the window closes, so a focus timer stays visible.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
