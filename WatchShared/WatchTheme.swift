@@ -28,15 +28,9 @@ extension WatchPalette {
     /// Breaks between focus blocks.
     var rest: Color { color(.mint) }
 
-    func linear(_ goalColor: GoalColor) -> LinearGradient {
-        let tint = color(goalColor)
-        return LinearGradient(colors: [tint.opacity(0.75), tint], startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
-    /// A page's background: the goal's color fading into black, as watchOS apps do.
-    func backdrop(_ goalColor: GoalColor) -> LinearGradient {
-        let tint = color(goalColor)
-        return LinearGradient(colors: [tint.opacity(0.45), tint.opacity(0.08)], startPoint: .top, endPoint: .bottom)
+    /// A page's background: black with a faint wash of the goal's color, flat.
+    func backdrop(_ goalColor: GoalColor) -> Color {
+        color(goalColor).opacity(0.14)
     }
 }
 
@@ -55,7 +49,7 @@ struct WatchRing: View {
                 .stroke(tint.opacity(0.22), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: max(0.001, min(progress, 1)))
-                .stroke(palette.linear(color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             if let symbol {
                 Image(systemName: symbol)

@@ -51,7 +51,7 @@ struct WeekWidgetView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             Text(Formatting.duration(report.totalFocusSeconds))
-                .font(.system(compact ? .title2 : .title, design: .rounded, weight: .bold))
+                .font((compact ? Font.title2 : Font.title).weight(.semibold))
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
             if let change = report.focusChange {
@@ -106,7 +106,7 @@ struct WeekBars: View {
                             }
                             ForEach(Array(day.parts.reversed().enumerated()), id: \.offset) { _, part in
                                 RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                    .fill(part.color.gradient)
+                                    .fill(part.color)
                                     .frame(height: max(3, proxy.size.height * part.seconds / peak - 1.5))
                             }
                         }
