@@ -7,6 +7,9 @@ All notable changes to Momentum are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- Choose the app icon in Settings: Paper, Midnight (the spiral on black, to go with dark mode),
+  Mono or Ink. On iPhone each has its own dark and tinted look for the Home Screen; on the Mac
+  it's the Dock icon while Momentum is open.
 - Keep your place in a book on a goal counted in pages, like 20 pages a day: add the book you're
   reading on the goal's page, and every page you log (the + button, the Log sheet, a widget, Siri
   or the watch) moves its bookmark. The goal shows the page you reached, of how many, and the pages
