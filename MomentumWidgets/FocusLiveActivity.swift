@@ -25,7 +25,7 @@ struct FocusLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     ActivityClock(state: state, isStale: context.isStale)
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .font(.system(size: 30, weight: .semibold))
                         .foregroundStyle(tint)
                         .frame(maxWidth: 120, alignment: .trailing)
                         .padding(.trailing, 4)
@@ -52,7 +52,7 @@ struct FocusLiveActivity: Widget {
                     .foregroundStyle(tint)
             } compactTrailing: {
                 ActivityClock(state: state, isStale: context.isStale)
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(tint)
                     .frame(maxWidth: 52)
             } minimal: {
@@ -86,7 +86,7 @@ private struct LockScreenFocusView: View {
                 }
                 Spacer(minLength: 8)
                 ActivityClock(state: state, isStale: isStale)
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(.system(size: 36, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: 140, alignment: .trailing)
             }
