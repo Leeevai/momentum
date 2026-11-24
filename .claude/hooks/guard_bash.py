@@ -26,7 +26,7 @@ from collections.abc import Iterator
 OVERRIDE = "MOMENTUM_ALLOW_LOCAL_BUILD"
 PROTECTED_BRANCHES = {"main", "develop"}
 
-BUILD_SCRIPTS = {"install.sh", "archive.sh", "app-store-screenshots.sh", "render.sh"}
+BUILD_SCRIPTS = {"install.sh", "archive.sh", "app-store-screenshots.sh", "render.sh", "keep-installed.sh"}
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
 WRAPPERS = {"env", "time", "nice", "nohup", "command", "exec", "sudo", "caffeinate", "timeout", "arch"}
 XCODEBUILD_INFO = {"-version", "-showsdks", "-list", "-help", "-usage", "-checkFirstLaunchStatus"}
