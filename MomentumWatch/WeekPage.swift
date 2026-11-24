@@ -69,7 +69,7 @@ private struct FocusChart: View {
     var body: some View {
         Chart(days, id: \.date) { day in
             BarMark(x: .value("Day", day.date, unit: .day), y: .value("Minutes", day.focus / 60))
-                .foregroundStyle(palette.accentColor.gradient)
+                .foregroundStyle(palette.accentColor)
                 .cornerRadius(2)
         }
         .chartXAxis {
