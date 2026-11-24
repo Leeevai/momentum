@@ -48,6 +48,26 @@ public enum Formatting {
         return unit
     }
 
+    /// Seconds from a stopwatch reading as typed: "1:23:40", "23:40", or a bare "45" for minutes.
+    /// Nil for anything else, including minutes or seconds past 59 after the first field.
+    public static func seconds(fromClock text: String) -> Int? {
+        let fields = text.trimmingCharacters(in: .whitespaces).split(separator: ":", omittingEmptySubsequences: false)
+        guard (1...3).contains(fields.count) else { return nil }
+        var values: [Int] = []
+        for field in fields {
+            let digits = field.trimmingCharacters(in: .whitespaces)
+            guard !digits.isEmpty, digits.allSatisfy(\.isASCII), digits.allSatisfy(\.isNumber), let value = Int(digits),
+                  value <= 1_000_000 else { return nil }
+            values.append(value)
+        }
+        guard values.dropFirst().allSatisfy({ $0 < 60 }) else { return nil }
+        switch values.count {
+        case 1: return values[0] * 60
+        case 2: return values[0] * 60 + values[1]
+        default: return values[0] * 3600 + values[1] * 60 + values[2]
+        }
+    }
+
     public static func percent(_ rate: Double?) -> String {
         guard let rate else { return "–" }
         return rate.formatted(.percent.precision(.fractionLength(0)))
@@ -131,6 +151,16 @@ extension Goal {
             return "\(Formatting.number(perMonth)) \(Formatting.unit("books", for: perMonth)) a month"
         }
         return "\(format(perDay)) a day"
+    }
+
+    /// The time per unit of distance for an entry that took `duration`: "5:36/km" for 5 km in 28
+    /// minutes. Nil unless the goal counts a distance (km, mi) and both numbers are positive.
+    public func paceText(amount: Double, duration: TimeInterval) -> String? {
+        let distances = ["km": "km", "kms": "km", "kilometer": "km", "kilometers": "km", "kilometre": "km", "kilometres": "km",
+                         "mi": "mi", "mile": "mi", "miles": "mi"]
+        guard kind == .amount, let short = distances[unit.trimmingCharacters(in: .whitespaces).lowercased()],
+              amount > 0, duration > 0, amount.isFinite, duration.isFinite else { return nil }
+        return "\(Formatting.clock(duration / amount))/\(short)"
     }
 
     /// "12-day streak", "3-week streak".

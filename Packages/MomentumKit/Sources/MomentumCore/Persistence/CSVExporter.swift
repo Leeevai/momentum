@@ -2,7 +2,9 @@ import Foundation
 
 /// Flattens the log into a spreadsheet-friendly CSV, one row per entry.
 public enum CSVExporter {
-    public static let header = ["date", "goal", "category", "kind", "amount", "unit", "display_amount", "source", "book", "note"]
+    /// New columns go at the end, so a spreadsheet built on the old ones keeps reading them.
+    public static let header = ["date", "goal", "category", "kind", "amount", "unit", "display_amount", "source", "book", "note",
+                                "duration_minutes"]
 
     public static func csv(for data: AppData) -> String {
         let goals = Dictionary(data.goals.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -25,6 +27,7 @@ public enum CSVExporter {
                 entry.source.rawValue,
                 book,
                 entry.note,
+                entry.duration.map { String(format: "%.2f", $0 / 60) } ?? "",
             ]
             lines.append(row.map(escape).joined(separator: ","))
         }

@@ -259,7 +259,8 @@ struct AchievementStats {
         case .nightOwl:
             return sessionStartHours.contains { $0 >= 23 || $0 < 4 } ? 1 : 0
         case .booksFinished:
-            return Double(data.goals.reduce(0) { $0 + $1.books.filter { $0.finishedAt != nil }.count })
+            // Only books: a course or a video finished on a goal that follows one isn't a book.
+            return Double(data.goals.reduce(0) { $0 + ($1.follows == .book ? $1.books.filter { $0.finishedAt != nil }.count : 0) })
         case .pagesRead:
             let bookGoals = data.goals.filter { $0.kind == .books }.map(\.id)
             return max(0, bookGoals.reduce(0) { $0 + (engine.dailyTotals[$1]?.values.reduce(0, +) ?? 0) })
