@@ -82,17 +82,16 @@ struct LogProgressIntent: AppIntent {
         let updated = SharedStore.update { data in
             switch stored.kind {
             case .time:
-                data.log(bounded(amount ?? stored.quickAddStep / 60, 24 * 60) * 60, for: stored.id)
+                // Through logReading, so a video being watched moves along too.
+                data.logReading(bounded(amount ?? stored.quickAddStep / 60, 24 * 60) * 60, for: stored.id)
             case .books:
                 if let book = stored.currentBook {
                     data.logPages(Int(bounded(amount ?? stored.quickAddStep, 100_000)), in: book.id, of: stored.id)
                 }
             case .milestones:
                 data.completeNextMilestone(in: stored.id)
-            case .count:
-                data.log(bounded(amount ?? stored.quickAddStep, AppData.entryLimit), for: stored.id)
-            case .amount:
-                // Pages move the bookmark of the book being read, on a goal counted in pages.
+            case .count, .amount:
+                // Progress in what the goal follows moves it: pages in the book, lessons in the course.
                 data.logReading(bounded(amount ?? stored.quickAddStep, AppData.entryLimit), for: stored.id)
             }
         }
