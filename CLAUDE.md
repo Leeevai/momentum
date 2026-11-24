@@ -39,8 +39,10 @@ xcodebuild -project Momentum.xcodeproj -scheme MomentumMobile -destination 'gene
 ```
 
 Local-only scripts, run only on the owner's request: `scripts/install.sh` (Release build into
-/Applications), `scripts/screenshots/render.sh` (docs/images from demo data),
-`scripts/app-store-screenshots.sh` and `scripts/archive.sh`.
+/Applications), `scripts/keep-installed.sh` (keeps the iPhone and watch apps signed by a free team
+from running out: re-signs and reinstalls them every few days from a LaunchAgent),
+`scripts/screenshots/render.sh` (docs/images from demo data), `scripts/app-store-screenshots.sh`
+and `scripts/archive.sh`.
 
 **The guard.** `.claude/settings.json` runs `.claude/hooks/guard_bash.py` before every shell
 command. It always refuses pushes straight to `main` or `develop` and commits that skip their hooks
