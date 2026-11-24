@@ -252,44 +252,62 @@ files.append((watchDirectory.appendingPathComponent("icon_1024.png"), opaquePNG(
 // The icons people can pick. On iPhone, every one but Paper is an alternate app icon set with its
 // dark and tinted versions (the iPhone target lists them in ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES),
 // and every one has a square preview for the picker. On the Mac, each is the Dock icon, already
-// shaped, which the picker shows too.
-var newDirectories: [URL] = []
+// shaped, which the picker shows too. The script owns these sets whole, so each is written to a
+// staging folder and swapped in at once: an interrupted run, or a catalog build mid-write, sees
+// the old set or the new one, never half of one.
+var sets: [(directory: URL, files: [(name: String, data: Data)])] = []
 func imageSet(_ catalog: URL, _ name: String, _ data: Data) throws {
-    let directory = catalog.appendingPathComponent("\(name).imageset")
-    newDirectories.append(directory)
-    files.append((directory.appendingPathComponent("\(name).png"), data))
-    files.append((directory.appendingPathComponent("Contents.json"), try json([
-        "images": [["idiom": "universal", "filename": "\(name).png"]],
-        "info": ["author": "xcode", "version": 1],
-    ])))
+    sets.append((catalog.appendingPathComponent("\(name).imageset"), [
+        ("\(name).png", data),
+        ("Contents.json", try json([
+            "images": [["idiom": "universal", "filename": "\(name).png"]],
+            "info": ["author": "xcode", "version": 1],
+        ])),
+    ]))
 }
 for variant in Variant.all {
     let icon = renderIcon(pixels: 1024, variant: variant)
     try imageSet(mobileCatalog, "AppIconChoice-\(variant.name)", opaquePNG(renderIcon(pixels: 240, variant: variant)))
     try imageSet(macCatalog, "AppIconChoice-\(variant.name)", png(macShaped(icon, pixels: 512)))
     guard variant.name != Variant.paper.name else { continue }
-    let directory = mobileCatalog.appendingPathComponent("AppIcon-\(variant.name).appiconset")
-    newDirectories.append(directory)
-    files.append((directory.appendingPathComponent("icon_1024.png"), opaquePNG(icon)))
-    files.append((directory.appendingPathComponent("icon_1024_dark.png"), png(renderIcon(pixels: 1024, variant: variant, style: .dark))))
-    files.append((directory.appendingPathComponent("icon_1024_tinted.png"), png(renderIcon(pixels: 1024, variant: variant, style: .tinted))))
-    files.append((directory.appendingPathComponent("Contents.json"), try json([
-        "images": [
-            ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024.png"],
-            ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024_dark.png", "appearances": appearance("dark")],
-            ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024_tinted.png", "appearances": appearance("tinted")],
-        ],
-        "info": ["author": "xcode", "version": 1],
-    ])))
+    sets.append((mobileCatalog.appendingPathComponent("AppIcon-\(variant.name).appiconset"), [
+        ("icon_1024.png", opaquePNG(icon)),
+        ("icon_1024_dark.png", png(renderIcon(pixels: 1024, variant: variant, style: .dark))),
+        ("icon_1024_tinted.png", png(renderIcon(pixels: 1024, variant: variant, style: .tinted))),
+        ("Contents.json", try json([
+            "images": [
+                ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024.png"],
+                ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024_dark.png", "appearances": appearance("dark")],
+                ["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024_tinted.png", "appearances": appearance("tinted")],
+            ],
+            "info": ["author": "xcode", "version": 1],
+        ])),
+    ]))
 }
 
 if arguments.count > 1 {
     files.append((URL(fileURLWithPath: arguments[1]), png(large)))
 }
-for directory in [outputDirectory, mobileDirectory, watchDirectory] + newDirectories {
+for directory in [outputDirectory, mobileDirectory, watchDirectory] {
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 }
 for (url, data) in files {
     try data.write(to: url, options: .atomic)
+}
+let fileManager = FileManager.default
+for set in sets {
+    // A staging folder on the same volume, outside the catalog, then one swap into place.
+    let staging = try fileManager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: set.directory, create: true)
+        .appendingPathComponent(set.directory.lastPathComponent)
+    try fileManager.createDirectory(at: staging, withIntermediateDirectories: true)
+    for file in set.files {
+        try file.data.write(to: staging.appendingPathComponent(file.name))
+    }
+    if fileManager.fileExists(atPath: set.directory.path) {
+        _ = try fileManager.replaceItemAt(set.directory, withItemAt: staging)
+    } else {
+        try fileManager.moveItem(at: staging, to: set.directory)
+    }
+    try? fileManager.removeItem(at: staging.deletingLastPathComponent())
 }
 print("Wrote \(images.count) macOS icon images, the iOS icon, the watch icon and \(Variant.all.count) icon choices")
